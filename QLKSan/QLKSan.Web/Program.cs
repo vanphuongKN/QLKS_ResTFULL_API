@@ -24,6 +24,7 @@ namespace QLKSan
 
             var app = builder.Build();
 
+            // TẠM THỜI: QLKSan.API đã chạy đoạn này (Data/DatabaseSchemaFixer.cs). Xoá khi Web không còn truy cập DB trực tiếp (Giai đoạn 5).
             // Dynamic Database Schema Fixes (e.g. drop duplicate unique constraints on nullable columns)
             using (var scope = app.Services.CreateScope())
             {

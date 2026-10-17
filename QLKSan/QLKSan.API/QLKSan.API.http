@@ -1,0 +1,6 @@
+@QLKSan.API_HostAddress = https://localhost:7001
+
+GET {{QLKSan.API_HostAddress}}/api/health
+Accept: application/json
+
+###
