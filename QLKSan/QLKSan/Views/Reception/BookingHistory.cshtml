@@ -1,0 +1,159 @@
+@model IEnumerable<QLKSan.Models.Entities.PhieuDatPhong>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Lịch sử Đặt phòng";
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Lễ tân & Concierge</p>
+        <h2>Lịch sử Đặt phòng</h2>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control" style="width:280px;font-size:0.9rem;border-color:#eaddc4" placeholder="Mã đơn, tên khách, số phòng...">
+            <button type="submit" class="btn-gold px-3 border-0" style="border-radius:4px;color:#fff">
+                <i class="fas fa-search"></i> Tìm kiếm
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+            {
+                <a href="@Url.Action("BookingHistory", "Reception")" class="btn btn-outline-secondary d-flex align-items-center" style="border-radius:4px">Xóa lọc</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card p-0 mb-4">
+    <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+        <h6 class="fw-bold mb-0" style="letter-spacing:1px;color:#2A3B4C">HỒ SƠ ĐẶT PHÒNG HỆ THỐNG</h6>
+        <span class="badge bg-light text-muted border py-2 px-3" style="font-size:0.75rem">Tổng số: @(Model?.Count() ?? 0) giao dịch</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+            <thead style="background:#fafafa">
+                <tr>
+                    <th class="text-muted small fw-normal py-3 ps-4" style="font-size:0.7rem;letter-spacing:0.5px;width:120px">MÃ ĐƠN</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">KHÁCH HÀNG</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">PHÒNG NGHỈ</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">NGÀY LƯU TRÚ</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">TIỀN CỌC</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">TRẠNG THÁI</th>
+                    <th class="text-muted small fw-normal py-3 pe-4 text-end" style="font-size:0.7rem;letter-spacing:0.5px;width:100px">HÀNH ĐỘNG</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var p in Model)
+                    {
+                        var detail = p.ChiTietDatPhongs?.FirstOrDefault();
+                        var room = detail?.Phong;
+                        var customer = p.KhachHang;
+                        var phone = customer?.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "N/A";
+                        
+                        // Badge styling based on booking state
+                        var badgeClass = "badge-status badge-available"; // default trống/pending
+                        var statusLabel = p.TrangThai.ToString();
+                        
+                        if (p.TrangThai == QLKSan.Enums.BookingStatus.Pending)
+                        {
+                            badgeClass = "bg-warning text-dark border-0";
+                            statusLabel = "Chờ duyệt";
+                        }
+                        else if (p.TrangThai == QLKSan.Enums.BookingStatus.Approved)
+                        {
+                            badgeClass = "bg-info text-white border-0";
+                            statusLabel = "Đã duyệt";
+                        }
+                        else if (p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn)
+                        {
+                            badgeClass = "badge-status badge-occupied";
+                            statusLabel = "Đang ở";
+                        }
+                        else if (p.TrangThai == QLKSan.Enums.BookingStatus.CheckedOut || p.TrangThai == QLKSan.Enums.BookingStatus.Completed)
+                        {
+                            badgeClass = "badge-status badge-available";
+                            statusLabel = "Hoàn thành";
+                        }
+                        else if (p.TrangThai == QLKSan.Enums.BookingStatus.Cancelled)
+                        {
+                            badgeClass = "bg-danger text-white border-0";
+                            statusLabel = "Đã hủy";
+                        }
+
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <strong class="text-navy" style="font-size:0.85rem">#@p.MaDatPhong</strong>
+                                <small class="d-block text-muted" style="font-size:0.65rem">Đặt: @p.NgayDat.ToString("dd/MM/yyyy")</small>
+                            </td>
+                            <td class="py-3">
+                                @if (customer != null)
+                                {
+                                    <strong class="d-block text-navy" style="font-size:0.9rem">@customer.Ho @customer.Ten</strong>
+                                    <small class="text-muted d-block" style="font-size:0.7rem">
+                                        <i class="fas fa-id-card me-1"></i>CCCD: @customer.CCCD_Passport | <i class="fas fa-phone me-1"></i>SĐT: @phone
+                                    </small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Khách vãng lai</span>
+                                }
+                            </td>
+                            <td class="py-3">
+                                @if (room != null)
+                                {
+                                    <strong class="d-block text-navy" style="font-size:0.9rem">Phòng @room.SoPhong</strong>
+                                    <small class="text-gold" style="font-size:0.75rem">@(room.LoaiPhong?.TenLoai ?? "Premium Room")</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa chỉ định</span>
+                                }
+                            </td>
+                            <td class="py-3">
+                                <div style="font-size:0.8rem">
+                                    <span class="text-navy fw-semibold">Check-In:</span> @p.NgayCheckInDuKien.ToString("dd/MM/yyyy")
+                                </div>
+                                <div style="font-size:0.8rem">
+                                    <span class="text-muted">Check-Out:</span> @p.NgayCheckOutDuKien.ToString("dd/MM/yyyy")
+                                </div>
+                            </td>
+                            <td class="py-3 font-monospace fw-bold text-navy" style="font-size:0.85rem">
+                                @p.TienCoc.ToString("N0") ₫
+                            </td>
+                            <td class="py-3">
+                                <span class="badge @badgeClass px-3 py-1" style="font-size:0.7rem;font-weight:600;letter-spacing:0.5px">
+                                    @statusLabel.ToUpper()
+                                </span>
+                            </td>
+                            <td class="pe-4 text-end py-3">
+                                @if (p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn)
+                                {
+                                    <a href="@Url.Action("Process", "Checkout")?maPhong=@room?.MaPhong" class="btn btn-sm btn-gold px-2 py-1" title="Trả phòng">
+                                        <i class="fas fa-file-invoice-dollar"></i> Trả phòng
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-light text-muted px-2 py-1" onclick="alert('Mã đơn: #@p.MaDatPhong. Đơn đặt phòng này hiện đang ở trạng thái @statusLabel.')">
+                                        <i class="fas fa-info-circle"></i> Xem
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-folder-open mb-3" style="font-size:2.5rem; opacity:0.3"></i>
+                            <p class="mb-0">Không tìm thấy lịch sử đặt phòng nào phù hợp.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

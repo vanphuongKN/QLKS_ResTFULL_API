@@ -1,0 +1,38 @@
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<h4>Đăng nhập</h4>
+<p class="login-desc">Vui lòng nhập thông tin đăng nhập để truy cập hệ thống.</p>
+<hr class="divider-line">
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger py-2">@ViewBag.Error</div>
+}
+
+<form method="post" action="@Url.Action("Login", "Auth")">
+    <div class="mb-3">
+        <label class="form-label-upper">Tên đăng nhập</label>
+        <div class="input-icon">
+            <i class="fas fa-user"></i>
+            <input type="text" name="username" placeholder="Tên đăng nhập hoặc Email">
+        </div>
+    </div>
+    <div class="mb-4">
+        <label class="form-label-upper">Mật khẩu</label>
+        <div class="input-icon">
+            <i class="fas fa-lock"></i>
+            <input type="password" name="password" placeholder="••••••••">
+        </div>
+    </div>
+    <button type="submit" class="btn-login">Đăng nhập</button>
+</form>
+
+<hr class="divider-line">
+<div class="login-footer">
+    <a href="@Url.Action("Register", "Auth")"><i class="fas fa-user-plus me-1"></i> Đăng ký tài khoản</a>
+    <span class="secure-badge"><i class="fas fa-circle" style="font-size:6px"></i> Hệ thống bảo mật</span>
+</div>
+

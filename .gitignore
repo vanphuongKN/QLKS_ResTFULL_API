@@ -1,0 +1,35 @@
+## Visual Studio & .NET .gitignore
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio temporary files, caches, and user settings
+.vs/
+*.user
+*.userosv
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.svclog
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Temporary / build error files
+build_errors.txt
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

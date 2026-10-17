@@ -1,0 +1,111 @@
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = "Đăng Ký Tài Khoản";
+}
+
+<h4>Tạo Tài Khoản Mới</h4>
+<p class="login-desc">Đăng ký để đặt phòng trực tuyến và nhận ưu đãi đặc biệt.</p>
+<hr class="divider-line">
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger py-2">@ViewBag.Error</div>
+}
+@if (ViewBag.Success != null)
+{
+    <div class="alert alert-success py-2">@ViewBag.Success</div>
+}
+
+<form method="post" action="@Url.Action("Register", "Auth")">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="mb-3">
+            <label class="form-label-upper">Họ</label>
+            <div class="input-icon">
+                <i class="fas fa-user"></i>
+                <input type="text" name="ho" placeholder="Nguyễn" value="@ViewBag.Ho" required>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label-upper">Tên</label>
+            <div class="input-icon">
+                <i class="fas fa-user"></i>
+                <input type="text" name="ten" placeholder="Văn A" value="@ViewBag.Ten" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label-upper">Số điện thoại</label>
+        <div class="input-icon">
+            <i class="fas fa-phone"></i>
+            <input type="tel" name="sdt" placeholder="0901234567" value="@ViewBag.SDT" maxlength="10" pattern="^0[35789][0-9]{8}$" title="Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08, 09)" required>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label-upper">CCCD / Passport</label>
+        <div class="input-icon">
+            <i class="fas fa-id-card"></i>
+            <input type="text" name="cccd" placeholder="048204000123" value="@ViewBag.CCCD" maxlength="12" pattern="^[0-9]{9,12}$" title="CCCD/Passport phải bao gồm 9 đến 12 chữ số" required>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label-upper">Ngày sinh</label>
+        <div class="input-icon">
+            <i class="fas fa-calendar"></i>
+            <input type="date" name="ngaySinh" value="@ViewBag.NgaySinh" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label-upper">Địa chỉ</label>
+        <div class="input-icon">
+            <i class="fas fa-map-marker-alt"></i>
+            <input type="text" name="diaChi" placeholder="Số nhà, đường, quận, thành phố" value="@ViewBag.DiaChi" required>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label-upper">Email (tùy chọn)</label>
+        <div class="input-icon">
+            <i class="fas fa-envelope"></i>
+            <input type="email" name="email" placeholder="email@example.com" value="@ViewBag.Email">
+        </div>
+    </div>
+
+    <hr class="divider-line">
+
+    <div class="mb-3">
+        <label class="form-label-upper">Tên đăng nhập</label>
+        <div class="input-icon">
+            <i class="fas fa-at"></i>
+            <input type="text" name="username" placeholder="Tên tài khoản" value="@ViewBag.Username" required>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="mb-3">
+            <label class="form-label-upper">Mật khẩu</label>
+            <div class="input-icon">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" placeholder="••••••••" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
+            </div>
+        </div>
+        <div class="mb-4">
+            <label class="form-label-upper">Xác nhận mật khẩu</label>
+            <div class="input-icon">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="confirmPassword" placeholder="••••••••" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-login">Đăng ký tài khoản</button>
+</form>
+
+<hr class="divider-line">
+<div class="login-footer">
+    <a href="@Url.Action("Login", "Auth")"><i class="fas fa-arrow-left me-1"></i> Quay lại đăng nhập</a>
+    <span class="secure-badge"><i class="fas fa-circle" style="font-size:6px"></i> Hệ thống bảo mật</span>
+</div>

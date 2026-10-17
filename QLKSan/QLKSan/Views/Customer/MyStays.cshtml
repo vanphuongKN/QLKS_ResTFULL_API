@@ -1,0 +1,798 @@
+@using QLKSan.Models.Entities
+@using QLKSan.Enums
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Lịch sử kỳ nghỉ";
+    var customer = ViewBag.Customer as KhachHang;
+    var bookings = ViewBag.Bookings as IEnumerable<PhieuDatPhong>;
+
+    // 1. Map real bookings
+    var reviewedRoomIds = ViewBag.ReviewedRoomIds as HashSet<string> ?? new HashSet<string>();
+    var realStays = new List<StayItem>();
+    if (bookings != null)
+    {
+        foreach (var b in bookings)
+        {
+            var detail = b.ChiTietDatPhongs?.FirstOrDefault();
+            var room = detail?.Phong;
+            var roomType = room?.LoaiPhong;
+            
+            // Map room images dynamically or fallback
+            string img = "/images/room_ocean.png";
+            if (roomType != null)
+            {
+                var name = roomType.TenLoai.ToLower();
+                if (name.Contains("tổng thống") || name.Contains("presidential") || name.Contains("vip"))
+                    img = "/images/room_presidential.png";
+                else if (name.Contains("sân vườn") || name.Contains("garden") || name.Contains("standard"))
+                    img = "/images/room_garden.png";
+            }
+
+            var nights = (int)(b.NgayCheckOutDuKien - b.NgayCheckInDuKien).TotalDays;
+            if (nights <= 0) nights = 1;
+
+            var amount = b.HoaDon?.TongTienCanThanhToan ?? 0;
+            if (amount <= 0 && room != null)
+            {
+                amount = detail.GiaThueThucTe * nights;
+            }
+
+            var paymentText = "Chưa thanh toán";
+            var paymentMethod = "CASH";
+            if (b.HoaDon != null)
+            {
+                if (b.HoaDon.TrangThai == InvoiceStatus.Paid)
+                {
+                    var firstPayment = b.HoaDon.ThanhToans?.FirstOrDefault();
+                    if (firstPayment != null)
+                    {
+                        paymentText = "Thanh toán qua " + firstPayment.PhuongThuc;
+                        paymentMethod = firstPayment.PhuongThuc.ToUpper();
+                    }
+                    else
+                    {
+                        paymentText = "Đã thanh toán";
+                        paymentMethod = "CASH";
+                    }
+                }
+                else if (b.HoaDon.TrangThai == InvoiceStatus.Cancelled)
+                {
+                    paymentText = "Đã hủy";
+                }
+            }
+
+            var statusText = "CHỜ DUYỆT";
+            var statusColor = "#C5A059";
+            if (b.TrangThai == BookingStatus.Approved)
+            {
+                statusText = "ĐÃ DUYỆT";
+                statusColor = "#2e7d32";
+            }
+            else if (b.TrangThai == BookingStatus.CheckedIn)
+            {
+                statusText = "ĐANG Ở";
+                statusColor = "#1565C0";
+            }
+            else if (b.TrangThai == BookingStatus.CheckedOut)
+            {
+                statusText = "HOÀN THÀNH";
+                statusColor = "#C5A059";
+            }
+            else if (b.TrangThai == BookingStatus.Cancelled)
+            {
+                statusText = "ĐÃ HỦY";
+                statusColor = "#c62828";
+            }
+
+            realStays.Add(new StayItem
+            {
+                Id = "#LR-" + b.MaDatPhong.Substring(Math.Max(0, b.MaDatPhong.Length - 5)),
+                RoomName = roomType?.TenLoai ?? "Premium Suite",
+                Location = room != null ? $"PHÒNG {room.SoPhong}, LUXE RESERVE" : "LUXE RESERVE",
+                ImageUrl = img,
+                DateText = $"{b.NgayCheckInDuKien:dd} Th{b.NgayCheckInDuKien.Month} – {b.NgayCheckOutDuKien:dd} Th{b.NgayCheckOutDuKien.Month}, {b.NgayCheckOutDuKien:yyyy}",
+                PaymentText = paymentText,
+                PaymentMethod = paymentMethod,
+                StatusText = statusText,
+                StatusColor = statusColor,
+                TotalAmount = amount,
+                TotalNights = nights,
+                IsReal = true,
+                RealBookingId = b.MaDatPhong,
+                RoomId = room?.MaPhong,
+                CanReview = b.TrangThai == BookingStatus.CheckedOut,
+                HasReviewed = room != null && reviewedRoomIds.Contains(room.MaPhong)
+            });
+        }
+    }
+
+    var allStays = new List<StayItem>(realStays);
+
+    // Dynamic member calculations
+    int totalCalculatedNights = allStays.Sum(s => s.TotalNights);
+    int currentPoints = customer != null ? customer.DiemTichLuy : 0;
+    
+    // Most popular room name
+    var favRoom = allStays.GroupBy(s => s.RoomName)
+                          .OrderByDescending(g => g.Count())
+                          .Select(g => g.Key)
+                          .FirstOrDefault() ?? "French Riviera";
+
+    string memberTier = "Thành viên Đồng";
+    if (currentPoints >= 5000) memberTier = "Thành viên Kim Cương";
+    else if (currentPoints >= 3000) memberTier = "Thành viên Vàng";
+    else if (currentPoints >= 1000) memberTier = "Thành viên Bạc";
+}
+
+@functions {
+    public class StayItem
+    {
+        public string? Id { get; set; }
+        public string? RoomName { get; set; }
+        public string? Location { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? DateText { get; set; }
+        public string? PaymentText { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? StatusText { get; set; }
+        public string? StatusColor { get; set; }
+        public decimal TotalAmount { get; set; }
+        public int TotalNights { get; set; }
+        public bool IsReal { get; set; }
+        public string? RealBookingId { get; set; }
+        public string? RoomId { get; set; }
+        public bool CanReview { get; set; }
+        public bool HasReviewed { get; set; }
+    }
+}
+
+<style>
+    /* Premium Luxury Styling */
+    .luxe-stays-page {
+        background-color: #FAF8F5; /* Warm luxury ivory background */
+        padding: 60px 40px;
+        margin: -40px -20px -60px -20px; /* Offset original layout padding/margin */
+        color: #2E2D2B;
+        min-height: 100vh;
+        box-sizing: border-box;
+    }
+
+    .font-playfair {
+        font-family: 'Playfair Display', serif;
+    }
+
+    .luxe-category {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #C5A059;
+        letter-spacing: 2.5px;
+        margin-bottom: 12px;
+    }
+
+    .luxe-title {
+        font-size: 3rem;
+        font-weight: 600;
+        color: #222222;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+    }
+
+    .luxe-subtitle {
+        font-size: 0.95rem;
+        color: #7E7C77;
+        max-width: 650px;
+        line-height: 1.6;
+    }
+
+    /* Primary Luxe Button */
+    .luxe-btn-primary {
+        display: inline-flex;
+        align-items: center;
+        background-color: #222222;
+        color: #FFFFFF !important;
+        text-decoration: none !important;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        padding: 14px 28px;
+        border-radius: 4px;
+        border: none;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .luxe-btn-primary:hover {
+        background-color: #C5A059;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(197, 160, 89, 0.25);
+    }
+
+    /* Card Styling */
+    .luxe-card {
+        background-color: #FFFFFF;
+        border: 1px solid #EAE8E2;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.015);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .luxe-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+        border-color: #D3CFCE;
+    }
+
+    /* Featured Row Grid */
+    .luxe-featured-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-top: 40px;
+    }
+
+    /* Featured Card styling */
+    .luxe-featured-card {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        overflow: hidden;
+        min-height: 380px;
+    }
+    .luxe-featured-img-container {
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+    .luxe-featured-img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .luxe-featured-card:hover .luxe-featured-img-container img {
+        transform: scale(1.04);
+    }
+    .luxe-featured-details {
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+    }
+    .luxe-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .luxe-badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        padding: 6px 12px;
+        border-radius: 20px;
+    }
+    .luxe-id {
+        font-size: 0.7rem;
+        color: #8E8A82;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+    .luxe-room-title {
+        font-size: 2.2rem;
+        font-weight: 500;
+        color: #222222;
+        margin-bottom: 8px;
+        line-height: 1.2;
+    }
+    .luxe-room-location {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #C5A059;
+        letter-spacing: 1.5px;
+        font-weight: 600;
+        margin-bottom: 30px;
+    }
+    .luxe-meta-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 30px;
+    }
+    .luxe-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.85rem;
+        color: #5E5C56;
+    }
+    .luxe-meta-item i {
+        font-size: 1rem;
+        color: #C5A059;
+        width: 20px;
+    }
+
+    /* Button Outline Luxe style */
+    .luxe-btn-outline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #FAF8F5;
+        color: #222222;
+        border: 1px solid #EAE8E2;
+        padding: 14px 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%;
+        text-align: left;
+        text-decoration: none !important;
+    }
+    .luxe-btn-outline:hover {
+        background-color: #222222;
+        color: #FFFFFF !important;
+        border-color: #222222;
+    }
+    .luxe-btn-outline i {
+        transition: transform 0.3s ease;
+    }
+    .luxe-btn-outline:hover i {
+        transform: translateX(4px);
+    }
+    .luxe-btn-feedback {
+        background-color: #FFFDF9;
+        border-color: #C5A059;
+        color: #C5A059;
+    }
+    .luxe-btn-feedback:hover {
+        background-color: #C5A059;
+        color: #FFFFFF !important;
+    }
+
+    /* Membership Card */
+    .luxe-member-card {
+        background-color: #222222;
+        border-color: #222222;
+        color: #FFFFFF;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .luxe-member-card:hover {
+        border-color: #C5A059;
+    }
+    .luxe-member-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #C5A059;
+        letter-spacing: 2px;
+        margin-bottom: 12px;
+    }
+    .luxe-member-tier {
+        font-size: 1.8rem;
+        font-weight: 400;
+        color: #FFFFFF;
+        line-height: 1.2;
+    }
+    .luxe-member-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.08);
+        margin: 24px 0;
+    }
+    .luxe-metric-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #8E8A82;
+        letter-spacing: 1.5px;
+        margin-bottom: 8px;
+    }
+    .luxe-metric-value {
+        font-size: 2.5rem;
+        font-weight: 500;
+        color: #FFFFFF;
+    }
+
+    /* Secondary Stays Grid */
+    .luxe-stays-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+    .luxe-grid-card {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .luxe-grid-img-container {
+        height: 240px;
+        overflow: hidden;
+    }
+    .luxe-grid-img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .luxe-grid-card:hover .luxe-grid-img-container img {
+        transform: scale(1.05);
+    }
+    .luxe-grid-body {
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+    .luxe-grid-date {
+        font-size: 0.7rem;
+        color: #8E8A82;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .luxe-grid-id {
+        font-size: 0.75rem;
+        color: #C5A059;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .luxe-grid-title {
+        font-size: 1.8rem;
+        font-weight: 500;
+        color: #222222;
+        margin: 8px 0 20px 0;
+        line-height: 1.2;
+    }
+    .luxe-grid-payment-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .luxe-pay-badge, .luxe-invoice-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8E8A82;
+    }
+    .luxe-pay-badge i, .luxe-invoice-badge i {
+        font-size: 0.85rem;
+        color: #C5A059;
+    }
+    .luxe-btn-dark {
+        display: block;
+        width: 100%;
+        background-color: #222222;
+        color: #FFFFFF !important;
+        text-decoration: none !important;
+        text-align: center;
+        border: none;
+        border-radius: 4px;
+        padding: 14px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: pointer;
+        margin-top: auto;
+    }
+    .luxe-btn-dark:hover {
+        background-color: #C5A059;
+        box-shadow: 0 4px 15px rgba(197, 160, 89, 0.25);
+    }
+
+    /* History List Table Section */
+    .luxe-history-section {
+        border-top: 1px solid #EAE8E2;
+        padding-top: 40px;
+    }
+    .luxe-history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .luxe-history-row {
+        display: grid;
+        grid-template-columns: 2fr 1.5fr 1.5fr 0.5fr;
+        align-items: center;
+        background-color: #FFFFFF;
+        border: 1px solid #EAE8E2;
+        border-radius: 4px;
+        padding: 24px 30px;
+        transition: all 0.3s ease;
+    }
+    .luxe-history-row:hover {
+        border-color: #C5A059;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    }
+    .luxe-history-info {
+        display: flex;
+        flex-direction: column;
+    }
+    .luxe-history-date {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #C5A059;
+        letter-spacing: 1.5px;
+        margin-bottom: 6px;
+    }
+    .luxe-history-name {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #222222;
+    }
+    .luxe-history-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #8E8A82;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+    }
+    .luxe-history-value {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #222222;
+    }
+    .luxe-btn-circle-download {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background-color: #FAF8F5;
+        border: 1px solid #EAE8E2;
+        color: #222222;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        margin-left: auto;
+    }
+    .luxe-btn-circle-download:hover {
+        background-color: #C5A059;
+        border-color: #C5A059;
+        color: #FFFFFF;
+        transform: scale(1.05);
+    }
+
+    /* Responsive Handling */
+    @@media (max-width: 992px) {
+        .luxe-featured-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    @@media (max-width: 768px) {
+        .luxe-stays-page {
+            padding: 40px 20px;
+        }
+        .luxe-featured-card {
+            grid-template-columns: 1fr;
+        }
+        .luxe-featured-img-container {
+            height: 250px;
+        }
+        .luxe-stays-grid {
+            grid-template-columns: 1fr;
+        }
+        .luxe-history-row {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        .luxe-btn-circle-download {
+            margin-left: 0;
+            margin-top: 10px;
+        }
+        .luxe-title {
+            font-size: 2.2rem;
+        }
+    }
+</style>
+
+<div class="luxe-stays-page">
+    
+    <!-- Luxe Header Section -->
+    <div class="luxe-header mb-5">
+        <div class="luxe-category">DANH MỤC</div>
+        <div class="d-flex justify-content-between align-items-end flex-wrap gap-3">
+            <h1 class="luxe-title font-playfair mb-0">Lịch sử kỳ nghỉ</h1>
+            <a asp-action="BookRoom" class="luxe-btn-primary">
+                <i class="fas fa-plus me-2"></i>ĐẶT PHÒNG MỚI
+            </a>
+        </div>
+        <p class="luxe-subtitle mt-3">
+            Lưu trữ tinh tế về các chuyến đi của bạn tại LUXE RESERVE. Xem lại các Phiếu Đặt Phòng đã qua và truy cập Hóa Đơn điện tử của bạn bất cứ lúc nào.
+        </p>
+    </div>
+
+    <!-- Featured Stays and Membership Row -->
+    <div class="luxe-featured-row">
+        <!-- Left Featured Stay Card or Empty State -->
+        @if (allStays.Any())
+        {
+            var f = allStays[0];
+            <div class="luxe-card luxe-featured-card">
+                <div class="luxe-featured-img-container">
+                    <img src="@f.ImageUrl" alt="@f.RoomName" />
+                </div>
+                <div class="luxe-featured-details">
+                    <div class="luxe-card-top">
+                        <span class="luxe-badge" style="background-color: @(f.StatusColor)15; color: @f.StatusColor;">@f.StatusText</span>
+                        <span class="luxe-id">ID: @f.Id</span>
+                    </div>
+                    <h2 class="luxe-room-title font-playfair">@f.RoomName</h2>
+                    <div class="luxe-room-location">@f.Location</div>
+                
+                <div class="luxe-meta-list">
+                    <div class="luxe-meta-item">
+                        <i class="far fa-calendar-alt"></i>
+                        <span>@f.DateText</span>
+                    </div>
+                    <div class="luxe-meta-item">
+                        <i class="far fa-credit-card"></i>
+                        <span>@f.PaymentText</span>
+                    </div>
+                </div>
+                
+                <div class="luxe-featured-actions mt-auto">
+                    @if (f.IsReal && f.CanReview)
+                    {
+                        if (f.HasReviewed)
+                        {
+                            <button class="luxe-btn-outline" style="background-color: #FAF8F5; border-color: #EAE8E2; color: #8E8A82; cursor: default;" disabled>
+                                <span>ĐÃ ĐÁNH GIÁ</span>
+                                <i class="fas fa-check-circle ms-2" style="color: #2e7d32;"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-action="Feedback" asp-route-roomId="@f.RoomId" class="luxe-btn-outline luxe-btn-feedback">
+                                <span>ĐÁNH GIÁ TRẢI NGHIỆM</span>
+                                <i class="fas fa-star ms-2"></i>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <button class="luxe-btn-outline" onclick="alert('Đang hiển thị hóa đơn điện tử cho chuyến đi @f.Id. Hóa đơn chi tiết đã được gửi đến email đăng ký của bạn.')">
+                            <span>XEM HÓA ĐƠN</span>
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+        }
+        else
+        {
+            <div class="luxe-card luxe-featured-card" style="display: flex; align-items: center; justify-content: center; min-height: 380px; text-align: center; flex-direction: column; padding: 40px;">
+                <i class="fas fa-suitcase-rolling" style="font-size: 3rem; color: #EAE8E2; margin-bottom: 20px;"></i>
+                <h3 class="font-playfair" style="color: #222222; font-size: 1.5rem; margin-bottom: 10px;">Chưa có kỳ nghỉ nào</h3>
+                <p style="color: #8E8A82; font-size: 0.9rem; max-width: 300px; margin-bottom: 20px;">Bạn chưa có kỳ nghỉ nào tại LUXE RESERVE. Hãy bắt đầu hành trình nghỉ dưỡng của bạn ngay hôm nay.</p>
+                <a asp-action="BookRoom" class="luxe-btn-primary">ĐẶT PHÒNG NGAY</a>
+            </div>
+        }
+
+        <!-- Right Membership Status Card -->
+        <div class="luxe-card luxe-member-card">
+            <div class="luxe-member-header">
+                <div class="luxe-member-label">HẠNG THÀNH VIÊN</div>
+                <h3 class="luxe-member-tier font-playfair">@memberTier</h3>
+            </div>
+            
+            <div class="luxe-member-divider"></div>
+            
+            <div class="luxe-member-body">
+                <div class="luxe-metric-label">ĐIỂM TÍCH LŨY</div>
+                <div class="luxe-metric-value">@currentPoints</div>
+            </div>
+            
+            <div class="luxe-member-divider"></div>
+            
+            <div class="luxe-member-footer">
+                <div class="luxe-metric-label">ĐIỂM ĐẾN YÊU THÍCH</div>
+                <div class="luxe-metric-value font-playfair" style="font-size: 1.45rem;">@favRoom</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Stays Grid (2 column) -->
+    @if (allStays.Count > 1)
+    {
+        <div class="luxe-stays-grid mt-4">
+            @for (int i = 1; i <= 2 && i < allStays.Count; i++)
+            {
+                var s = allStays[i];
+                <div class="luxe-card luxe-grid-card">
+                    <div class="luxe-grid-img-container">
+                        <img src="@s.ImageUrl" alt="@s.RoomName" />
+                    </div>
+                    <div class="luxe-grid-body">
+                    <div class="luxe-card-top">
+                        <span class="luxe-grid-date">@s.DateText</span>
+                        <span class="luxe-grid-id">ID: @s.Id</span>
+                    </div>
+                    <h3 class="luxe-grid-title font-playfair">@s.RoomName</h3>
+                    
+                    <div class="luxe-grid-payment-row">
+                        @{
+                            string paymentIcon = "fa-credit-card";
+                            if (s.PaymentMethod.Contains("APPLE")) paymentIcon = "fa-brands fa-apple-pay";
+                            else if (s.PaymentMethod.Contains("VISA")) paymentIcon = "fa-brands fa-cc-visa";
+                            else if (s.PaymentMethod.Contains("MASTER")) paymentIcon = "fa-brands fa-cc-mastercard";
+                            else if (s.PaymentMethod.Contains("AMEX")) paymentIcon = "fa-brands fa-cc-amex";
+                        }
+                        <div class="luxe-pay-badge">
+                            <i class="@paymentIcon"></i>
+                            <span class="ms-1">@s.PaymentMethod</span>
+                        </div>
+                        <div class="luxe-invoice-badge">
+                            <i class="fas fa-receipt"></i>
+                            <span>ĐÃ XUẤT HĐ</span>
+                        </div>
+                    </div>
+                    
+                    @if (s.IsReal && s.CanReview)
+                    {
+                        if (s.HasReviewed)
+                        {
+                            <button class="luxe-btn-dark" style="background-color: #FAF8F5; border-color: #EAE8E2; color: #8E8A82; cursor: default;" disabled>
+                                <span>ĐÃ ĐÁNH GIÁ</span>
+                                <i class="fas fa-check-circle ms-2" style="color: #2e7d32;"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-action="Feedback" asp-route-roomId="@s.RoomId" class="luxe-btn-dark">
+                                ĐÁNH GIÁ PHÒNG
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <button class="luxe-btn-dark" onclick="alert('Bắt đầu tải xuống bản sao PDF hóa đơn điện tử cho chuyến đi @s.Id...')">
+                            TẢI HÓA ĐƠN
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+        </div>
+    }
+
+    <!-- Older Stays List Section -->
+    @if (allStays.Count > 3)
+    {
+        <div class="luxe-history-section mt-5">
+            <div class="luxe-history-list">
+            @for (int i = 3; i < allStays.Count; i++)
+            {
+                var s = allStays[i];
+                <div class="luxe-history-row">
+                    <div class="luxe-history-info">
+                        <div class="luxe-history-date">@s.Id</div>
+                        <div class="luxe-history-name font-playfair">@s.RoomName</div>
+                    </div>
+                    <div class="luxe-history-amount">
+                        <div class="luxe-history-label">TỔNG SỐ TIỀN</div>
+                        <div class="luxe-history-value">@FormatHelper.ToVND(s.TotalAmount)</div>
+                    </div>
+                    <div class="luxe-history-payment">
+                        <div class="luxe-history-label">THANH TOÁN</div>
+                        <div class="luxe-history-value">@s.PaymentText.Replace("Thanh toán qua ", "")</div>
+                    </div>
+                    <div class="luxe-history-action">
+                        <button class="luxe-btn-circle-download" title="Tải hóa đơn" onclick="alert('Đang tải xuống hóa đơn điện tử của @s.RoomName...')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    }
+</div>

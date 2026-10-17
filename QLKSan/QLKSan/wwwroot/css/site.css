@@ -1,0 +1,718 @@
+/* ============================================
+   LuxeRegistry - Admin Portal CSS
+   Theme: Navy (#0A192F) & Gold (#C5A059)
+   ============================================ */
+
+:root {
+    --navy: #0A192F;
+    --navy-light: #112240;
+    --gold: #C5A059;
+    --gold-hover: #b08d4b;
+    --gold-light: rgba(197,160,89,0.12);
+    --light-gray: #F5F6FA;
+    --white: #FFFFFF;
+    --text-dark: #333333;
+    --text-muted: #6c757d;
+    --border-light: #E8E8E8;
+    --success: #2E7D32;
+    --danger: #C62828;
+    --warning: #F57F17;
+    --info: #1565C0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+    background-color: var(--light-gray);
+    margin: 0;
+}
+
+.font-playfair { font-family: 'Playfair Display', serif; }
+.bg-navy { background-color: var(--navy) !important; }
+.text-navy { color: var(--navy) !important; }
+.bg-gold { background-color: var(--gold) !important; }
+.text-gold { color: var(--gold) !important; }
+.bg-light-gray { background-color: var(--light-gray) !important; }
+
+/* ---- WRAPPER ---- */
+#wrapper { min-height: 100vh; display: flex; }
+
+/* ---- SIDEBAR ---- */
+.sidebar {
+    width: 220px;
+    background-color: var(--navy);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 1000;
+    overflow-y: auto;
+}
+.sidebar-brand {
+    padding: 24px 20px 8px;
+}
+.sidebar-brand h4 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-weight: 700;
+    margin: 0;
+    font-size: 1.3rem;
+}
+.sidebar-hotel {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-hotel .hotel-name {
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin: 0;
+}
+.sidebar-hotel .hotel-sub {
+    color: rgba(255,255,255,0.45);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 2px 0 0;
+}
+.sidebar-nav {
+    padding: 16px 0;
+    flex: 1;
+}
+.sidebar-nav .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: rgba(255,255,255,0.65);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+}
+.sidebar-nav .nav-item i {
+    width: 20px;
+    margin-right: 12px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.sidebar-nav .nav-item:hover,
+.sidebar-nav .nav-item.active {
+    color: var(--gold);
+    background: rgba(197,160,89,0.08);
+    border-left-color: var(--gold);
+}
+.sidebar-logout {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-top: auto;
+}
+.sidebar-logout a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sidebar-logout a:hover { color: var(--gold); }
+
+/* ---- MAIN CONTENT ---- */
+#page-content-wrapper {
+    margin-left: 220px;
+    flex: 1;
+    min-height: 100vh;
+}
+
+/* ---- TOP BAR ---- */
+.topbar {
+    background: var(--white);
+    padding: 12px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+.topbar-search {
+    flex: 0 1 400px;
+    margin: 0 auto;
+}
+.topbar-search .form-control {
+    background: var(--light-gray);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px 8px 40px;
+    font-size: 0.85rem;
+}
+.topbar-search .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.topbar-actions .icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px;
+}
+.topbar-actions .icon-btn:hover { color: var(--navy); }
+.topbar-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--gold);
+}
+.topbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- PAGE CONTENT ---- */
+.page-content { padding: 28px 30px; }
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+.page-header .page-label {
+    color: var(--gold);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+.page-header h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--navy);
+    font-weight: 700;
+    margin: 0;
+    font-size: 1.8rem;
+}
+.page-header .page-desc {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+/* ---- CARDS ---- */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    background: var(--white);
+}
+.card-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border-light);
+    border-radius: 12px 12px 0 0 !important;
+    padding: 16px 20px;
+    font-weight: 600;
+}
+
+/* ---- BUTTONS ---- */
+.btn-gold {
+    background: var(--gold);
+    color: var(--white);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    padding: 10px 24px;
+    border-radius: 6px;
+}
+.btn-gold:hover { background: var(--gold-hover); color: var(--white); }
+.btn-navy {
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 6px;
+}
+.btn-navy:hover { background: var(--navy-light); color: var(--white); }
+.btn-outline-navy {
+    border: 1px solid var(--navy);
+    color: var(--navy);
+    background: transparent;
+    font-weight: 500;
+    border-radius: 6px;
+}
+.btn-outline-navy:hover { background: var(--navy); color: var(--white); }
+.btn-outline-gold {
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    background: transparent;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.btn-outline-gold:hover { background: var(--gold); color: var(--white); }
+
+/* ---- HERO BANNER ---- */
+.hero-banner {
+    background: var(--navy);
+    border-radius: 12px;
+    padding: 28px 30px;
+    margin-bottom: 24px;
+}
+.hero-banner h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 1.7rem;
+    margin-bottom: 8px;
+}
+.hero-banner p { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 16px; }
+.hero-banner .stat-label {
+    color: var(--gold);
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+}
+.hero-banner .stat-value { color: var(--gold); font-size: 1.1rem; font-weight: 700; }
+
+/* ---- STAT CARDS ---- */
+.stat-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.stat-card .stat-icon { font-size: 1.5rem; color: var(--text-muted); margin-bottom: 10px; }
+.stat-card .stat-label {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.stat-card .stat-value { font-size: 1.1rem; font-weight: 700; color: var(--navy); }
+
+/* ---- FILTER TABS ---- */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.filter-tabs .filter-btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    background: var(--white);
+    color: var(--text-dark);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+}
+.filter-tabs .filter-btn.active,
+.filter-tabs .filter-btn:hover {
+    background: var(--navy);
+    color: var(--white);
+    border-color: var(--navy);
+}
+
+/* ---- ROOM GRID CARDS ---- */
+.room-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    height: 100%;
+    transition: box-shadow 0.2s;
+}
+.room-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.room-card .room-type {
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.room-card .room-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+}
+.room-card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+/* Status Badges */
+.badge-status {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+}
+.badge-available { background: rgba(46,125,50,0.08); color: var(--success); border-color: var(--success); }
+.badge-occupied { background: rgba(198,40,40,0.08); color: var(--danger); border-color: var(--danger); }
+.badge-booked { background: rgba(21,101,192,0.08); color: var(--info); border-color: var(--info); }
+.badge-cleaning { background: rgba(245,127,23,0.08); color: var(--warning); border-color: var(--warning); }
+.badge-maintenance { background: rgba(198,40,40,0.08); color: var(--danger); border-color: var(--danger); }
+
+/* ---- ROOM SELECT GRID (Reception) ---- */
+.room-select-card {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.room-select-card:hover { border-color: var(--gold); }
+.room-select-card.selected {
+    border-color: var(--gold);
+    background: var(--gold-light);
+}
+.room-select-card .room-type-label {
+    text-transform: uppercase;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.room-select-card .room-num {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.room-select-card.selected .room-num { color: var(--gold); }
+
+/* ---- LEDGER / INVOICE PANEL ---- */
+.ledger-panel {
+    background: var(--white);
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    padding: 24px;
+}
+.ledger-panel h5 {
+    font-family: 'Playfair Display', serif;
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.ledger-panel .ledger-id {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-bottom: 16px;
+}
+.ledger-label {
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 4px;
+}
+.ledger-total {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+/* ---- TASK CARDS (Housekeeping) ---- */
+.task-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.task-card .task-room {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+}
+.task-card .task-type {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.task-card .task-status {
+    color: var(--gold);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.task-card .task-update-btn {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: transparent;
+    width: 100%;
+    transition: all 0.2s;
+}
+.task-card .task-update-btn:hover {
+    background: var(--gold-light);
+}
+
+/* ---- ALERT BANNER ---- */
+.alert-banner {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+}
+.alert-banner .alert-badge {
+    background: var(--navy);
+    color: var(--white);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* ---- PAYMENT METHODS ---- */
+.payment-option {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+}
+.payment-option:hover { border-color: var(--gold); }
+.payment-option.selected {
+    border-color: var(--gold);
+    background: var(--gold-light);
+}
+.payment-option .pay-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--gold-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 14px;
+    color: var(--gold);
+    font-size: 1.1rem;
+}
+.payment-option .pay-radio {
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border-light);
+}
+.payment-option.selected .pay-radio {
+    border-color: var(--gold);
+    background: var(--gold);
+    box-shadow: inset 0 0 0 3px var(--white);
+}
+
+/* ---- QUICK ACTION CARDS ---- */
+.quick-action {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.quick-action:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.quick-action i { color: var(--gold); }
+
+/* ---- TABLE STYLES ---- */
+.table-custom thead th {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-light);
+    padding: 12px 16px;
+}
+.table-custom tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.85rem;
+}
+.table-custom .avatar-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--white);
+    background: var(--navy);
+}
+
+/* ---- PROMOTION CARDS ---- */
+.promo-card {
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.promo-card:last-child { border-bottom: none; }
+.promo-card .promo-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.promo-card .promo-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+/* ---- SEARCH BAR ---- */
+.search-bar-lg {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+}
+.search-bar-lg .form-control {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+}
+.search-bar-lg .btn-search {
+    background: var(--gold);
+    color: var(--white);
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    border: none;
+}
+
+/* ---- FLOATING ACTION BUTTON ---- */
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--white);
+    border: none;
+    box-shadow: 0 4px 12px rgba(197,160,89,0.4);
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.fab:hover { background: var(--gold-hover); transform: scale(1.05); }
+
+/* ---- SYNC STATUS ---- */
+.sync-badge {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+/* ---- FORM STYLES ---- */
+.form-label-upper {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+.form-control-lg-custom {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+}
+.form-control-lg-custom:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-light);
+}
+
+/* ---- ADDITIONAL SERVICE CHECKBOX ---- */
+.service-check {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* ---- MODAL OVERLAY ---- */
+.modal-overlay {
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+}
+
+/* ---- UTILITIES ---- */
+.text-upper {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.divider { border-top: 1px solid var(--border-light); margin: 16px 0; }
+.cursor-pointer { cursor: pointer; }

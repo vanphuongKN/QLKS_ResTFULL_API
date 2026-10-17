@@ -1,0 +1,310 @@
+@{
+    ViewData["Title"] = "Trả phòng khách hàng";
+    var booking = ViewBag.Booking as QLKSan.Models.Entities.PhieuDatPhong;
+    var invoice = ViewBag.Invoice as QLKSan.Models.Entities.HoaDon;
+}
+
+<div class="page-header">
+    <div>
+        <h2>Trả phòng khách hàng</h2>
+        <p class="page-desc">Quản lý thanh toán cuối cùng và quy trình rời phòng.</p>
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success mt-2">@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger mt-2">@TempData["ErrorMessage"]</div>
+        }
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+
+        @if (booking != null)
+        {
+            <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="text-navy fw-bold">Hồ sơ: @booking.KhachHang.Ho @booking.KhachHang.Ten</h5>
+                    <span class="badge-status badge-available">ĐANG LƯU TRÚ</span>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Mã Đặt Phòng:</p>
+                        <h6>@booking.MaDatPhong</h6>
+                        <p class="mb-1 mt-3 text-muted">Phòng:</p>
+                        <h6>Phòng @booking.ChiTietDatPhongs.FirstOrDefault()?.Phong?.SoPhong</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Thời gian lưu trú:</p>
+                        <h6 style="line-height: 1.7;">
+                            <span class="text-navy fw-bold">Nhận dự kiến:</span> @booking.NgayCheckInDuKien.ToString("dd/MM/yyyy") <br/>
+                            <span class="text-navy fw-bold">Trả dự kiến:</span> @booking.NgayCheckOutDuKien.ToString("dd/MM/yyyy") <br/>
+                            @{
+                                var days = (booking.NgayCheckOutDuKien.Date - booking.NgayCheckInDuKien.Date).Days;
+                                if (days <= 0) days = 1;
+                            }
+                            <span class="text-gold fw-bold">Số ngày đặt:</span> @days ngày <br/>
+                        </h6>
+                        <p class="mb-1 mt-3 text-muted">CCCD/Passport:</p>
+                        <h6>@booking.KhachHang.CCCD_Passport</h6>
+                    </div>
+                </div>
+
+                <h6 class="ledger-label mb-3">Dịch vụ đã sử dụng</h6>
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Dịch vụ</th>
+                            <th>Số lượng</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (booking.SuDungDichVus != null && booking.SuDungDichVus.Any())
+                        {
+                            foreach (var sv in booking.SuDungDichVus)
+                            {
+                                <tr>
+                                    <td>@sv.DichVu.TenDichVu</td>
+                                    <td>@sv.SoLuong</td>
+                                    <td>@sv.ThanhTien.ToString("N0") VNĐ</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="3" class="text-center text-muted">Không sử dụng dịch vụ phát sinh.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Right: Stats + Ledger + Quick Actions -->
+    <div class="col-lg-4">
+        @if (invoice != null)
+        {
+            <!-- Daily Ledger with Invoice details -->
+            <div class="ledger-panel mb-4">
+                <h5>Hóa Đơn Cuối (#@invoice.MaHoaDon)</h5>
+                
+                <div class="d-flex justify-content-between mb-2 mt-4">
+                    <span class="text-muted">Tiền phòng</span>
+                    <strong>@invoice.TongTienPhong.ToString("N0") VNĐ</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tiền dịch vụ</span>
+                    <strong>@invoice.TongTienDichVu.ToString("N0") VNĐ</strong>
+                </div>
+                @if (invoice.GiamGiaKhuyenMai > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span class="text-muted text-success">Khuyến mãi @(string.IsNullOrEmpty(invoice.MaKhuyenMai) ? "" : $"({invoice.MaKhuyenMai})")</span>
+                        <strong class="text-success">-@invoice.GiamGiaKhuyenMai.ToString("N0") VNĐ</strong>
+                    </div>
+                }
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Thuế VAT (8%)</span>
+                    <strong>@invoice.ThueVAT.ToString("N0") VNĐ</strong>
+                </div>
+                @if (booking != null && booking.TienCoc > 0)
+                {
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Tiền đặt cọc đã trừ</span>
+                        <strong class="text-success">-@booking.TienCoc.ToString("N0") VNĐ</strong>
+                    </div>
+                }
+                <hr>
+                <div class="ledger-label">TỔNG CẦN THANH TOÁN</div>
+                <div class="ledger-total text-danger">@invoice.TongTienCanThanhToan.ToString("N0") VNĐ</div>
+                
+                @if (invoice.TrangThai == QLKSan.Enums.InvoiceStatus.Unpaid)
+                {
+                    <style>
+                        .payment-methods-grid {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 12px;
+                        }
+                        .payment-method-card {
+                            border: 1px solid #e2e8f0;
+                            border-radius: 8px;
+                            padding: 16px;
+                            background: #ffffff;
+                            cursor: pointer;
+                            transition: all 0.2s ease-in-out;
+                            user-select: none;
+                        }
+                        .payment-method-card:hover {
+                            border-color: #cbd5e1;
+                            background: #f8fafc;
+                        }
+                        .payment-method-card.active {
+                            border-color: #C5A059;
+                            background: #fdfcf8;
+                            box-shadow: 0 2px 8px rgba(197, 160, 89, 0.08);
+                        }
+                        .payment-icon-wrapper {
+                            width: 44px;
+                            height: 44px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            background: #f1f5f9;
+                            border-radius: 8px;
+                            color: #475569;
+                            font-size: 1.2rem;
+                            transition: all 0.2s ease;
+                        }
+                        .payment-method-card.active .payment-icon-wrapper {
+                            background: #C5A059;
+                            color: #ffffff;
+                        }
+                        .payment-title {
+                            display: block;
+                            font-weight: 600;
+                            color: #1e293b;
+                            font-size: 0.95rem;
+                        }
+                        .payment-method-card.active .payment-title {
+                            color: #0c1a30;
+                        }
+                        .payment-desc {
+                            display: block;
+                            font-size: 0.75rem;
+                            color: #64748b;
+                            margin-top: 1px;
+                        }
+                        .payment-radio-circle {
+                            width: 20px;
+                            height: 20px;
+                            border: 2px solid #cbd5e1;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            transition: all 0.2s ease;
+                        }
+                        .payment-method-card.active .payment-radio-circle {
+                            border-color: #C5A059;
+                        }
+                        .payment-method-card.active .payment-radio-circle::after {
+                            content: "";
+                            width: 10px;
+                            height: 10px;
+                            background: #C5A059;
+                            border-radius: 50%;
+                            display: block;
+                        }
+                    </style>
+                    
+                    <!-- Apply Promo Code Section -->
+                    <div class="mb-4 p-3 rounded border" style="background: rgba(197,160,89,0.05); border-color: rgba(197,160,89,0.2) !important;">
+                        <label class="form-label-upper mb-2 d-block text-navy fw-bold" style="letter-spacing: 0.5px; font-size: 0.75rem;">MÃ KHUYẾN MÃI</label>
+                        <form asp-action="ApplyPromotion" method="post" class="d-flex gap-2">
+                            <input type="hidden" name="maDatPhong" value="@booking.MaDatPhong" />
+                            <input type="hidden" name="maPhong" value="@booking.ChiTietDatPhongs.FirstOrDefault()?.MaPhong" />
+                            <input type="text" name="maKhuyenMai" class="form-control form-control-sm" placeholder="Nhập mã ưu đãi..." value="@invoice.MaKhuyenMai" style="font-size:0.85rem; border-color:#eaddc4; height:36px;" />
+                            <button type="submit" class="btn btn-sm btn-gold px-3 fw-bold" style="height:36px; white-space:nowrap;">ÁP DỤNG</button>
+                        </form>
+                    </div>
+
+                    <form asp-action="Pay" method="post" class="mt-4">
+                        <input type="hidden" name="maHoaDon" value="@invoice.MaHoaDon" />
+                        <label class="form-label-upper mb-3 d-block text-navy fw-bold" style="letter-spacing: 0.5px; font-size: 0.75rem;">CHỌN PHƯƠNG THỨC</label>
+                        
+                        <div class="payment-methods-grid mb-4">
+                            <!-- Card: Tiền mặt -->
+                            <label class="payment-method-card active" for="payCash">
+                                <input type="radio" name="phuongThuc" id="payCash" value="Tiền mặt" checked class="d-none" onchange="selectPaymentMethod(this)" />
+                                <div class="d-flex align-items-center justify-content-between w-100">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="payment-icon-wrapper">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </div>
+                                        <div>
+                                            <span class="payment-title">Tiền mặt</span>
+                                            <span class="payment-desc">Tiền mặt tại quầy</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-radio-circle"></div>
+                                </div>
+                            </label>
+
+                            <!-- Card: Thẻ tín dụng -->
+                            <label class="payment-method-card" for="payCard">
+                                <input type="radio" name="phuongThuc" id="payCard" value="Thẻ tín dụng" class="d-none" onchange="selectPaymentMethod(this)" />
+                                <div class="d-flex align-items-center justify-content-between w-100">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="payment-icon-wrapper">
+                                            <i class="fas fa-credit-card"></i>
+                                        </div>
+                                        <div>
+                                            <span class="payment-title">Thẻ tín dụng</span>
+                                            <span class="payment-desc">Visa, Mastercard, Amex</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-radio-circle"></div>
+                                </div>
+                            </label>
+
+                            <!-- Card: Chuyển khoản -->
+                            <label class="payment-method-card" for="payBank">
+                                <input type="radio" name="phuongThuc" id="payBank" value="Chuyển khoản" class="d-none" onchange="selectPaymentMethod(this)" />
+                                <div class="d-flex align-items-center justify-content-between w-100">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="payment-icon-wrapper">
+                                            <i class="fas fa-university"></i>
+                                        </div>
+                                        <div>
+                                            <span class="payment-title">Chuyển khoản</span>
+                                            <span class="payment-desc">Ngân hàng hoặc kỹ thuật số</span>
+                                        </div>
+                                    </div>
+                                    <div class="payment-radio-circle"></div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-gold w-100 py-3 fw-bold" style="letter-spacing: 1px;">XÁC NHẬN THANH TOÁN & TRẢ PHÒNG</button>
+                    </form>
+
+                    <script>
+                        function selectPaymentMethod(radioInput) {
+                            document.querySelectorAll('.payment-method-card').forEach(card => {
+                                card.classList.remove('active');
+                            });
+                            if (radioInput.checked) {
+                                radioInput.closest('.payment-method-card').classList.add('active');
+                            }
+                        }
+                    </script>
+                }
+                else
+                {
+                    <div class="alert alert-success mt-4 text-center">ĐÃ THANH TOÁN</div>
+                }
+            </div>
+        }
+        else if (booking != null)
+        {
+            <div class="ledger-panel mb-4">
+                <h5>Tiến hành xuất Hóa Đơn</h5>
+                <p class="text-muted mt-2">Vui lòng kiểm tra kỹ dịch vụ trước khi xuất hóa đơn. Hóa đơn đã xuất không thể thay đổi thông tin dịch vụ.</p>
+                <form asp-action="GenerateInvoice" method="post" class="mt-4">
+                    <input type="hidden" name="maDatPhong" value="@booking.MaDatPhong" />
+                    <input type="hidden" name="maPhong" value="@booking.ChiTietDatPhongs.FirstOrDefault()?.MaPhong" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-navy small">MÃ KHUYẾN MÃI (NẾU CÓ)</label>
+                        <input type="text" name="maKhuyenMai" class="form-control form-control-sm" placeholder="Nhập mã khuyến mãi..." value="" style="font-size:0.85rem; border-color:#eaddc4; height: 38px;" />
+                    </div>
+                    <button type="submit" class="btn btn-outline-navy w-100 py-3">CHỐT DỮ LIỆU & TẠO HÓA ĐƠN</button>
+                </form>
+            </div>
+        }
+    </div>
+</div>

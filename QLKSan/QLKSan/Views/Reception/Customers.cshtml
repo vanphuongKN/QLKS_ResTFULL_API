@@ -1,0 +1,179 @@
+@model IEnumerable<QLKSan.Models.Entities.KhachHang>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Hồ sơ Khách hàng";
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Lễ tân & Concierge</p>
+        <h2>Hồ sơ Khách hàng</h2>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control" style="width:280px;font-size:0.9rem;border-color:#eaddc4" placeholder="Họ tên khách, CCCD, SĐT...">
+            <button type="submit" class="btn-gold px-3 border-0" style="border-radius:4px;color:#fff">
+                <i class="fas fa-search"></i> Tìm kiếm
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+            {
+                <a href="@Url.Action("Customers", "Reception")" class="btn btn-outline-secondary d-flex align-items-center" style="border-radius:4px">Xóa lọc</a>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card p-0 mb-4">
+    <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+        <h6 class="fw-bold mb-0" style="letter-spacing:1px;color:#2A3B4C">DANH BẠ KHÁCH HÀNG LUXE RESERVE</h6>
+        <span class="badge bg-light text-muted border py-2 px-3" style="font-size:0.75rem">Tổng số: @(Model?.Count() ?? 0) khách hàng</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+            <thead style="background:#fafafa">
+                <tr>
+                    <th class="text-muted small fw-normal py-3 ps-4" style="font-size:0.7rem;letter-spacing:0.5px;width:120px">MÃ KHÁCH</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">HỌ VÀ TÊN</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">SỐ CCCD / PASSPORT</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">ĐIỆN THOẠI LIÊN HỆ</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">NGÀY SINH</th>
+                    <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px;width:150px">SỐ LƯỢT ĐẶT PHÒNG</th>
+                    <th class="text-muted small fw-normal py-3 pe-4 text-end" style="font-size:0.7rem;letter-spacing:0.5px;width:100px">HÀNH ĐỘNG</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var k in Model)
+                    {
+                        var phone = k.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "Chưa cập nhật";
+                        var bookingCount = k.PhieuDatPhongs?.Count() ?? 0;
+                        
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <strong class="text-navy" style="font-size:0.85rem">#@k.MaKhachHang</strong>
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="d-flex justify-content-center align-items-center rounded-circle" style="width:36px;height:36px;background:#f5eedc;color:#C5A059;font-weight:bold;font-size:0.9rem">
+                                        @k.Ten.Substring(0, Math.Min(1, k.Ten.Length)).ToUpper()
+                                    </div>
+                                    <div>
+                                        <strong class="d-block text-navy" style="font-size:0.95rem">@k.Ho @k.Ten</strong>
+                                        <small class="text-muted" style="font-size:0.65rem">Thành viên Luxe Reserve</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 text-navy font-monospace" style="font-size:0.85rem">
+                                @k.CCCD_Passport
+                            </td>
+                            <td class="py-3 text-muted" style="font-size:0.85rem">
+                                <i class="fas fa-phone me-1 text-gold" style="font-size:0.75rem"></i> @phone
+                            </td>
+                            <td class="py-3 text-muted" style="font-size:0.85rem">
+                                @(k.NgaySinh.ToString("dd/MM/yyyy"))
+                            </td>
+                            <td class="py-3">
+                                @if (bookingCount > 0)
+                                {
+                                    <span class="badge bg-gold text-white px-3 py-1" style="font-size:0.75rem;font-weight:600">
+                                        @bookingCount chuyến đi
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-muted border px-3 py-1" style="font-size:0.75rem">
+                                        0 chuyến đi
+                                    </span>
+                                }
+                            </td>
+                            <td class="pe-4 text-end py-3">
+                                <button class="btn btn-sm btn-outline-navy px-2 py-1 btn-view-details" style="font-size:0.75rem" data-id="@k.MaKhachHang">
+                                    <i class="fas fa-eye me-1"></i> Xem
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-users-slash mb-3" style="font-size:2.5rem; opacity:0.3"></i>
+                            <p class="mb-0">Không tìm thấy khách hàng nào trong hệ thống phù hợp.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Chi Tiết Khách Hàng -->
+<div class="modal fade" id="customerDetailsModal" tabindex="-1" aria-labelledby="customerDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:12px">
+            <div class="modal-header text-white" style="background: #0A192F; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                <h5 class="modal-title fw-bold" id="customerDetailsModalLabel">
+                    <i class="fas fa-user-circle me-2 text-gold"></i> CHI TIẾT HỒ SƠ KHÁCH HÀNG LUXE RESERVE
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+            </div>
+            <div class="modal-body p-4" id="customerDetailsContent">
+                <!-- Nội dung sẽ được nạp động bằng AJAX -->
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-gold mb-3" role="status" style="color: #C5A059 !important">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="mb-0">Đang truy xuất hồ sơ và lịch sử kỳ nghỉ...</p>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 bg-light" style="border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+                <button type="button" class="btn btn-navy px-4" data-bs-dismiss="modal">ĐÓNG HỒ SƠ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.btn-view-details').on('click', function() {
+                var customerId = $(this).data('id');
+                
+                // Hiển thị trạng thái tải trong modal trước khi thực hiện AJAX
+                $('#customerDetailsContent').html(`
+                    <div class="text-center py-5 text-muted">
+                        <div class="spinner-border text-gold mb-3" role="status" style="color: #C5A059 !important">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                        <p class="mb-0">Đang truy xuất hồ sơ và lịch sử kỳ nghỉ của khách hàng #${customerId}...</p>
+                    </div>
+                `);
+                
+                // Hiển thị modal
+                $('#customerDetailsModal').modal('show');
+                
+                // Thực hiện AJAX lấy dữ liệu chi tiết
+                $.ajax({
+                    url: '@Url.Action("CustomerDetails", "Reception")',
+                    type: 'GET',
+                    data: { id: customerId },
+                    success: function(response) {
+                        $('#customerDetailsContent').html(response);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Lỗi AJAX: ", error);
+                        $('#customerDetailsContent').html(`
+                            <div class="alert alert-danger my-3" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Không thể tải thông tin chi tiết khách hàng. Vui lòng kiểm tra lại kết nối mạng hoặc liên hệ quản trị hệ thống.
+                            </div>
+                        `);
+                    }
+                });
+            });
+        });
+    </script>
+}

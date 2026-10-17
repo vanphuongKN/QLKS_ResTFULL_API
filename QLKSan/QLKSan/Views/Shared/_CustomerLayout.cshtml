@@ -1,0 +1,121 @@
+@{
+    var currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
+    var currentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - LUXE RESERVE</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/customer.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        // Ngăn chặn trình duyệt khôi phục vị trí cuộn ngay lập tức trong head
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+        window.scrollTo(0, 0);
+    </script>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="lr-navbar">
+        <a href="@Url.Action("Index", "Home")" class="lr-brand">LUXE RESERVE</a>
+        <ul class="lr-nav-links">
+            @if (currentController == "Customer")
+            {
+                var role = Context.Request.Cookies["UserRole"];
+                @if (role == "Customer")
+                {
+                    <li><a href="@Url.Action("Profile", "Customer")" class="@(currentController == "Customer" && currentAction == "Profile" ? "active" : "")">Hồ sơ</a></li>
+                    <li><a href="@Url.Action("MyStays", "Customer")" class="@(currentController == "Customer" && currentAction == "MyStays" ? "active" : "")">Kỳ nghỉ</a></li>
+                    <li><a href="@Url.Action("Feedback", "Customer")" class="@(currentController == "Customer" && currentAction == "Feedback" ? "active" : "")">Đánh giá</a></li>
+                }
+            }
+            else
+            {
+                <li><a href="@Url.Action("Index", "Home")" class="@(currentController == "Home" && currentAction == "Index" ? "active" : "")">Trang chủ</a></li>
+                <li><a href="#accommodation-section">Hạng phòng</a></li>
+                <li><a href="#services-section">Đặc quyền</a></li>
+            }
+        </ul>
+        <div class="lr-nav-right">
+            @if (Context.Request.Cookies.ContainsKey("Username"))
+            {
+                var role = Context.Request.Cookies["UserRole"];
+                var username = Context.Request.Cookies["Username"];
+                <div class="d-flex align-items-center gap-3">
+                    @if (role == "Customer")
+                    {
+                        <a href="@Url.Action("Profile", "Customer")" class="lr-login-link text-uppercase" style="color: var(--lr-gold); font-weight: 600; font-size: 0.75rem; letter-spacing: 1px; text-decoration: none;">
+                            <i class="fas fa-user-circle me-1"></i> @username
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="lr-login-link text-uppercase" style="color: var(--lr-gold); font-weight: 600; font-size: 0.75rem; letter-spacing: 1px;">
+                            <i class="fas fa-user-circle me-1"></i> @username
+                        </span>
+                    }
+                    @if (role == "Admin")
+                    {
+                        <a href="@Url.Action("Index", "Admin")" class="btn btn-sm btn-outline-gold px-3 py-1" style="font-size:0.75rem; border-color:var(--lr-gold); color:var(--lr-gold); text-transform:uppercase;"><i class="fas fa-cog me-1"></i> Admin Portal</a>
+                    }
+                    else if (role == "Receptionist")
+                    {
+                        <a href="@Url.Action("Index", "Reception")" class="btn btn-sm btn-outline-gold px-3 py-1" style="font-size:0.75rem; border-color:var(--lr-gold); color:var(--lr-gold); text-transform:uppercase;"><i class="fas fa-concierge-bell me-1"></i> Lễ Tân</a>
+                    }
+                    <a href="@Url.Action("Logout", "Auth")" class="lr-login-link text-danger ms-2" style="font-size:0.8rem; font-weight: 600;"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <a href="@Url.Action("Login", "Auth")" class="btn btn-sm btn-outline-gold px-4 py-2" style="font-size: 0.75rem; font-weight:600; letter-spacing:1px; border-color:var(--lr-gold); color:var(--lr-gold); text-transform:uppercase; border-radius: 4px; transition: all 0.3s;">
+                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                    </a>
+                    <a href="@Url.Action("Register", "Auth")" class="btn btn-sm px-4 py-2" style="font-size: 0.75rem; font-weight:600; letter-spacing:1px; background-color:var(--lr-gold); color:var(--lr-white); text-transform:uppercase; border-radius: 4px; transition: all 0.3s;">
+                        <i class="fas fa-user-plus me-2"></i>Đăng ký
+                    </a>
+                </div>
+            }
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="lr-content">
+        @RenderBody()
+    </div>
+
+    <!-- Footer -->
+    <footer class="lr-footer">
+        <p class="footer-brand">LUXE RESERVE</p>
+        <ul class="footer-links">
+            <li><a href="#">Chính sách bảo mật</a></li>
+            <li><a href="#">Điều khoản dịch vụ</a></li>
+            <li><a href="#">Hỗ trợ khách hàng</a></li>
+        </ul>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Đảm bảo cuộn lên đầu trang (0,0) trên mọi sự kiện tải trang
+        window.scrollTo(0, 0);
+        document.addEventListener('DOMContentLoaded', () => {
+            window.scrollTo(0, 0);
+        });
+        window.addEventListener('load', () => {
+            window.scrollTo(0, 0);
+            // Một số trình duyệt cần độ trễ nhỏ để cuộn đúng sau khi hình ảnh và layout ổn định
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 50);
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

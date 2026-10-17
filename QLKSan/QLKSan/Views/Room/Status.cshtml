@@ -1,0 +1,254 @@
+@model IEnumerable<QLKSan.Models.Entities.Phong>
+@{
+    ViewData["Title"] = "Trạng thái phòng";
+    
+    // Dynamic Stats Calculation
+    var totalRooms = Model?.Count() ?? 0;
+    var occupiedRooms = Model?.Count(p => p.TrangThai == QLKSan.Enums.RoomStatus.Occupied) ?? 0;
+    var occupancyRate = totalRooms > 0 ? (occupiedRooms * 100) / totalRooms : 0;
+}
+
+<!-- Hero Banner -->
+<div class="hero-banner mb-4">
+    <h2>Tổng quan trạng thái phòng</h2>
+    <p>Tổng quan hàng ngày về tình trạng phòng và chu kỳ phục vụ của Grand Reserve. Quản lý việc khách đến và lịch trình dịch vụ với độ chính xác tuyệt đối từ Cơ sở dữ liệu.</p>
+    <div class="d-flex gap-5">
+        <div>
+            <div class="stat-label">Công suất phòng</div>
+            <div class="stat-value">@occupancyRate%</div>
+        </div>
+        <div>
+            <div class="stat-label">Tổng số phòng</div>
+            <div class="stat-value">@totalRooms</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs">
+    <button class="filter-btn active" data-filter="all">Tất cả phòng</button>
+    <button class="filter-btn" data-filter="Available">Trống</button>
+    <button class="filter-btn" data-filter="Occupied">Đang ở</button>
+    <button class="filter-btn" data-filter="Booked">Đã đặt</button>
+    <button class="filter-btn" data-filter="Cleaning">Dọn dẹp</button>
+    <button class="filter-btn" data-filter="Maintenance">Bảo trì</button>
+</div>
+
+<!-- Search -->
+<div class="mb-4" style="max-width:300px">
+    <div class="position-relative">
+        <i class="fas fa-search position-absolute" style="left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted)"></i>
+        <input type="text" id="roomSearchInput" class="form-control form-control-lg-custom" placeholder="Tìm phòng..." style="padding-left:40px">
+    </div>
+</div>
+
+<!-- Room Grid -->
+<style>
+    .room-card {
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    .room-card:hover {
+        transform: translateY(-5px);
+        border-color: #C5A059 !important;
+        box-shadow: 0 12px 20px rgba(10, 25, 47, 0.1) !important;
+    }
+</style>
+<div class="row g-4 mb-4" id="roomGridContainer">
+    @if (Model != null && Model.Any())
+    {
+        foreach (var room in Model)
+        {
+            var statusString = room.TrangThai.ToString();
+            var hasImage = room.HinhAnhs != null && room.HinhAnhs.Any() && !string.IsNullOrEmpty(room.HinhAnhs.FirstOrDefault()?.DuongDanAnh);
+            var imageUrl = "";
+            if (hasImage)
+            {
+                imageUrl = room.HinhAnhs.FirstOrDefault()?.DuongDanAnh;
+            }
+            else
+            {
+                var typeLower = room.LoaiPhong?.TenLoai?.ToLower() ?? "";
+                if (typeLower.Contains("presidential") || typeLower.Contains("vip") || typeLower.Contains("suite") || typeLower.Contains("sut"))
+                {
+                    imageUrl = "/images/room_presidential.png";
+                }
+                else if (typeLower.Contains("deluxe") || typeLower.Contains("dlx") || typeLower.Contains("superior") || typeLower.Contains("sup") || typeLower.Contains("ocean"))
+                {
+                    imageUrl = "/images/room_ocean.png";
+                }
+                else
+                {
+                    imageUrl = "/images/room_garden.png";
+                }
+            }
+            
+            if (room.TrangThai == QLKSan.Enums.RoomStatus.Available)
+            {
+                <div class="col-lg-3 col-md-6 room-col" data-status="Available" data-room-number="@room.SoPhong" data-room-type="@room.LoaiPhong.TenLoai" data-customer="">
+                    <div class="room-card" onclick="location.href='/Room/Details/@room.MaPhong'">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="room-type">@room.LoaiPhong.TenLoai</span>
+                                <div class="room-number">Phòng @room.SoPhong</div>
+                            </div>
+                            <span class="badge-status badge-available">Trống</span>
+                        </div>
+                        <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
+                        <p class="text-muted small mb-0">Sẵn sàng nhận phòng</p>
+                    </div>
+                </div>
+            }
+            else if (room.TrangThai == QLKSan.Enums.RoomStatus.Occupied)
+            {
+                var activeStay = room.ChiTietDatPhongs?
+                    .Select(c => c.PhieuDatPhong)
+                    .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn);
+                    
+                var customerName = activeStay != null ? $"{activeStay.KhachHang.Ho} {activeStay.KhachHang.Ten}" : "Khách lưu trú";
+                var checkInDate = activeStay != null ? (activeStay.NgayCheckInThucTe?.ToString("dd/MM") ?? "--") : "--";
+                var checkOutDate = activeStay != null ? activeStay.NgayCheckOutDuKien.ToString("dd/MM") : "--";
+                var services = activeStay?.SuDungDichVus;
+                
+                <div class="col-lg-3 col-md-6 room-col" data-status="Occupied" data-room-number="@room.SoPhong" data-room-type="@room.LoaiPhong.TenLoai" data-customer="@customerName">
+                    <div class="room-card" onclick="location.href='/Room/Details/@room.MaPhong'">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="room-type">@room.LoaiPhong.TenLoai</span>
+                                <div class="room-number">Phòng @room.SoPhong</div>
+                            </div>
+                            <span class="badge-status badge-occupied">Đang ở</span>
+                        </div>
+                        <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
+                        <p class="mb-1 text-navy" style="font-size:0.9rem;"><i class="fas fa-user me-2 text-muted small"></i><strong>@customerName</strong></p>
+                        <p class="text-muted small mb-2"><i class="fas fa-calendar me-2"></i>@checkInDate - @checkOutDate</p>
+                        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                            <small class="text-muted">Dịch vụ đã gọi</small>
+                            <small class="text-gold fw-bold">@(services != null ? services.Count.ToString() : "0") mục</small>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (room.TrangThai == QLKSan.Enums.RoomStatus.Booked)
+            {
+                var activeBooking = room.ChiTietDatPhongs?
+                    .Select(c => c.PhieuDatPhong)
+                    .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.Approved || p.TrangThai == QLKSan.Enums.BookingStatus.Pending);
+                    
+                var bookedCustomer = activeBooking != null ? $"{activeBooking.KhachHang.Ho} {activeBooking.KhachHang.Ten}" : "Khách đã đặt";
+                var expectedArrival = activeBooking != null ? activeBooking.NgayCheckInDuKien.ToString("dd/MM/yyyy HH:mm") : "Hôm nay, 14:00";
+                
+                <div class="col-lg-3 col-md-6 room-col" data-status="Booked" data-room-number="@room.SoPhong" data-room-type="@room.LoaiPhong.TenLoai" data-customer="@bookedCustomer">
+                    <div class="room-card" onclick="location.href='/Room/Details/@room.MaPhong'">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="room-type">@room.LoaiPhong.TenLoai</span>
+                                <div class="room-number">Phòng @room.SoPhong</div>
+                            </div>
+                            <span class="badge-status badge-booked">Đã đặt</span>
+                        </div>
+                        <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
+                        <p class="mb-1 text-navy" style="font-size:0.9rem;"><i class="fas fa-user me-2 text-muted small"></i><strong>@bookedCustomer</strong></p>
+                        <p class="text-muted small mb-2">Dự kiến: @expectedArrival</p>
+                        <div class="progress mb-2" style="height:4px">
+                            <div class="progress-bar" style="width:100%;background:#C5A059"></div>
+                        </div>
+                        <button class="btn btn-outline-navy btn-sm w-100" onclick="event.stopPropagation(); location.href='/Reception/Index'">Xem lịch lễ tân</button>
+                    </div>
+                </div>
+            }
+            else if (room.TrangThai == QLKSan.Enums.RoomStatus.Cleaning)
+            {
+                <div class="col-lg-3 col-md-6 room-col" data-status="Cleaning" data-room-number="@room.SoPhong" data-room-type="@room.LoaiPhong.TenLoai" data-customer="">
+                    <div class="room-card" onclick="location.href='/Room/Details/@room.MaPhong'">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="room-type">@room.LoaiPhong.TenLoai</span>
+                                <div class="room-number">Phòng @room.SoPhong</div>
+                            </div>
+                            <span class="badge-status badge-cleaning">Dọn dẹp</span>
+                        </div>
+                        <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
+                        <div class="text-center py-3">
+                            <i class="fas fa-broom fs-2 text-gold opacity-75 animate-bounce"></i>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Ưu tiên</small>
+                            <small class="text-danger fw-bold">CAO</small>
+                        </div>
+                        <p class="text-muted small mb-0">Đang dọn phòng làm sạch</p>
+                    </div>
+                </div>
+            }
+            else if (room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance)
+            {
+                <div class="col-lg-3 col-md-6 room-col" data-status="Maintenance" data-room-number="@room.SoPhong" data-room-type="@room.LoaiPhong.TenLoai" data-customer="">
+                    <div class="room-card" onclick="location.href='/Room/Details/@room.MaPhong'">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="room-type">@room.LoaiPhong.TenLoai</span>
+                                <div class="room-number">Phòng @room.SoPhong</div>
+                            </div>
+                            <span class="badge-status" style="background-color:#f1f3f5; color:#6c757d; font-weight:700; padding:6px 14px; border-radius:4px; font-size:0.8rem;">Bảo trì</span>
+                        </div>
+                        <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
+                        <div class="text-center py-3">
+                            <i class="fas fa-tools fs-2 text-secondary opacity-75"></i>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Bộ phận</small>
+                            <small class="text-navy fw-bold">KỸ THUẬT</small>
+                        </div>
+                        <p class="text-muted small mb-0">Đang chờ khắc phục sự cố</p>
+                    </div>
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <div class="col-12 text-center py-5">
+            <h5 class="text-muted">Không tìm thấy phòng nào trong Cơ sở dữ liệu.</h5>
+        </div>
+    }
+</div>
+
+<!-- Client side live search & tab filter script -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const roomCols = document.querySelectorAll('.room-col');
+        const searchInput = document.getElementById('roomSearchInput');
+
+        function filterAndSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            const activeFilter = document.querySelector('.filter-btn.active').getAttribute('data-filter');
+
+            roomCols.forEach(col => {
+                const roomNumber = col.getAttribute('data-room-number').toLowerCase();
+                const roomType = col.getAttribute('data-room-type').toLowerCase();
+                const customer = col.getAttribute('data-customer').toLowerCase();
+                const status = col.getAttribute('data-status');
+
+                const matchesSearch = roomNumber.includes(query) || roomType.includes(query) || customer.includes(query);
+                const matchesFilter = activeFilter === 'all' || status === activeFilter;
+
+                if (matchesSearch && matchesFilter) {
+                    col.style.display = 'block';
+                } else {
+                    col.style.display = 'none';
+                }
+            });
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                filterButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                filterAndSearch();
+            });
+        });
+
+        searchInput.addEventListener('input', filterAndSearch);
+    });
+</script>

@@ -1,0 +1,513 @@
+@model QLKSan.Models.Entities.Phong
+@{
+    ViewData["Title"] = "Chi tiết phòng " + Model.SoPhong;
+    
+    // Status color mapping
+    string statusBadgeClass = "";
+    string statusText = "";
+    string statusCardStyle = "";
+    
+    switch (Model.TrangThai)
+    {
+        case QLKSan.Enums.RoomStatus.Available:
+            statusBadgeClass = "badge-available";
+            statusText = "TRỐNG - SẴN SÀNG ĐÓN KHÁCH";
+            statusCardStyle = "border-left: 5px solid #2ec4b6 !important;";
+            break;
+        case QLKSan.Enums.RoomStatus.Occupied:
+            statusBadgeClass = "badge-occupied";
+            statusText = "ĐANG LƯU TRÚ";
+            statusCardStyle = "border-left: 5px solid #e71d36 !important;";
+            break;
+        case QLKSan.Enums.RoomStatus.Booked:
+            statusBadgeClass = "badge-booked";
+            statusText = "ĐÃ ĐƯỢC ĐẶT TRƯỚC";
+            statusCardStyle = "border-left: 5px solid #c5a059 !important;";
+            break;
+        case QLKSan.Enums.RoomStatus.Cleaning:
+            statusBadgeClass = "badge-cleaning";
+            statusText = "ĐANG DỌN DẸP";
+            statusCardStyle = "border-left: 5px solid #ff9f1c !important;";
+            break;
+        case QLKSan.Enums.RoomStatus.Maintenance:
+            statusBadgeClass = "badge-maintenance";
+            statusText = "ĐANG BẢO TRÌ";
+            statusCardStyle = "border-left: 5px solid #6c757d !important;";
+            break;
+    }
+
+    // Get active stay details if occupied
+    var activeStay = Model.ChiTietDatPhongs?
+        .Select(c => c.PhieuDatPhong)
+        .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn);
+
+    // Get active booking details if booked
+    var activeBooking = Model.ChiTietDatPhongs?
+        .Select(c => c.PhieuDatPhong)
+        .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.Approved || p.TrangThai == QLKSan.Enums.BookingStatus.Pending);
+}
+
+<!-- Custom Premium CSS -->
+<style>
+    .room-detail-container {
+        font-family: 'Inter', sans-serif;
+    }
+    .text-navy {
+        color: #0A192F !important;
+    }
+    .text-gold {
+        color: #C5A059 !important;
+    }
+    .bg-navy {
+        background-color: #0A192F !important;
+    }
+    .bg-gold {
+        background-color: #C5A059 !important;
+    }
+    .font-serif {
+        font-family: 'Playfair Display', serif;
+    }
+    .spec-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    .spec-item:last-child {
+        border-bottom: none;
+    }
+    .badge-available {
+        background-color: #e8f7f5;
+        color: #2ec4b6;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .badge-occupied {
+        background-color: #fde8eb;
+        color: #e71d36;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .badge-booked {
+        background-color: #fbf5e6;
+        color: #c5a059;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .badge-cleaning {
+        background-color: #fff5e6;
+        color: #ff9f1c;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .badge-maintenance {
+        background-color: #f1f3f5;
+        color: #6c757d;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .btn-gold {
+        background-color: #C5A059;
+        color: #0A192F;
+        font-weight: 700;
+        border: 1px solid #C5A059;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-gold:hover {
+        background-color: #b08d4a;
+        border-color: #b08d4a;
+        color: #ffffff;
+    }
+    .btn-outline-gold {
+        border: 1px solid #C5A059;
+        color: #C5A059;
+        font-weight: 700;
+        background: transparent;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-outline-gold:hover {
+        background-color: #C5A059;
+        color: #0A192F;
+    }
+</style>
+
+<div class="container-fluid room-detail-container px-0 py-2">
+    <!-- Breadcrumb -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/Room/Status" class="text-gold fw-bold text-decoration-none d-inline-flex align-items-center gap-2 mb-2" style="font-size: 0.9rem;">
+                <i class="fas fa-arrow-left"></i> QUAY LẠI TỔNG QUAN PHÒNG
+            </a>
+            <h1 class="text-navy font-serif fw-bold mb-0">Hồ sơ chi tiết Phòng @Model.SoPhong</h1>
+        </div>
+        <span class="badge-status @statusBadgeClass text-uppercase fs-6 py-2 px-3">@statusText</span>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm mb-4">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger border-0 shadow-sm mb-4">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="row g-4">
+        <!-- LEFT COLUMN: Physical Specs & Amenities -->
+        <div class="col-lg-5 col-md-12">
+            <!-- Room Media Showcase -->
+            <div class="card border rounded shadow-sm bg-white overflow-hidden mb-4">
+                <div class="position-relative">
+                    @{
+                        var detailImageUrl = "";
+                        var hasDetailImage = Model.HinhAnhs != null && Model.HinhAnhs.Any() && !string.IsNullOrEmpty(Model.HinhAnhs.FirstOrDefault()?.DuongDanAnh);
+                        if (hasDetailImage)
+                        {
+                            detailImageUrl = Model.HinhAnhs.First().DuongDanAnh;
+                        }
+                        else
+                        {
+                            var typeLower = Model.LoaiPhong?.TenLoai?.ToLower() ?? "";
+                            if (typeLower.Contains("presidential") || typeLower.Contains("vip") || typeLower.Contains("suite") || typeLower.Contains("sut"))
+                            {
+                                detailImageUrl = "/images/room_presidential.png";
+                            }
+                            else if (typeLower.Contains("deluxe") || typeLower.Contains("dlx") || typeLower.Contains("superior") || typeLower.Contains("sup") || typeLower.Contains("ocean"))
+                            {
+                                detailImageUrl = "/images/room_ocean.png";
+                            }
+                            else
+                            {
+                                detailImageUrl = "/images/room_garden.png";
+                            }
+                        }
+                    }
+                    <img src="@detailImageUrl" alt="Room Visual" class="w-100" style="height: 280px; object-fit: cover;">
+                    <div class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 p-3 text-white">
+                        <span class="text-gold fw-bold text-uppercase fs-7" style="letter-spacing: 1px;">@Model.LoaiPhong.TenLoai</span>
+                        <h4 class="mb-0 font-serif">Phòng Hạng @Model.SoPhong</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room Info & Specifications Card -->
+            <div class="card border rounded shadow-sm bg-white p-4 mb-4">
+                <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-info-circle text-gold me-2"></i>Thông số kỹ thuật phòng</h5>
+                
+                <div class="spec-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted fw-medium">Hạng phòng</span>
+                    <span class="text-navy fw-bold">@Model.LoaiPhong.TenLoai</span>
+                </div>
+                <div class="spec-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted fw-medium">Sức chứa tối đa</span>
+                    <span class="text-navy fw-bold"><i class="fas fa-users me-1 text-muted"></i>@Model.LoaiPhong.SoNguoiToiDa Người lớn</span>
+                </div>
+                <div class="spec-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted fw-medium">Đơn giá ngày</span>
+                    <span class="text-gold fw-bold" style="font-size: 1.1rem;">@Model.LoaiPhong.GiaThueNgay.ToString("N0") VNĐ / Ngày</span>
+                </div>
+                <div class="spec-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted fw-medium">Đơn giá giờ</span>
+                    <span class="text-navy fw-bold">@Model.LoaiPhong.GiaThueGio.ToString("N0") VNĐ / Giờ</span>
+                </div>
+                <div class="spec-item d-flex flex-column align-items-start mt-1">
+                    <span class="text-muted fw-medium mb-1">Mô tả phòng</span>
+                    <p class="text-muted small mb-0 lh-base text-justify">@(string.IsNullOrEmpty(Model.LoaiPhong.MoTa) ? "Hệ thống phòng lưu trú sang trọng được trang bị đầy đủ vật phẩm chăm sóc cá nhân cao cấp, điều hòa không khí, smart TV, wifi tốc độ cao và dịch vụ dọn phòng 24/7." : Model.LoaiPhong.MoTa)</p>
+                </div>
+            </div>
+
+            <!-- Amenities Card -->
+            <div class="card border rounded shadow-sm bg-white p-4">
+                <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-concierge-bell text-gold me-2"></i>Trang thiết bị & Tiện ích</h5>
+                
+                @if (Model.PhongTienIchs != null && Model.PhongTienIchs.Any())
+                {
+                    <div class="d-flex flex-wrap gap-2 pt-2">
+                        @foreach (var pti in Model.PhongTienIchs)
+                        {
+                            <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;">
+                                <i class="@(string.IsNullOrEmpty(pti.TienIch.Icon) ? "fas fa-check" : pti.TienIch.Icon) text-gold me-2"></i>@pti.TienIch.TenTienIch
+                            </span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-wrap gap-2 pt-2">
+                        <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;"><i class="fas fa-wifi text-gold me-2"></i>Wifi siêu tốc</span>
+                        <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;"><i class="fas fa-snowflake text-gold me-2"></i>Điều hòa</span>
+                        <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;"><i class="fas fa-tv text-gold me-2"></i>Smart TV</span>
+                        <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;"><i class="fas fa-bath text-gold me-2"></i>Bồn tắm</span>
+                        <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;"><i class="fas fa-coffee text-gold me-2"></i>Mini bar</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Booking Operations & Services -->
+        <div class="col-lg-7 col-md-12">
+            <!-- Active Booking details (Connected to SQL Server) -->
+            @if (Model.TrangThai == QLKSan.Enums.RoomStatus.Occupied && activeStay != null)
+            {
+                var checkIn = activeStay.NgayCheckInThucTe ?? activeStay.NgayCheckInDuKien;
+                var checkout = activeStay.NgayCheckOutDuKien;
+                var duration = (int)Math.Max(1, Math.Ceiling((checkout - checkIn).TotalDays));
+                
+                var orderedServices = activeStay.SuDungDichVus;
+                decimal serviceTotal = orderedServices?.Sum(s => s.ThanhTien) ?? 0;
+                
+                <!-- Occupied Info Card -->
+                <div class="card border rounded shadow-sm bg-white p-4 mb-4" style="@statusCardStyle">
+                    <div class="d-flex justify-content-between align-items-start pb-2 border-bottom mb-3">
+                        <h5 class="text-navy font-serif fw-bold mb-0"><i class="fas fa-user-check text-gold me-2"></i>Thông tin khách đang ở</h5>
+                        <span class="badge bg-danger text-white text-uppercase px-2 py-1 fw-bold" style="font-size: 0.65rem;">HỢP ĐỒNG HOẠT ĐỘNG</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Tên khách hàng</span>
+                            <span class="text-navy fw-bold fs-5">@activeStay.KhachHang.Ho @activeStay.KhachHang.Ten</span>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Mã hóa đơn</span>
+                            <span class="text-navy fw-bold text-monospace">#HD-@activeStay.MaDatPhong</span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Thời gian Check-in</span>
+                            <span class="text-navy fw-medium">@checkIn.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Dự kiến Check-out</span>
+                            <span class="text-navy fw-medium">@checkout.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Liên hệ khách hàng</span>
+                            <span class="text-navy fw-medium">@(activeStay.KhachHang.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "Chưa có SĐT") - @(activeStay.KhachHang.LienHeDiaChis?.FirstOrDefault()?.Email ?? "Chưa có Email")</span>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Thời gian lưu trú</span>
+                            <span class="text-gold fw-bold">@duration Ngày</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Called Services detail table -->
+                <div class="card border rounded shadow-sm bg-white p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-3">
+                        <h5 class="text-navy font-serif fw-bold mb-0"><i class="fas fa-concierge-bell text-gold me-2"></i>Dịch vụ đã gọi trong kỳ lưu trú</h5>
+                        <button class="btn btn-outline-gold btn-sm py-1 fw-bold" onclick="location.href='/Service/Index?maPhong=@Model.MaPhong'">
+                            <i class="fas fa-plus me-1"></i> THÊM DỊCH VỤ
+                        </button>
+                    </div>
+
+                    @if (orderedServices != null && orderedServices.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                                <thead class="table-light text-navy text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                    <tr>
+                                        <th class="ps-3 py-2">Dịch vụ</th>
+                                        <th class="py-2 text-center">Số lượng</th>
+                                        <th class="py-2 text-end">Đơn giá</th>
+                                        <th class="pe-3 py-2 text-end">Tổng tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var service in orderedServices)
+                                    {
+                                        var lineTotal = service.ThanhTien;
+                                        <tr>
+                                            <td class="ps-3 py-2 fw-semibold text-navy">@service.DichVu.TenDichVu</td>
+                                            <td class="py-2 text-center">@service.SoLuong</td>
+                                            <td class="py-2 text-end">@service.GiaThucTe.ToString("N0") đ</td>
+                                            <td class="pe-3 py-2 text-end fw-bold text-gold">@lineTotal.ToString("N0") đ</td>
+                                        </tr>
+                                    }
+                                    <tr class="bg-light fw-bold text-navy" style="font-size: 0.95rem;">
+                                        <td colspan="3" class="ps-3 py-3 text-end">TỔNG TIỀN DỊCH VỤ:</td>
+                                        <td class="pe-3 py-3 text-end text-gold fs-5">@serviceTotal.ToString("N0") VNĐ</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-box-open text-muted mb-2" style="font-size: 2rem;"></i>
+                            <p class="text-muted small mb-0">Chưa có dịch vụ nào được gọi trong đợt lưu trú này.</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Checkout details and operation call -->
+                <div class="card border rounded shadow-sm bg-white p-4">
+                    <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-credit-card text-gold me-2"></i>Quy trình Trả phòng & Thanh toán</h5>
+                    <p class="text-muted small mb-3">Tự động tổng hợp dữ liệu tiền phòng từ SQL Server (phụ thuộc vào check-in/checkout thực tế) cộng với tiền sử dụng dịch vụ trong hóa đơn hoạt động.</p>
+                    
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-gold px-4 py-2 flex-grow-1 fw-bold text-uppercase" onclick="location.href='/Checkout/Process?maPhong=@Model.MaPhong'">
+                            <i class="fas fa-receipt me-2"></i> TIẾN HÀNH THÀNH TOÁN & XUẤT HÓA ĐƠN
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Booked && activeBooking != null)
+            {
+                <!-- Booked Info Card -->
+                <div class="card border rounded shadow-sm bg-white p-4 mb-4" style="@statusCardStyle">
+                    <div class="pb-2 border-bottom mb-3">
+                        <h5 class="text-navy font-serif fw-bold mb-0"><i class="fas fa-calendar-check text-gold me-2"></i>Lịch trình đặt trước hoạt động</h5>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Tên khách hàng</span>
+                            <span class="text-navy fw-bold fs-5">@activeBooking.KhachHang.Ho @activeBooking.KhachHang.Ten</span>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Mã đặt phòng</span>
+                            <span class="text-navy fw-bold text-monospace">#DP-@activeBooking.MaDatPhong</span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Dự kiến Check-in</span>
+                            <span class="text-navy fw-medium">@activeBooking.NgayCheckInDuKien.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Dự kiến Check-out</span>
+                            <span class="text-navy fw-medium">@activeBooking.NgayCheckOutDuKien.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="col-md-12 mt-2 pt-2 border-top">
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Liên hệ khách hàng</span>
+                            <span class="text-navy fw-semibold">@(activeBooking.KhachHang.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "Chưa có SĐT") - @(activeBooking.KhachHang.LienHeDiaChis?.FirstOrDefault()?.Email ?? "Chưa có Email")</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-2 d-flex gap-2">
+                        <button class="btn btn-gold py-2 px-3 fw-bold flex-grow-1 text-uppercase" onclick="location.href='/Reception/Index'">
+                            <i class="fas fa-door-open me-2"></i> NHẬN PHÒNG CHO KHÁCH (CHECK-IN)
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Available / Cleaning Card -->
+                <div class="card border rounded shadow-sm bg-white p-4 mb-4" style="@statusCardStyle">
+                    <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3">
+                        <i class="fas fa-door-open text-gold me-2"></i>Trạng thái hiện tại: @(Model.TrangThai == QLKSan.Enums.RoomStatus.Available ? "Trống" : "Chờ dọn dẹp")
+                    </h5>
+                    
+                    @if (Model.TrangThai == QLKSan.Enums.RoomStatus.Available)
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem;"></i>
+                            <h5 class="text-navy fw-bold">Phòng sẵn sàng tiếp đón khách mới</h5>
+                            <p class="text-muted small px-5">Phòng đã được bộ phận Buồng phòng dọn dẹp tiêu chuẩn và kiểm tra an toàn hệ thống điện nước đầy đủ.</p>
+                            
+                            <button class="btn btn-gold px-4 py-2 mt-2 fw-bold text-uppercase" onclick="location.href='/Reception/Index'">
+                                <i class="fas fa-plus me-2"></i> TẠO PHIẾU ĐẶT PHÒNG / NHẬN PHÒNG NGAY
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-broom text-gold mb-3 animate-bounce" style="font-size: 3.5rem;"></i>
+                            <h5 class="text-navy fw-bold">Phòng đang chờ được làm sạch vệ sinh</h5>
+                            <p class="text-muted small px-5">Khách vừa trả phòng hoặc bộ phận quản lý yêu cầu dọn dẹp định kỳ trước khi bàn giao cho phòng trống.</p>
+                            
+                            <form asp-action="UpdateStatus" asp-controller="Room" method="post" class="mt-3">
+                                <input type="hidden" name="maPhong" value="@Model.MaPhong" />
+                                <input type="hidden" name="status" value="Available" />
+                                <button type="submit" class="btn btn-gold px-4 py-2 fw-bold text-uppercase">
+                                    <i class="fas fa-check me-2"></i> XÁC NHẬN ĐÃ DỌN XONG (CHUYỂN SANG TRỐNG)
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- OPERATIONAL MANUAL STATE OVERRIDE PANEL -->
+            <div class="card border rounded shadow-sm bg-white p-4">
+                <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-sliders-h text-gold me-2"></i>Bảng điều khiển trạng thái</h5>
+                
+                @if (Model.TrangThai == QLKSan.Enums.RoomStatus.Occupied || Model.TrangThai == QLKSan.Enums.RoomStatus.Booked)
+                {
+                    <div class="alert alert-warning border-0 bg-light d-flex align-items-center mb-0">
+                        <i class="fas fa-lock text-muted fs-4 me-3"></i>
+                        <div>
+                            <p class="mb-0 fw-semibold text-navy" style="font-size: 0.85rem;">Trạng thái đã khóa tự động</p>
+                            <p class="text-muted small mb-0">Trạng thái phòng đang được quản lý bởi Hợp đồng lưu trú. Vui lòng sử dụng tính năng Check-in hoặc Check-out để thay đổi hệ thống.</p>
+                        </div>
+                    </div>
+                }
+                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Available)
+                {
+                    <p class="text-muted small mb-3">Phòng đang trống. Bạn có thể thay đổi trạng thái nếu phòng cần dọn dẹp hoặc xảy ra sự cố cần bảo trì.</p>
+                    <div class="d-flex gap-2">
+                        <form asp-action="UpdateStatus" asp-controller="Room" method="post" class="flex-grow-1">
+                            <input type="hidden" name="maPhong" value="@Model.MaPhong" />
+                            <input type="hidden" name="status" value="Cleaning" />
+                            <button type="submit" class="btn btn-outline-warning w-100 py-2 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                                <i class="fas fa-broom me-1"></i> YÊU CẦU DỌN DẸP
+                            </button>
+                        </form>
+                        <form asp-action="UpdateStatus" asp-controller="Room" method="post" class="flex-grow-1">
+                            <input type="hidden" name="maPhong" value="@Model.MaPhong" />
+                            <input type="hidden" name="status" value="Maintenance" />
+                            <button type="submit" class="btn btn-outline-secondary w-100 py-2 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                                <i class="fas fa-tools me-1"></i> BÁO BẢO TRÌ
+                            </button>
+                        </form>
+                    </div>
+                }
+                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Cleaning)
+                {
+                    <p class="text-muted small mb-3">Nếu phát hiện hỏng hóc trong quá trình dọn dẹp, bạn có thể chuyển phòng sang trạng thái Bảo trì.</p>
+                    <form asp-action="UpdateStatus" asp-controller="Room" method="post">
+                        <input type="hidden" name="maPhong" value="@Model.MaPhong" />
+                        <input type="hidden" name="status" value="Maintenance" />
+                        <button type="submit" class="btn btn-outline-secondary w-100 py-2 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                            <i class="fas fa-tools me-1"></i> BÁO CÁO HỎNG HÓC & BẢO TRÌ
+                        </button>
+                    </form>
+                }
+                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Maintenance)
+                {
+                    <p class="text-muted small mb-3">Phòng đang được bảo trì. Sau khi sửa chữa xong, vui lòng chuyển về trạng thái Trống hoặc Dọn dẹp.</p>
+                    <div class="d-flex gap-2">
+                        <form asp-action="UpdateStatus" asp-controller="Room" method="post" class="flex-grow-1">
+                            <input type="hidden" name="maPhong" value="@Model.MaPhong" />
+                            <input type="hidden" name="status" value="Available" />
+                            <button type="submit" class="btn btn-outline-success w-100 py-2 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                                <i class="fas fa-check-circle me-1"></i> HOÀN TẤT (TRỐNG)
+                            </button>
+                        </form>
+                        <form asp-action="UpdateStatus" asp-controller="Room" method="post" class="flex-grow-1">
+                            <input type="hidden" name="maPhong" value="@Model.MaPhong" />
+                            <input type="hidden" name="status" value="Cleaning" />
+                            <button type="submit" class="btn btn-outline-warning w-100 py-2 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                                <i class="fas fa-broom me-1"></i> CẦN DỌN DẸP LẠI
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

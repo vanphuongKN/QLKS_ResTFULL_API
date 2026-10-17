@@ -1,0 +1,177 @@
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Đánh giá";
+    var bookedRooms = ViewBag.BookedRooms as IEnumerable<QLKSan.Models.Entities.Phong>;
+}
+
+<!-- Hero Section -->
+<div class="feedback-hero">
+    <div>
+        <div class="lr-section-label">Trải nghiệm khách hàng</div>
+        <h2 class="lr-section-title">Cảm nhận của bạn tạo nên di sản của chúng tôi.</h2>
+        <p class="lr-section-desc">Chúng tôi trân trọng mọi chia sẻ trải nghiệm về kỳ nghỉ vừa qua. Mọi chi tiết đều giúp chúng tôi hoàn thiện nghệ thuật hiếu khách.</p>
+    </div>
+    <div class="feedback-hero-img">
+        <img src="/images/room_ocean.png" alt="Luxe Resort Room">
+    </div>
+</div>
+
+<!-- Success / Error -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mt-3">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["ErrorMessage"]</div>
+}
+
+<!-- Feedback Form -->
+<div class="feedback-form-section">
+    <form action="@Url.Action("SubmitFeedback", "Customer")" method="post">
+        <!-- Room Reference (từ DB) -->
+        <div class="mb-4">
+            <label class="form-label-upper">Phòng tham chiếu</label>
+            <select name="maPhong" class="form-control form-control-lg-custom" style="font-size:1rem;padding:14px" required>
+                <option value="">-- Chọn phòng bạn đã ở --</option>
+                @if (bookedRooms != null && bookedRooms.Any())
+                {
+                    foreach (var room in bookedRooms)
+                    {
+                        if (ViewBag.SelectedRoomId != null && ViewBag.SelectedRoomId == room.MaPhong)
+                        {
+                            <option value="@room.MaPhong" selected>Phòng @room.SoPhong — @(room.LoaiPhong?.TenLoai ?? "Standard")</option>
+                        }
+                        else
+                        {
+                            <option value="@room.MaPhong">Phòng @room.SoPhong — @(room.LoaiPhong?.TenLoai ?? "Standard")</option>
+                        }
+                    }
+                }
+                else
+                {
+                    <option value="" disabled>Bạn chưa đặt phòng nào để đánh giá</option>
+                }
+            </select>
+        </div>
+
+        <!-- Star Rating -->
+        <div class="mb-4">
+            <label class="form-label-upper">Ấn tượng chung</label>
+            <div class="star-rating mt-2" id="starRating">
+                <i class="fas fa-star" data-rating="1"></i>
+                <i class="fas fa-star" data-rating="2"></i>
+                <i class="fas fa-star" data-rating="3"></i>
+                <i class="fas fa-star" data-rating="4"></i>
+                <i class="fas fa-star empty" data-rating="5"></i>
+            </div>
+            <input type="hidden" name="rating" id="ratingInput" value="4" />
+        </div>
+
+        <!-- Comment -->
+        <div class="mb-4">
+            <label class="form-label-upper">Ý kiến của bạn</label>
+            <textarea name="comment" class="feedback-textarea" placeholder="Chia sẻ những khoảnh khắc đáng nhớ trong kỳ nghỉ của bạn..."></textarea>
+        </div>
+
+        <!-- Anonymous Toggle -->
+        <div class="anonymous-toggle">
+            <div>
+                <strong>Gửi ẩn danh</strong>
+                <p class="text-muted small mb-0">Tên của bạn sẽ không hiển thị trên các bài đánh giá công khai.</p>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="isAnonymous" value="true" style="width:48px;height:24px">
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn-submit-feedback">Gửi đánh giá</button>
+            <button type="button" class="btn-cancel-feedback" onclick="history.back()">Hủy bỏ</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        var currentRating = 4;
+        
+        // Parse the reviews list passed from the controller
+        const myReviews = JSON.parse('@Html.Raw(ViewBag.MyReviewsJson ?? "[]")');
+        
+        // References to DOM elements
+        const roomSelect = document.querySelector('select[name="maPhong"]');
+        const ratingInput = document.getElementById('ratingInput');
+        const commentInput = document.querySelector('textarea[name="comment"]');
+        const anonymousInput = document.querySelector('input[name="isAnonymous"]');
+        const stars = document.querySelectorAll('#starRating .fa-star');
+
+        // Helper function to update the star UI
+        function updateStarUI(ratingValue) {
+            stars.forEach(function(s) {
+                var r = parseInt(s.getAttribute('data-rating'));
+                s.classList.toggle('empty', r > ratingValue);
+            });
+        }
+
+        // Change listener on Room Select
+        roomSelect.addEventListener('change', function() {
+            const selectedMaPhong = this.value;
+            if (!selectedMaPhong) {
+                // Reset to defaults
+                currentRating = 4;
+                ratingInput.value = 4;
+                updateStarUI(4);
+                commentInput.value = '';
+                anonymousInput.checked = false;
+                return;
+            }
+
+            // Find if there's an existing review for this room
+            const review = myReviews.find(r => r.maPhong === selectedMaPhong);
+            if (review) {
+                // Populate previous review details
+                currentRating = review.soSao;
+                ratingInput.value = review.soSao;
+                updateStarUI(review.soSao);
+                commentInput.value = review.noiDung;
+                anonymousInput.checked = review.anDanh;
+            } else {
+                // Reset to default rating of 4 stars, empty comment, and not anonymous
+                currentRating = 4;
+                ratingInput.value = 4;
+                updateStarUI(4);
+                commentInput.value = '';
+                anonymousInput.checked = false;
+            }
+        });
+
+        // Event listeners for star ratings
+        stars.forEach(function(star) {
+            star.addEventListener('click', function() {
+                currentRating = parseInt(this.getAttribute('data-rating'));
+                ratingInput.value = currentRating;
+                updateStarUI(currentRating);
+            });
+            star.addEventListener('mouseover', function() {
+                var r = parseInt(this.getAttribute('data-rating'));
+                stars.forEach(function(s) {
+                    s.classList.toggle('empty', parseInt(s.getAttribute('data-rating')) > r);
+                });
+            });
+            star.addEventListener('mouseout', function() {
+                stars.forEach(function(s) {
+                    s.classList.toggle('empty', parseInt(s.getAttribute('data-rating')) > currentRating);
+                });
+            });
+        });
+
+        // Trigger change event if a room is pre-selected from URL
+        if (roomSelect.value) {
+            roomSelect.dispatchEvent(new Event('change'));
+        }
+    </script>
+}

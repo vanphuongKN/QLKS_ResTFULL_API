@@ -1,0 +1,193 @@
+@{
+    ViewData["Title"] = "Bảng điều khiển Quản lý";
+    decimal revenue = ViewBag.Revenue ?? 0m;
+    var weeklyRevenue = ViewBag.WeeklyRevenue as List<decimal> ?? new List<decimal>(new decimal[7]);
+    decimal maxRevenue = weeklyRevenue.Any() && weeklyRevenue.Max() > 0 ? weeklyRevenue.Max() : 1m;
+    int totalBookings = ViewBag.Bookings ?? 0;
+    int totalCustomers = ViewBag.Customers ?? 0;
+    var promotions = ViewBag.Promotions as IEnumerable<QLKSan.Models.Entities.KhuyenMai>;
+    var yearlyRevenue = ViewBag.YearlyRevenue as List<QLKSan.Models.DTOs.MonthlyRevenueDto> ?? new List<QLKSan.Models.DTOs.MonthlyRevenueDto>();
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Tổng quan điều hành</p>
+        <h2>Bảng điều khiển Quản lý</h2>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Rooms" class="btn btn-outline-gold">Phòng</a>
+        <a asp-action="RoomTypes" class="btn btn-outline-gold">Loại phòng</a>
+        <a asp-action="Staff" class="btn btn-outline-gold">Nhân sự</a>
+        <a asp-action="Promotions" class="btn-gold"><i class="fas fa-tags me-2"></i>Khuyến mãi</a>
+    </div>
+</div>
+
+<!-- Revenue + Promotions -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h6 class="text-muted mb-1"><i class="fas fa-chart-bar me-2"></i>Tổng quan Doanh thu</h6>
+                </div>
+                <div class="text-end">
+                    <h3 class="fw-bold text-navy mb-0">@revenue.ToString("N0") ₫</h3>
+                    <small class="text-muted">@totalBookings phiếu đặt · @totalCustomers khách hàng</small>
+                </div>
+            </div>
+            <!-- Dynamic Bar Chart -->
+            <div class="d-flex align-items-end gap-3 mt-4" style="height:180px">
+                @{
+                    string[] days = { "THỨ 2", "THỨ 3", "THỨ 4", "THỨ 5", "THỨ 6", "THỨ 7", "CN" };
+                    for (int i = 0; i < 7; i++)
+                    {
+                        var rev = weeklyRevenue[i];
+                        int heightPx = (int)((rev / maxRevenue) * 150); // 150px max height
+                        if (rev > 0 && heightPx < 15) heightPx = 15; // minimum visible height if there's revenue
+                        if (rev == 0) heightPx = 5; // tiny height for 0 revenue to show empty state
+                        
+                        // Highlight current day if it's today
+                        int todayIndex = (int)DateTime.Today.DayOfWeek - 1;
+                        if (todayIndex == -1) todayIndex = 6;
+                        bool isToday = todayIndex == i;
+                        
+                        string bgColor = isToday ? "var(--gold)" : "#E8E8E8";
+                        
+                        <div class="d-flex flex-column align-items-center flex-fill position-relative" style="cursor: pointer;" title="Doanh thu: @rev.ToString("N0") ₫">
+                            <div style="background:@bgColor; width:100%; height:@(heightPx)px; border-radius:4px; transition: height 0.5s ease, background 0.3s ease;" 
+                                 onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"></div>
+                            <small class="text-muted mt-2 fw-bold" style="font-size:0.7rem; @(isToday ? "color: var(--navy) !important;" : "")">@days[i]</small>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-tags me-2"></i>Khuyến mãi</h6>
+                <a asp-action="Promotions" class="small text-gold">Xem tất cả</a>
+            </div>
+            @if (promotions != null && promotions.Any()) {
+                foreach (var promo in promotions.Take(3)) {
+                    var active = promo.NgayBatDau <= DateTime.Now && promo.NgayKetThuc >= DateTime.Now;
+                    <div class="promo-card">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="promo-name">@promo.MaKhuyenMai</span>
+                            <span class="promo-badge" style="@(active ? "background:rgba(46,125,50,0.1);color:#2E7D32" : "background:#f0f0f0;color:#999")">@(active ? "ĐANG HOẠT ĐỘNG" : "HẾT HẠN")</span>
+                        </div>
+                        <p class="text-muted small mb-1">@promo.TenKhuyenMai</p>
+                        <small class="text-muted"><i class="fas fa-calendar me-1"></i>Kết thúc @promo.NgayKetThuc.ToString("dd/MM")</small>
+                    </div>
+                }
+            } else {
+                <p class="text-muted small text-center py-3">Chưa có khuyến mãi nào.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Yearly Revenue Management -->
+<div class="card mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="fas fa-calendar-alt me-2"></i>Lịch sử doanh thu @DateTime.Now.Year</h6>
+        </div>
+        
+        <div class="accordion accordion-flush" id="accordionYearlyRevenue">
+            @if (yearlyRevenue != null && yearlyRevenue.Any(m => m.TotalRevenue > 0))
+            {
+                @foreach (var month in yearlyRevenue.OrderByDescending(m => m.Month).Where(m => m.TotalRevenue > 0 || m.Month <= DateTime.Now.Month))
+                {
+                    var monthId = $"month{month.Month}";
+                    <div class="accordion-item border mb-2 rounded">
+                        <h2 class="accordion-header" id="heading@(monthId)">
+                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(monthId)" aria-expanded="false" aria-controls="collapse@(monthId)">
+                                <div class="d-flex justify-content-between w-100 pe-3">
+                                    <span>@month.MonthLabel</span>
+                                    <span class="text-navy">@month.TotalRevenue.ToString("N0") ₫</span>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse@(monthId)" class="accordion-collapse collapse" aria-labelledby="heading@(monthId)" data-bs-parent="#accordionYearlyRevenue">
+                            <div class="accordion-body p-0">
+                                <!-- Weeks Accordion inside Month -->
+                                <div class="accordion accordion-flush" id="accordionWeeks@(monthId)">
+                                    @foreach (var week in month.Weeks)
+                                    {
+                                        var weekId = $"month{month.Month}week{week.WeekLabel.Replace(" ", "")}";
+                                        <div class="accordion-item bg-light border-0 border-bottom">
+                                            <h2 class="accordion-header" id="heading@(weekId)">
+                                                <button class="accordion-button collapsed bg-light py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(weekId)" aria-expanded="false" aria-controls="collapse@(weekId)">
+                                                    <div class="d-flex justify-content-between w-100 pe-3 small">
+                                                        <span class="text-muted"><i class="fas fa-calendar-week me-2"></i>@week.WeekLabel <small>(@week.StartDate.ToString("dd/MM") - @week.EndDate.ToString("dd/MM"))</small></span>
+                                                        <span class="fw-bold">@week.TotalRevenue.ToString("N0") ₫</span>
+                                                    </div>
+                                                </button>
+                                            </h2>
+                                            <div id="collapse@(weekId)" class="accordion-collapse collapse" aria-labelledby="heading@(weekId)" data-bs-parent="#accordionWeeks@(monthId)">
+                                                <div class="accordion-body bg-white p-3">
+                                                    <div class="row g-2">
+                                                        @foreach (var day in week.Days)
+                                                        {
+                                                            <div class="col">
+                                                                <div class="card h-100 border-0 bg-light text-center p-2">
+                                                                    <small class="text-muted d-block mb-1">@day.DayOfWeekLabel</small>
+                                                                    <strong class="d-block mb-2" style="font-size:0.8rem">@day.DateLabel</strong>
+                                                                    <span class="badge @(day.Revenue > 0 ? "bg-success" : "bg-secondary text-white-50")">
+                                                                        @day.Revenue.ToString("N0") ₫
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center p-4 text-muted">Chưa có dữ liệu doanh thu cho năm @DateTime.Now.Year.</div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row g-4">
+    <div class="col-md-3">
+        <a asp-action="Rooms" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <i class="fas fa-bed text-gold" style="font-size:2rem"></i>
+            <h6 class="fw-bold mt-2 mb-0">Quản lý Phòng</h6>
+            <small class="text-muted">Thêm / Xóa phòng</small>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="Services" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <i class="fas fa-concierge-bell text-gold" style="font-size:2rem"></i>
+            <h6 class="fw-bold mt-2 mb-0">Dịch vụ</h6>
+            <small class="text-muted">Bảng giá dịch vụ</small>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="Staff" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <i class="fas fa-users text-gold" style="font-size:2rem"></i>
+            <h6 class="fw-bold mt-2 mb-0">Nhân sự</h6>
+            <small class="text-muted">Quản lý nhân viên</small>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="Reviews" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <i class="fas fa-star text-gold" style="font-size:2rem"></i>
+            <h6 class="fw-bold mt-2 mb-0">Đánh giá</h6>
+            <small class="text-muted">Nhận xét khách hàng</small>
+        </a>
+    </div>
+</div>

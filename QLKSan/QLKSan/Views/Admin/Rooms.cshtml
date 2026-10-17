@@ -1,0 +1,161 @@
+@{
+    ViewData["Title"] = "Quản lý Phòng";
+    var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.Entities.Phong>;
+    var roomTypes = ViewBag.RoomTypes as IEnumerable<QLKSan.Models.Entities.LoaiPhong>;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Quản lý tài sản</p>
+        <h2>Danh sách Phòng</h2>
+    </div>
+    <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+        <i class="fas fa-plus me-2"></i>Thêm phòng mới
+    </button>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Mã phòng</th>
+                    <th>Số phòng</th>
+                    <th>Loại phòng</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (rooms != null && rooms.Any())
+                {
+                    foreach (var room in rooms)
+                    {
+                        var statusClass = room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "badge-available"
+                                        : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "badge-occupied"
+                                        : "badge-cleaning";
+                        <tr>
+                            <td><strong>@room.MaPhong</strong></td>
+                            <td>@room.SoPhong</td>
+                            <td>@(room.LoaiPhong?.TenLoai ?? "N/A")</td>
+                            <td><span class="badge-status @statusClass">@room.TrangThai.GetDisplayName().ToUpper()</span></td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                            onclick="editRoom('@room.MaPhong', '@room.SoPhong', '@room.MaLoai')">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <form asp-action="DeleteRoom" method="post" class="d-inline" onsubmit="return confirm('Xóa phòng @room.SoPhong?')">
+                                        <input type="hidden" name="maPhong" value="@room.MaPhong" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="text-center text-muted p-4">Chưa có phòng nào trong hệ thống.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Room Modal -->
+<div class="modal fade" id="addRoomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-bed me-2"></i>Thêm phòng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddRoom" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Số phòng</label>
+                        <input type="text" name="soPhong" class="form-control" placeholder="VD: 101" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại phòng</label>
+                        <select name="maLoai" class="form-select" required>
+                            <option value="">-- Chọn loại --</option>
+                            @if (roomTypes != null)
+                            {
+                                foreach (var rt in roomTypes)
+                                {
+                                    <option value="@rt.MaLoai">@rt.TenLoai</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold">Thêm phòng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Room Modal -->
+<div class="modal fade" id="editRoomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-pen me-2"></i>Cập nhật thông tin phòng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="EditRoom" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="maPhong" id="editRoomMaPhong" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Số phòng</label>
+                        <input type="text" name="soPhong" id="editRoomSoPhong" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại phòng</label>
+                        <select name="maLoai" id="editRoomMaLoai" class="form-select" required>
+                            <option value="">-- Chọn loại --</option>
+                            @if (roomTypes != null)
+                            {
+                                foreach (var rt in roomTypes)
+                                {
+                                    <option value="@rt.MaLoai">@rt.TenLoai</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary btn">Cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function editRoom(ma, so, loai) {
+        document.getElementById('editRoomMaPhong').value = ma;
+        document.getElementById('editRoomSoPhong').value = so;
+        document.getElementById('editRoomMaLoai').value = loai;
+        new bootstrap.Modal(document.getElementById('editRoomModal')).show();
+    }
+</script>
+}

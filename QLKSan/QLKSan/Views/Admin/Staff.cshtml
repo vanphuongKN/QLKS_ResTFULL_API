@@ -1,0 +1,193 @@
+@{
+    ViewData["Title"] = "Quản lý Nhân sự";
+    var staffList = ViewBag.Staff as IEnumerable<QLKSan.Models.Entities.NhanVien>;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Quản lý nhân sự</p>
+        <h2>Danh sách Nhân viên</h2>
+    </div>
+    <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+        <i class="fas fa-user-plus me-2"></i>Thêm nhân viên
+    </button>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
+}
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Nhân viên</th>
+                    <th>Mã NV</th>
+                    <th>Chức vụ</th>
+                    <th>SĐT</th>
+                    <th>Email</th>
+                    <th>Ngày vào làm</th>
+                    <th>Tài khoản</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (staffList != null && staffList.Any())
+                {
+                    foreach (var nv in staffList)
+                    {
+                        var initials = nv.TenNhanVien?.Length >= 2
+                            ? string.Concat(nv.TenNhanVien.Split(' ').Select(w => w[0].ToString())).Substring(0, Math.Min(2, nv.TenNhanVien.Split(' ').Length))
+                            : (nv.TenNhanVien?.Substring(0, 1) ?? "?");
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="avatar-circle">@initials</span>
+                                    <strong>@nv.TenNhanVien</strong>
+                                </div>
+                            </td>
+                            <td><small class="text-muted">@nv.MaNhanVien</small></td>
+                            <td>@nv.ChucVu</td>
+                            <td>@nv.SDT</td>
+                            <td>@nv.Email</td>
+                            <td>@nv.NgayVaoLam.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (nv.TaiKhoan != null)
+                                {
+                                    <span class="badge-status badge-available">@nv.TaiKhoan.TenDangNhap</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Chưa có TK</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" title="Sửa thông tin" 
+                                            onclick="editStaff('@nv.MaNhanVien', '@nv.TenNhanVien', '@nv.ChucVu', '@nv.SDT', '@nv.Email')">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <form asp-action="DeleteStaff" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhân viên @nv.TenNhanVien?')">
+                                        <input type="hidden" name="maNhanVien" value="@nv.MaNhanVien" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa nhân viên">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="8" class="text-center text-muted p-4">Chưa có nhân viên nào.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Staff Modal -->
+<div class="modal fade" id="addStaffModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>Thêm nhân viên mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddStaff" method="post">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Họ và tên</label>
+                            <input type="text" name="tenNhanVien" class="form-control" placeholder="Nguyễn Văn A" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Chức vụ</label>
+                            <input type="text" name="chucVu" class="form-control" placeholder="Lễ tân, Buồng phòng..." required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số điện thoại</label>
+                            <input type="text" name="sdt" class="form-control" placeholder="0901234567" pattern="^0[35789][0-9]{8}$" title="Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08, 09)" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="nhanvien@luxestay.com" required>
+                        </div>
+                        <div class="col-12"><hr class="my-1"><p class="fw-semibold text-muted small">— Thông tin tài khoản —</p></div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tên đăng nhập</label>
+                            <input type="text" name="tenDangNhap" class="form-control" placeholder="nhanvien01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Mật khẩu</label>
+                            <input type="password" name="matKhau" class="form-control" placeholder="••••••••" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold">Tạo nhân viên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Staff Modal -->
+<div class="modal fade" id="editStaffModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-edit me-2"></i>Cập nhật thông tin nhân viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="EditStaff" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="maNhanVien" id="editStaffMa" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Họ và tên</label>
+                            <input type="text" name="tenNhanVien" id="editStaffTen" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Chức vụ</label>
+                            <input type="text" name="chucVu" id="editStaffChucVu" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số điện thoại</label>
+                            <input type="text" name="sdt" id="editStaffSDT" class="form-control" pattern="^0[35789][0-9]{8}$" title="Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08, 09)" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" id="editStaffEmail" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary btn">Cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function editStaff(ma, ten, chucVu, sdt, email) {
+        document.getElementById('editStaffMa').value = ma;
+        document.getElementById('editStaffTen').value = ten;
+        document.getElementById('editStaffChucVu').value = chucVu;
+        document.getElementById('editStaffSDT').value = sdt;
+        document.getElementById('editStaffEmail').value = email;
+        new bootstrap.Modal(document.getElementById('editStaffModal')).show();
+    }
+</script>
+}

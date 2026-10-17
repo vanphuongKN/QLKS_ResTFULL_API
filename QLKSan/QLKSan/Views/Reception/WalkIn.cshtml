@@ -1,0 +1,220 @@
+@model QLKSan.ViewModels.CheckInViewModel
+@{
+    ViewData["Title"] = "Đặt phòng khách vãng lai";
+    var availableRooms = ViewBag.AvailableRooms as IEnumerable<QLKSan.Models.Entities.Phong>;
+}
+<style>
+    .form-label-upper {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+</style>
+
+<form asp-action="WalkIn" method="post" id="checkinForm">
+    <div class="page-header">
+        <div>
+            <h2>Đặt phòng mới (Walk-In)</h2>
+            <p class="page-desc">Tạo mục đặt phòng chuyên nghiệp cho số cái PhieuDatPhong.<br>Đảm bảo thông tin khách hàng được xác minh so với hồ sơ chính thức.</p>
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success mt-2">@TempData["SuccessMessage"]</div>
+            }
+            <div asp-validation-summary="All" class="text-danger"></div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-navy">Quay lại Dashboard</a>
+            <button type="submit" class="btn-gold">Xác nhận đặt phòng</button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Form -->
+        <div class="col-lg-7">
+            <!-- Identity Verification -->
+            <div class="card p-4 mb-4">
+                <h6 class="fw-bold mb-3"><i class="fas fa-user-check me-2 text-gold"></i>Xác nhận danh tính khách (CCCD/Passport)</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label-upper">Tìm kiếm theo CCCD / Hộ chiếu</label>
+                        <div class="d-flex gap-2">
+                            <input asp-for="CCCD_Passport" class="form-control form-control-lg-custom flex-fill" placeholder="Nhập số định danh...">
+                        </div>
+                        <span asp-validation-for="CCCD_Passport" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-upper">Họ</label>
+                        <input asp-for="Ho" class="form-control form-control-lg-custom" placeholder="Nguyễn">
+                        <span asp-validation-for="Ho" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-upper">Tên khách</label>
+                        <input asp-for="Ten" class="form-control form-control-lg-custom" placeholder="Văn A">
+                        <span asp-validation-for="Ten" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label-upper">Số lượng khách</label>
+                        <input asp-for="SoNguoi" type="number" class="form-control form-control-lg-custom" min="1" value="1">
+                        <span asp-validation-for="SoNguoi" class="text-danger"></span>
+                        <small id="soNguoiHelp" class="text-danger fw-bold d-none" style="font-size: 0.75rem"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-upper">SĐT liên lạc</label>
+                        <input asp-for="SDT" type="tel" class="form-control form-control-lg-custom" placeholder="+84 90...">
+                        <span asp-validation-for="SDT" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-upper">Ngày Check-in</label>
+                        <input asp-for="NgayCheckIn" type="date" class="form-control form-control-lg-custom" min="@DateTime.Today.ToString("yyyy-MM-dd")">
+                        <span asp-validation-for="NgayCheckIn" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-upper">Ngày Check-out</label>
+                        <input asp-for="NgayCheckOut" type="date" class="form-control form-control-lg-custom" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")">
+                        <span asp-validation-for="NgayCheckOut" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room Selection Grid -->
+            <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-bed me-2 text-gold"></i>Chỉ định phòng (Phong)</h6>
+                    <div class="d-flex gap-2">
+                        <span class="badge-status badge-available">Sẵn sàng</span>
+                    </div>
+                </div>
+                
+                <input type="hidden" asp-for="MaPhong" id="selectedRoomId" />
+                <span asp-validation-for="MaPhong" class="text-danger mb-2 d-block"></span>
+
+                <div class="row g-3">
+                    @if (availableRooms != null && availableRooms.Any())
+                    {
+                        foreach (var room in availableRooms)
+                        {
+                            <div class="col">
+                                <div class="room-select-card" onclick="selectRoom('@room.MaPhong', @(room.LoaiPhong?.GiaThueNgay ?? 0), @(room.LoaiPhong?.SoNguoiToiDa ?? 2), this)" style="cursor:pointer" id="room-card-@room.MaPhong">
+                                    <div class="room-type-label">@(room.LoaiPhong?.TenLoai ?? "Standard")</div>
+                                    <div class="room-num text-navy">@room.SoPhong</div>
+                                    <small class="text-success fw-bold">SẴN SÀNG</small>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12 text-center text-muted py-3">Không có phòng nào trống lúc này.</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Ledger -->
+        <div class="col-lg-5">
+            <div class="ledger-panel mb-4">
+                <h5>Chi tiết thanh toán</h5>
+                <p class="ledger-id text-muted" style="font-size: 0.85rem">Mã phiếu tạm: #PR-@DateTime.Now.ToString("HHmmss")</p>
+
+                <div class="mb-3">
+                    <div class="ledger-label">Loại phòng</div>
+                    <div class="d-flex justify-content-between">
+                        <strong id="ledgerRoomName">Chưa chọn</strong>
+                        <span id="ledgerRoomPrice">0 VNĐ / đêm</span>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <div class="mb-3">
+                    <div class="ledger-label">Thời gian lưu trú</div>
+                    <div class="d-flex justify-content-between">
+                        <strong id="ledgerDays">0 Đêm</strong>
+                        <span id="ledgerDates">...</span>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <div class="mb-3">
+                    <div class="ledger-label">Tiền cọc yêu cầu (50%)</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong class="text-gold fs-5" id="ledgerDepositText">0 VNĐ</strong>
+                        <input type="hidden" id="ledgerDeposit" name="TienCoc" value="0" />
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        window.selectedRoomPrice = 0;
+
+        function selectRoom(maPhong, gia, maxNguoi, element) {
+            document.querySelectorAll('.room-select-card').forEach(el => {
+                el.classList.remove('selected');
+                el.querySelector('.room-type-label').classList.remove('text-gold', 'fw-bold');
+                el.querySelector('.room-num').style.color = '';
+            });
+            element.classList.add('selected');
+            element.querySelector('.room-type-label').classList.add('text-gold', 'fw-bold');
+            element.querySelector('.room-num').style.color = 'var(--gold)';
+            document.getElementById('selectedRoomId').value = maPhong;
+            document.getElementById('ledgerRoomName').innerText = "Phòng " + element.querySelector('.room-num').innerText;
+            
+            var soNguoiInput = document.getElementById('SoNguoi');
+            soNguoiInput.max = maxNguoi;
+            if (parseInt(soNguoiInput.value) > parseInt(maxNguoi)) {
+                soNguoiInput.value = maxNguoi;
+            }
+            var helpText = document.getElementById('soNguoiHelp');
+            helpText.innerText = "Tối đa: " + maxNguoi + " người";
+            helpText.classList.remove('d-none');
+
+            window.selectedRoomPrice = gia;
+            document.getElementById('ledgerRoomPrice').innerText = new Intl.NumberFormat('vi-VN').format(gia) + " VNĐ / đêm";
+            calculateLedger(gia);
+        }
+
+        function calculateLedger(gia) {
+            let checkIn = new Date(document.getElementById('NgayCheckIn').value);
+            let checkOut = new Date(document.getElementById('NgayCheckOut').value);
+            if (!isNaN(checkIn) && !isNaN(checkOut) && checkOut > checkIn && gia) {
+                let diffTime = Math.abs(checkOut - checkIn);
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('ledgerDays').innerText = diffDays + " Đêm";
+                document.getElementById('ledgerDates').innerText = checkIn.toLocaleDateString() + " - " + checkOut.toLocaleDateString();
+                let deposit = diffDays * gia * 0.5;
+                let depositInput = document.getElementById('ledgerDeposit');
+                if (depositInput) depositInput.value = deposit;
+                let depositText = document.getElementById('ledgerDepositText');
+                if (depositText) depositText.innerText = new Intl.NumberFormat('vi-VN').format(deposit) + " VNĐ";
+            }
+        }
+
+        document.getElementById('NgayCheckIn').addEventListener('change', function() {
+            var ciDate = new Date(this.value);
+            if (!isNaN(ciDate)) {
+                ciDate.setDate(ciDate.getDate() + 1);
+                var minOut = ciDate.toISOString().split('T')[0];
+                document.getElementById('NgayCheckOut').min = minOut;
+                var currentOut = document.getElementById('NgayCheckOut').value;
+                if (currentOut && new Date(currentOut) <= new Date(this.value)) {
+                    document.getElementById('NgayCheckOut').value = minOut;
+                }
+            }
+
+            if (window.selectedRoomPrice > 0) {
+                calculateLedger(window.selectedRoomPrice);
+            }
+        });
+        document.getElementById('NgayCheckOut').addEventListener('change', () => {
+            if (window.selectedRoomPrice > 0) {
+                calculateLedger(window.selectedRoomPrice);
+            }
+        });
+    </script>
+}

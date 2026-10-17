@@ -1,0 +1,101 @@
+@using QLKSan.Enums
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - LuxeRegistry</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-brand">
+                <h4>LuxeRegistry</h4>
+            </div>
+            <div class="sidebar-hotel">
+                <p class="hotel-name">The Grand Reserve</p>
+                <p class="hotel-sub">Cổng thông tin nhân viên</p>
+            </div>
+            <nav class="sidebar-nav">
+                @if (Context.Request.Cookies["UserRole"] == "Admin")
+                {
+                    <a href="@Url.Action("Index", "Admin")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Admin" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
+                        <i class="fas fa-th-large"></i> Bảng điều khiển
+                    </a>
+                }
+                <a href="@Url.Action("Index", "Reception")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Reception" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
+                    <i class="fas fa-concierge-bell"></i> Lễ tân
+                </a>
+                <a href="@Url.Action("Customers", "Reception")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Reception" && ViewContext.RouteData.Values["Action"].ToString() == "Customers" ? "active" : "")">
+                    <i class="fas fa-users"></i> Khách hàng
+                </a>
+                <a href="@Url.Action("Status", "Room")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Room" ? "active" : "")">
+                    <i class="fas fa-th"></i> Phòng nghỉ
+                </a>
+                <a href="@Url.Action("Index", "Service")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Service" ? "active" : "")">
+                    <i class="fas fa-bell-concierge"></i> Dịch vụ
+                </a>
+                <a href="@Url.Action("Tasks", "Housekeeping")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Housekeeping" ? "active" : "")">
+                    <i class="fas fa-broom"></i> Buồng phòng
+                </a>
+            </nav>
+            <div class="sidebar-logout">
+                <a href="@Url.Action("Logout", "Auth")"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper">
+            <!-- Top Bar -->
+            <div class="topbar">
+                <div style="width:100px"></div>
+
+                <div class="topbar-actions">
+                    @{
+                        var userRole = Context.Request.Cookies["UserRole"];
+                        var displayRole = "";
+                        var roleInitials = "AD";
+                        if (userRole == "Admin")
+                        {
+                            displayRole = "Admin";
+                            roleInitials = "AD";
+                        }
+                        else if (userRole == "Receptionist")
+                        {
+                            displayRole = "Lễ tân";
+                            roleInitials = "LT";
+                        }
+                        else
+                        {
+                            displayRole = userRole ?? "Nhân viên";
+                            roleInitials = "NV";
+                        }
+                    }
+                    <div class="topbar-profile" style="display: flex; align-items: center; gap: 12px;">
+                        <span class="user-role-label" style="font-weight: 700; color: #2A3B4C; font-size: 0.95rem; letter-spacing: 0.5px;">@displayRole</span>
+                        <div class="avatar-badge" style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #C5A059, #E3C588); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 0.95rem; border: 2px solid #FFFFFF; box-shadow: 0 4px 10px rgba(197, 160, 89, 0.25); text-transform: uppercase;">
+                            @roleInitials
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content">
+                <main role="main">
+                    @RenderBody()
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
