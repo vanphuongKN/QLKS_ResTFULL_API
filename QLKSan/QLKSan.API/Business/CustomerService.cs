@@ -7,6 +7,7 @@ using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
 using QLKSan.Models.Entities;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Business
 {
@@ -27,6 +28,30 @@ namespace QLKSan.Business
                 .Include(k => k.LienHeDiaChis)
                 .Include(k => k.PhieuDatPhongs)
                 .FirstOrDefaultAsync(k => k.MaDangNhap == maDangNhap);
+
+        public async Task<KhachHang> UpdateContactAsync(string maKhachHang, UpdateContactRequest request)
+        {
+            var khach = await _context.KhachHangs.Include(k => k.LienHeDiaChis)
+                .FirstOrDefaultAsync(k => k.MaKhachHang == maKhachHang)
+                ?? throw new NotFoundException("Không tìm thấy hồ sơ khách hàng.");
+
+            var lienHe = khach.LienHeDiaChis.OrderBy(l => l.MaLienHe).FirstOrDefault();
+            if (lienHe == null)
+            {
+                lienHe = new LienHeDiaChi
+                {
+                    MaLienHe = await IdGenerator.NextAsync(_context.LienHeDiaChis.Select(l => l.MaLienHe), "LH", 4),
+                    MaKhachHang = maKhachHang
+                };
+                _context.LienHeDiaChis.Add(lienHe);
+            }
+            lienHe.SDT = request.SDT.Trim();
+            lienHe.Email = request.Email?.Trim() ?? "";
+            lienHe.DiaChi = request.DiaChi.Trim();
+            lienHe.QuocGia = string.IsNullOrWhiteSpace(request.QuocGia) ? "Việt Nam" : request.QuocGia.Trim();
+            await _context.SaveChangesAsync();
+            return khach;
+        }
 
         public async Task<IEnumerable<PhieuDatPhong>> GetBookingsByCustomerAsync(string maKhachHang)
             => await _context.PhieuDatPhongs

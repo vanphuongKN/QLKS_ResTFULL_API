@@ -54,6 +54,15 @@ namespace QLKSan.Controllers
             return CreatedAtAction(nameof(Me), _tokenService.CreateToken(account));
         }
 
+        /// <summary>Người dùng đang đăng nhập (khách hàng hoặc nhân viên) tự đổi mật khẩu.</summary>
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+        {
+            await _authService.ChangePasswordAsync(User.GetMaDangNhap(), request.MatKhauCu, request.MatKhauMoi);
+            return NoContent();
+        }
+
         /// <summary>Thông tin người dùng đang đăng nhập.</summary>
         [HttpGet("me")]
         [Authorize]

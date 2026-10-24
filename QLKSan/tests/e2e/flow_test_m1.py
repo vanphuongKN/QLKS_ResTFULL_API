@@ -2,7 +2,7 @@
 from csrfhelp import with_token
 import datetime, html, http.cookiejar, json, os, random, re, ssl, subprocess, sys, threading, urllib.parse, urllib.request, urllib.error
 
-WEB, API = 'https://localhost:7234', 'https://localhost:7001'
+WEB, API = os.environ.get('QLKSAN_WEB', 'https://localhost:7234'), os.environ.get('QLKSAN_API', 'https://localhost:7001')
 CTX = ssl._create_unverified_context()
 results = []
 created = {'bookings': set(), 'customers': set(), 'accounts': set()}

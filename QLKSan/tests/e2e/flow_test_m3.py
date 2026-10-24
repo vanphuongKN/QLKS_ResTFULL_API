@@ -1,9 +1,10 @@
 """Kiểm tra Mức 3: giá theo mùa / cuối tuần / lễ, lịch phòng, in hoá đơn (khách tự xem hoá đơn của mình), sổ khách lưu trú + Excel.
 CHỈ chạy trên database thử dựng từ DB/Quanlykhachsanc#.sql (script ghi dữ liệu: 1 lượt khách vãng lai; quy tắc giá thử được xoá ở cuối)."""
+import os
 from csrfhelp import with_token
 import html, http.cookiejar, io, json, random, re, ssl, sys, urllib.parse, urllib.request, urllib.error, zipfile, datetime
 
-WEB, API = 'https://localhost:7234', 'https://localhost:7001'
+WEB, API = os.environ.get('QLKSAN_WEB', 'https://localhost:7234'), os.environ.get('QLKSAN_API', 'https://localhost:7001')
 CTX = ssl._create_unverified_context()
 results = []
 today = datetime.date.today()

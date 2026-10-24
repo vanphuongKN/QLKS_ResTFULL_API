@@ -1,6 +1,7 @@
+import os
 import json, ssl, sys, urllib.request, urllib.error
 
-BASE = 'https://localhost:7001'
+BASE = os.environ.get('QLKSAN_API', 'https://localhost:7001')  # đổi bằng biến môi trường QLKSAN_API
 CTX = ssl._create_unverified_context()
 results = []
 

@@ -3,7 +3,7 @@ Cách dùng: python snapshot_pages.py <thư mục lưu>"""
 from csrfhelp import with_token
 import html, http.cookiejar, json, os, re, ssl, sys, urllib.parse, urllib.request, urllib.error
 
-WEB = 'https://localhost:7234'
+WEB = os.environ.get('QLKSAN_WEB', 'https://localhost:7234')
 CTX = ssl._create_unverified_context()
 OUT = sys.argv[1]
 os.makedirs(OUT, exist_ok=True)

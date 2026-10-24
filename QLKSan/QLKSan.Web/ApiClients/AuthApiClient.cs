@@ -8,6 +8,7 @@ namespace QLKSan.ApiClients
     {
         Task<LoginResponse> LoginAsync(LoginRequest request);
         Task<LoginResponse> RegisterAsync(RegisterRequest request);
+        Task ChangePasswordAsync(ChangePasswordRequest request);
     }
 
     // Gọi các endpoint /api/auth của QLKSan.API
@@ -20,5 +21,8 @@ namespace QLKSan.ApiClients
 
         public Task<LoginResponse> RegisterAsync(RegisterRequest request)
             => HttpPostAsync<LoginResponse>("api/auth/register", request);
+
+        public Task ChangePasswordAsync(ChangePasswordRequest request)
+            => HttpPostAsync("api/auth/change-password", request);
     }
 }

@@ -55,6 +55,27 @@ namespace QLKSan.Controllers
             return View();
         }
 
+        // Khách tự cập nhật SĐT, email, địa chỉ (họ tên và CCCD do lễ tân quản lý)
+        [HttpPost]
+        public async Task<IActionResult> UpdateContact(UpdateContactRequest model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(Profile));
+            }
+            try
+            {
+                await _customerApi.UpdateMyContactAsync(model);
+                TempData["SuccessMessage"] = "Đã cập nhật thông tin liên hệ.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Profile));
+        }
+
         [HttpGet]
         public async Task<IActionResult> Feedback(string? roomId = null)
         {

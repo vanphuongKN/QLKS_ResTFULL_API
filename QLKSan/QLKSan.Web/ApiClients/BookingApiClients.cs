@@ -51,6 +51,7 @@ namespace QLKSan.ApiClients
         Task<List<CustomerDto>> GetAllAsync(string search = null);
         Task<CustomerDetailDto> GetByIdAsync(string maKhachHang);
         Task<CustomerDto> GetMeAsync();
+        Task UpdateMyContactAsync(UpdateContactRequest request);
         Task<List<BookingDto>> GetMyBookingsAsync();
         Task<List<ReviewDto>> GetMyReviewsAsync();
     }
@@ -66,6 +67,7 @@ namespace QLKSan.ApiClients
             => HttpGetOrDefaultAsync<CustomerDetailDto>($"api/customers/{Uri.EscapeDataString(maKhachHang)}");
 
         public Task<CustomerDto> GetMeAsync() => HttpGetOrDefaultAsync<CustomerDto>("api/customers/me");
+        public Task UpdateMyContactAsync(UpdateContactRequest request) => HttpPutAsync("api/customers/me/contact", request);
         public Task<List<BookingDto>> GetMyBookingsAsync() => HttpGetAsync<List<BookingDto>>("api/customers/me/bookings");
         public Task<List<ReviewDto>> GetMyReviewsAsync() => HttpGetAsync<List<ReviewDto>>("api/customers/me/reviews");
     }

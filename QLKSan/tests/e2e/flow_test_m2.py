@@ -1,9 +1,10 @@
 """Kiểm tra Mức 2: vai trò Buồng phòng / Kế toán, ma trận phân quyền, luồng buồng phòng, quản lý nhân viên, kế toán & báo cáo.
 CHỈ chạy trên database thử dựng từ DB/Quanlykhachsanc#.sql (script ghi dữ liệu và không tự dọn)."""
+import os
 from csrfhelp import with_token
 import html, http.cookiejar, io, json, re, ssl, sys, urllib.parse, urllib.request, urllib.error, zipfile, datetime
 
-WEB, API = 'https://localhost:7234', 'https://localhost:7001'
+WEB, API = os.environ.get('QLKSAN_WEB', 'https://localhost:7234'), os.environ.get('QLKSAN_API', 'https://localhost:7001')
 CTX = ssl._create_unverified_context()
 results = []
 today = datetime.date.today()

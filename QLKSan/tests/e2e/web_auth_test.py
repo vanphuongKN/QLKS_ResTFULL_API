@@ -1,7 +1,8 @@
+import os
 from csrfhelp import with_token
 import html, http.cookiejar, ssl, sys, urllib.parse, urllib.request, urllib.error
 
-WEB = 'https://localhost:7234'
+WEB = os.environ.get('QLKSAN_WEB', 'https://localhost:7234')
 CTX = ssl._create_unverified_context()
 results = []
 

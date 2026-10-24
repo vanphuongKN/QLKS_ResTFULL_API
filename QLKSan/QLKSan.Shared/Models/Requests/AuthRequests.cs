@@ -52,4 +52,37 @@ namespace QLKSan.Models.Requests
         [Compare(nameof(MatKhau), ErrorMessage = "Mật khẩu xác nhận không khớp.")]
         public string XacNhanMatKhau { get; set; }
     }
+
+    // POST /api/auth/change-password: người dùng đang đăng nhập tự đổi mật khẩu
+    public class ChangePasswordRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu hiện tại.")]
+        public string MatKhauCu { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu mới.")]
+        [MinLength(6, ErrorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự.")]
+        public string MatKhauMoi { get; set; }
+
+        [Compare(nameof(MatKhauMoi), ErrorMessage = "Mật khẩu xác nhận không khớp.")]
+        public string XacNhanMatKhauMoi { get; set; }
+    }
+
+    // PUT /api/customers/me/contact: khách tự cập nhật liên hệ (họ tên, CCCD do lễ tân quản lý)
+    public class UpdateContactRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại.")]
+        [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})\b", ErrorMessage = "Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08, 09).")]
+        public string SDT { get; set; }
+
+        [EmailAddress(ErrorMessage = "Email sai định dạng.")]
+        [StringLength(100)]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập địa chỉ.")]
+        [StringLength(255)]
+        public string DiaChi { get; set; }
+
+        [StringLength(50)]
+        public string QuocGia { get; set; }
+    }
 }

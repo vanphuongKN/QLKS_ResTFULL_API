@@ -17,6 +17,15 @@
     var diaChi = contact == null ? null : string.Join(", ", new[] { contact.DiaChi, contact.QuocGia }.Where(x => !string.IsNullOrWhiteSpace(x)));
 }
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
 <!-- Hero Section -->
 <div class="profile-hero">
     <div class="profile-hero-left">
@@ -60,7 +69,8 @@
                 <div class="lr-info-value">@(customer?.SoLanDatPhong ?? 0) lần</div>
             </div>
         </div>
-        <p class="text-muted small mt-4 mb-0"><i class="fas fa-circle-info me-1"></i>Cần thay đổi họ tên hoặc giấy tờ? Vui lòng liên hệ quầy lễ tân để được cập nhật.</p>
+        <p class="text-muted small mt-4 mb-2"><i class="fas fa-circle-info me-1"></i>Cần thay đổi họ tên hoặc giấy tờ? Vui lòng liên hệ quầy lễ tân để được cập nhật.</p>
+        <a href="@Url.Action("ChangePassword", "Auth")" class="lr-edit-link"><i class="fas fa-key me-1"></i>Đổi mật khẩu</a>
     </div>
 
     <div class="lr-card-dark">
@@ -80,12 +90,51 @@
                 <span>@(string.IsNullOrWhiteSpace(contact?.SDT) ? "Chưa cập nhật" : contact.SDT)</span>
             </div>
         </div>
-        <div class="lr-contact-row mb-0">
+        <div class="lr-contact-row">
             <i class="fas fa-map-marker-alt"></i>
             <div>
                 <div class="lr-info-label" style="color:rgba(255,255,255,0.5)">Địa chỉ</div>
                 <span>@(string.IsNullOrWhiteSpace(diaChi) ? "Chưa cập nhật" : diaChi)</span>
             </div>
+        </div>
+        <button type="button" class="lr-btn-outline-sm mt-2" data-bs-toggle="modal" data-bs-target="#contactModal">
+            <i class="fas fa-pen"></i> Cập nhật liên hệ
+        </button>
+    </div>
+</div>
+
+<!-- Sửa liên hệ -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="UpdateContact" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title font-playfair" id="contactModalTitle">Cập nhật liên hệ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="ctSdt">Số điện thoại</label>
+                        <input id="ctSdt" name="SDT" class="form-control" value="@contact?.SDT" required pattern="0[35789][0-9]{8}" title="10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="ctEmail">Email</label>
+                        <input id="ctEmail" name="Email" type="email" class="form-control" value="@contact?.Email" maxlength="100" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="ctDiaChi">Địa chỉ</label>
+                        <input id="ctDiaChi" name="DiaChi" class="form-control" value="@contact?.DiaChi" required maxlength="255" />
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold" for="ctQuocGia">Quốc gia</label>
+                        <input id="ctQuocGia" name="QuocGia" class="form-control" value="@(contact?.QuocGia ?? "Việt Nam")" maxlength="50" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="lr-btn-outline-sm" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="lr-btn-gold-sm">Lưu thay đổi</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

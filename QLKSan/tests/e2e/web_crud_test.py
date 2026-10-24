@@ -1,8 +1,10 @@
 """Kiểm tra các thao tác ghi qua giao diện Web (Web -> API -> DB), chỉ dùng dữ liệu tự dọn được."""
+import os
 from csrfhelp import with_token
 import html, http.cookiejar, re, ssl, sys, urllib.parse, urllib.request, urllib.error
 
-WEB = 'https://localhost:7234'
+WEB = os.environ.get('QLKSAN_WEB', 'https://localhost:7234')
+API = os.environ.get('QLKSAN_API', 'https://localhost:7001')
 CTX = ssl._create_unverified_context()
 results = []
 
@@ -107,10 +109,10 @@ s, body = post_follow(lt, '/Checkout/Pay', {'maHoaDon': 'HD05', 'phuongThuc': 'T
 check('Thanh toán hoá đơn đã thanh toán', alert(body)[0] == 'danger' and 'đã được thanh toán' in alert(body)[1], str(alert(body)))
 import datetime as _dt, json as _json
 # Lấy một phòng đang có khách từ API (không gán cứng mã phòng)
-_rq = urllib.request.Request('https://localhost:7001/api/auth/login', data=_json.dumps({'TenDangNhap': 'letan1', 'MatKhau': '123456'}).encode(), method='POST')
+_rq = urllib.request.Request(API + '/api/auth/login', data=_json.dumps({'TenDangNhap': 'letan1', 'MatKhau': '123456'}).encode(), method='POST')
 _rq.add_header('Content-Type', 'application/json')
 _tok = _json.loads(urllib.request.urlopen(_rq, context=CTX).read())['AccessToken']
-_rq = urllib.request.Request('https://localhost:7001/api/rooms?trangThai=Occupied', headers={'Authorization': 'Bearer ' + _tok})
+_rq = urllib.request.Request(API + '/api/rooms?trangThai=Occupied', headers={'Authorization': 'Bearer ' + _tok})
 OCC = _json.loads(urllib.request.urlopen(_rq, context=CTX).read())[0]['MaPhong']
 _today, _tomorrow = _dt.date.today().isoformat(), (_dt.date.today() + _dt.timedelta(days=1)).isoformat()
 s, _, body = req(lt, 'POST', '/Reception/WalkIn', {'Ho': 'A', 'Ten': 'B', 'SDT': '0912345678', 'CCCD_Passport': '123456789',

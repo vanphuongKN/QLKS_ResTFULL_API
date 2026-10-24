@@ -13,5 +13,8 @@ namespace QLKSan.Business
         Task<TaiKhoan> RegisterCustomerAsync(RegisterRequest request);
 
         Task<TaiKhoan> GetAccountAsync(string maDangNhap);
+
+        // Ném BusinessException nếu mật khẩu hiện tại không đúng
+        Task ChangePasswordAsync(string maDangNhap, string matKhauCu, string matKhauMoi);
     }
 }

@@ -107,6 +107,29 @@ namespace QLKSan.Controllers
             }
         }
 
+        // Đổi mật khẩu cho người đang đăng nhập (khách hàng dùng giao diện khách, nhân viên dùng giao diện quản trị)
+        [Authorize]
+        [HttpGet]
+        public IActionResult ChangePassword() => View(new ChangePasswordRequest());
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest model)
+        {
+            if (!ModelState.IsValid) return View(model);
+            try
+            {
+                await _authApi.ChangePasswordAsync(model);
+                TempData["SuccessMessage"] = "Đã đổi mật khẩu. Lần đăng nhập sau hãy dùng mật khẩu mới.";
+                return RedirectToAction(nameof(ChangePassword));
+            }
+            catch (ApiException ex)
+            {
+                ModelState.AddModelError("", ex.UserMessage);
+                return View(model);
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> Logout()
         {

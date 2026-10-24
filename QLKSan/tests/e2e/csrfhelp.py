@@ -1,8 +1,9 @@
 """Lấy antiforgery token như trình duyệt thật: mở một trang có form (trang Đăng ký mở được với mọi người dùng)
 và đọc giá trị __RequestVerificationToken. Token gắn với người đang đăng nhập nên lấy mới trước mỗi POST."""
+import os
 import html, re, urllib.error, urllib.request
 
-WEB = 'https://localhost:7234'
+WEB = os.environ.get('QLKSAN_WEB', 'https://localhost:7234')  # đổi bằng biến môi trường QLKSAN_WEB
 
 def token(op):
     try:

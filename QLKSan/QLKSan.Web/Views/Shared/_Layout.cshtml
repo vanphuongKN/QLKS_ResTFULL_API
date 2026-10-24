@@ -105,6 +105,7 @@
                         }
                     }
                     <div class="topbar-profile" style="display: flex; align-items: center; gap: 12px;">
+                        <a href="@Url.Action("ChangePassword", "Auth")" class="text-muted" title="Đổi mật khẩu" aria-label="Đổi mật khẩu"><i class="fas fa-key"></i></a>
                         <span class="user-role-label" style="font-weight: 700; color: #2A3B4C; font-size: 0.95rem; letter-spacing: 0.5px;">@displayRole</span>
                         <div class="avatar-badge" style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #C5A059, #E3C588); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 0.95rem; border: 2px solid #FFFFFF; box-shadow: 0 4px 10px rgba(197, 160, 89, 0.25); text-transform: uppercase;">
                             @roleInitials

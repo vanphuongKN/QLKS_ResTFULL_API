@@ -5,7 +5,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 
 const [outDir, W = '1440', H = '900', filter = ''] = process.argv.slice(2);
 mkdirSync(outDir, { recursive: true });
-const WEB = 'https://localhost:7234';
+const WEB = process.env.QLKSAN_WEB || 'https://localhost:7234';
 const PORT = Number(process.env.CDP_PORT || 9555); // Chrome headless đã chạy sẵn
 const chrome = { kill() { } };
 

@@ -4,6 +4,7 @@ using QLKSan.Business;
 using QLKSan.Common;
 using QLKSan.Mappings;
 using QLKSan.Models.DTOs;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
 {
@@ -57,6 +58,15 @@ namespace QLKSan.Controllers
         {
             var customer = await _customerService.GetCustomerByAccountIdAsync(User.GetMaDangNhap());
             if (customer == null) return NotFound();
+            return customer.ToDto();
+        }
+
+        /// <summary>Khách hàng cập nhật liên hệ của mình: SĐT, email, địa chỉ, quốc gia.</summary>
+        [HttpPut("me/contact")]
+        [Authorize(Roles = AppRoles.Customer)]
+        public async Task<ActionResult<CustomerDto>> UpdateMyContact(UpdateContactRequest request)
+        {
+            var customer = await _customerService.UpdateContactAsync(User.GetMaKhachHang(), request);
             return customer.ToDto();
         }
 

@@ -7,6 +7,9 @@ namespace QLKSan.Business
     public interface ICustomerService
     {
         Task<KhachHang> GetCustomerByAccountIdAsync(string maDangNhap);
+
+        // Cập nhật liên hệ chính của khách (tạo mới nếu chưa có), trả về hồ sơ sau khi cập nhật
+        Task<KhachHang> UpdateContactAsync(string maKhachHang, Models.Requests.UpdateContactRequest request);
         Task<IEnumerable<PhieuDatPhong>> GetBookingsByCustomerAsync(string maKhachHang);
         // Trả về mã phiếu đặt phòng vừa tạo; ném BusinessException nếu phòng không hợp lệ
         Task<string> CreateOnlineBookingAsync(string maKhachHang, string maPhong, int soNguoi, System.DateTime checkIn, System.DateTime checkOut, string? maKhuyenMai = null);

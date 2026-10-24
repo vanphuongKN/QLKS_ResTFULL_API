@@ -38,6 +38,19 @@ namespace QLKSan.Business
             return account;
         }
 
+        public async Task ChangePasswordAsync(string maDangNhap, string matKhauCu, string matKhauMoi)
+        {
+            var account = await _context.TaiKhoans.FindAsync(maDangNhap)
+                ?? throw new NotFoundException("Không tìm thấy tài khoản.");
+            if (!PasswordHasher.Verify(matKhauCu, account.MatKhau))
+                throw new BusinessException("Mật khẩu hiện tại không đúng.");
+            if (matKhauCu == matKhauMoi)
+                throw new BusinessException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+
+            account.MatKhau = PasswordHasher.Hash(matKhauMoi);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<TaiKhoan> GetAccountAsync(string maDangNhap)
         {
             return await _context.TaiKhoans
@@ -57,8 +70,17 @@ namespace QLKSan.Business
             if (await _context.TaiKhoans.AnyAsync(t => t.TenDangNhap == username))
                 throw new ConflictException("Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.");
 
-            if (await _context.KhachHangs.AnyAsync(k => k.CCCD_Passport == cccd))
-                throw new ConflictException("Số CCCD/Passport đã được đăng ký. Vui lòng kiểm tra lại.");
+            // Khách từng ở dạng vãng lai đã có hồ sơ (do lễ tân tạo) nhưng chưa có tài khoản:
+            // cho liên kết tài khoản vào hồ sơ đó nếu SĐT khớp, để giữ lịch sử lưu trú và điểm tích luỹ
+            var hoSoCu = await _context.KhachHangs.Include(k => k.LienHeDiaChis)
+                .FirstOrDefaultAsync(k => k.CCCD_Passport == cccd);
+            if (hoSoCu != null)
+            {
+                if (hoSoCu.MaDangNhap != null)
+                    throw new ConflictException("Số CCCD/Passport này đã có tài khoản. Vui lòng đăng nhập hoặc liên hệ lễ tân để lấy lại mật khẩu.");
+                if (!hoSoCu.LienHeDiaChis.Any(l => l.SDT == request.SDT.Trim()))
+                    throw new ConflictException("Số CCCD/Passport đã có hồ sơ tại khách sạn nhưng số điện thoại không khớp. Vui lòng liên hệ lễ tân để được hỗ trợ.");
+            }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -74,6 +96,21 @@ namespace QLKSan.Business
                     VaiTro = Role.Customer
                 };
                 _context.TaiKhoans.Add(taiKhoan);
+
+                if (hoSoCu != null)
+                {
+                    // 2'. Gắn tài khoản vào hồ sơ có sẵn; ngày sinh lúc nhận khách vãng lai chỉ là giá trị tạm
+                    hoSoCu.MaDangNhap = maDangNhap;
+                    hoSoCu.NgaySinh = request.NgaySinh;
+                    var lienHe = hoSoCu.LienHeDiaChis.First(l => l.SDT == request.SDT.Trim());
+                    if (string.IsNullOrWhiteSpace(lienHe.Email)) lienHe.Email = request.Email ?? "";
+                    if (string.IsNullOrWhiteSpace(lienHe.DiaChi)) lienHe.DiaChi = request.DiaChi;
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    taiKhoan.KhachHang = hoSoCu;
+                    return taiKhoan;
+                }
 
                 // 2. Tạo KhachHang
                 string maKH = await IdGenerator.NextAsync(_context.KhachHangs.Select(k => k.MaKhachHang), "KH", 4);
