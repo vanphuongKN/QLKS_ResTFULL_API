@@ -169,7 +169,7 @@
             f.action = btn ? f.getAttribute('data-edit') : f.getAttribute('data-add');
             document.getElementById('pmTitle').textContent = btn ? 'Sửa khuyến mãi ' + p.maKhuyenMai : 'Tạo khuyến mãi';
             document.getElementById('pmSubmit').textContent = btn ? 'Lưu thay đổi' : 'Tạo khuyến mãi';
-            var set = function (id, v) { document.getElementById(id).value = v == null ? '' : v; };
+            var set = function (id, v) { lrStaffUi.setValue(document.getElementById(id), v); };
             set('pmMa', p.maKhuyenMai);
             document.getElementById('pmMa').readOnly = !!btn;
             set('pmTen', p.tenKhuyenMai);

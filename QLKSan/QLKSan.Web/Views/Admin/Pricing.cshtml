@@ -160,7 +160,7 @@
         var f = document.getElementById('ruleForm');
         f.action = btn ? f.getAttribute('data-edit') : f.getAttribute('data-add');
         document.getElementById('ruleTitle').innerHTML = '<i class="fas fa-calendar-alt me-2"></i>' + (btn ? 'Sửa quy tắc ' + r.maQuyTac : 'Thêm quy tắc giá');
-        var set = function (id, v) { document.getElementById(id).value = v == null ? '' : v; };
+        var set = function (id, v) { lrStaffUi.setValue(document.getElementById(id), v); };
         set('ruleId', r.maQuyTac);
         set('ruleTen', r.tenQuyTac);
         set('ruleLoai', r.maLoai);

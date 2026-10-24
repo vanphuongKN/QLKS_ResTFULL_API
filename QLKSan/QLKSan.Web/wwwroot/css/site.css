@@ -27,7 +27,7 @@ body {
     margin: 0;
 }
 
-.font-playfair { font-family: 'Playfair Display', serif; }
+.font-playfair { font-family: 'Cormorant Garamond', serif; }
 .bg-navy { background-color: var(--navy) !important; }
 .text-navy { color: var(--navy) !important; }
 .bg-gold { background-color: var(--gold) !important; }
@@ -53,7 +53,7 @@ body {
     padding: 20px 20px 6px;
 }
 .sidebar-brand h4 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', serif;
     color: var(--gold);
     font-weight: 700;
     margin: 0;
@@ -205,11 +205,12 @@ body {
     margin-bottom: 4px;
 }
 .page-header h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', serif;
     color: var(--navy);
     font-weight: 700;
     margin: 0;
-    font-size: 1.8rem;
+    font-size: 2.1rem;
+    line-height: 1.15;
 }
 .page-header .page-desc {
     color: var(--text-muted);
@@ -281,7 +282,7 @@ body {
     margin-bottom: 24px;
 }
 .hero-banner h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', serif;
     color: var(--gold);
     font-size: 1.7rem;
     margin-bottom: 8px;
@@ -359,7 +360,7 @@ body {
     font-weight: 600;
 }
 .room-card .room-number {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', serif;
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--navy);
@@ -423,7 +424,7 @@ body {
     padding: 24px;
 }
 .ledger-panel h5 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', serif;
     text-align: center;
     font-weight: 700;
     margin-bottom: 4px;
@@ -443,7 +444,7 @@ body {
     margin-bottom: 4px;
 }
 .ledger-total {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', serif;
     color: var(--gold);
     font-size: 1.8rem;
     font-weight: 700;
@@ -762,7 +763,7 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
     color: var(--navy);
     font-size: 1.1rem;
 }
-.topbar-brand { display: none; font-family: 'Playfair Display', serif; font-weight: 700; color: var(--navy); }
+.topbar-brand { display: none; font-family: 'Cormorant Garamond', serif; font-weight: 700; color: var(--navy); }
 .sidebar-backdrop { display: none; }
 
 /* Nội dung chính được phép co lại (mặc định flex item không co nhỏ hơn nội dung) */
@@ -821,7 +822,7 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
 .kpi-card--dark { background: var(--navy); color: #fff; }
 .kpi-label { font-size: 0.7rem; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
 .kpi-card--dark .kpi-label { color: rgba(255,255,255,.55); }
-.kpi-value { font-family: 'Playfair Display', serif; font-size: 2.1rem; font-weight: 700; color: var(--navy); line-height: 1.15; }
+.kpi-value { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 700; color: var(--navy); line-height: 1.15; }
 .kpi-value--sm { font-size: 1.45rem; font-family: 'Inter', sans-serif; overflow-wrap: anywhere; }
 .kpi-card--dark .kpi-value { color: var(--gold); }
 .kpi-sub { font-size: 0.78rem; color: var(--text-muted); }
@@ -879,7 +880,7 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
 .promo-admin { padding: 22px; display: flex; flex-direction: column; }
 .promo-admin.is-off { opacity: .7; }
 .promo-code { font-family: monospace; font-weight: 700; letter-spacing: 1px; color: var(--navy); background: var(--gold-light); padding: 2px 10px; border-radius: 4px; }
-.promo-value { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: var(--gold); margin: 6px 0 10px; }
+.promo-value { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; color: var(--gold); margin: 6px 0 10px; }
 .promo-value small { font-family: 'Inter', sans-serif; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
 .promo-conds { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
 .promo-conds i { color: var(--gold); margin-right: 5px; }
@@ -916,3 +917,15 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
 .amenity-icons i { color: var(--gold); margin-right: 6px; font-size: 0.9rem; }
 .amenity-card { padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start; }
 .amenity-card .amenity-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--gold-light); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+
+/* ============================================
+   CÔNG CỤ BẢNG (tìm kiếm + phân trang) & LỊCH
+   ============================================ */
+.table-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--border-light); }
+.table-tools input { max-width: 280px; font-size: 0.85rem; }
+.table-tools .tt-info { font-size: 0.8rem; color: var(--text-muted); }
+.table-tools .tt-pager { display: flex; gap: 6px; align-items: center; }
+.table-tools .tt-pager button { border: 1px solid var(--border-light); background: var(--white); border-radius: 6px; padding: 3px 10px; font-size: 0.8rem; }
+.table-tools .tt-pager button:disabled { opacity: .4; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--gold); border-color: var(--gold); }
+.flatpickr-input[readonly] { background-color: var(--white); }

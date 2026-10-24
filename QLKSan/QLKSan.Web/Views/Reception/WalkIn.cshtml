@@ -200,10 +200,10 @@
             if (!isNaN(ciDate)) {
                 ciDate.setDate(ciDate.getDate() + 1);
                 var minOut = ciDate.toISOString().split('T')[0];
-                document.getElementById('NgayCheckOut').min = minOut;
+                lrStaffUi.setMin(document.getElementById('NgayCheckOut'), minOut);
                 var currentOut = document.getElementById('NgayCheckOut').value;
                 if (currentOut && new Date(currentOut) <= new Date(this.value)) {
-                    document.getElementById('NgayCheckOut').value = minOut;
+                    lrStaffUi.setValue(document.getElementById('NgayCheckOut'), minOut);
                 }
             }
 

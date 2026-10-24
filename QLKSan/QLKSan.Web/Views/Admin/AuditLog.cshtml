@@ -55,7 +55,8 @@
     }
     else
     {
-        <table class="table table-custom mb-0">
+        @* Đã phân trang phía máy chủ nên không gắn công cụ bảng phía trình duyệt *@
+        <table class="table table-custom mb-0" data-no-tools>
             <thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
             <tbody>
                 @foreach (var n in Model.Dong)

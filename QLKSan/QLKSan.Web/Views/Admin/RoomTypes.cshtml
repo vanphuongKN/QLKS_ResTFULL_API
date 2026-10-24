@@ -152,7 +152,7 @@
             form.action = btn ? form.getAttribute('data-edit') : form.getAttribute('data-add');
             document.getElementById('rtTitle').textContent = btn ? 'Cập nhật loại phòng ' + rt.maLoai : 'Thêm loại phòng mới';
             document.getElementById('rtSubmit').textContent = btn ? 'Cập nhật' : 'Thêm';
-            var set = function (id, v) { document.getElementById(id).value = v == null ? '' : v; };
+            var set = function (id, v) { lrStaffUi.setValue(document.getElementById(id), v); };
             set('rtMaLoai', rt.maLoai);
             set('rtTenLoai', rt.tenLoai);
             set('rtSoNguoi', rt.soNguoiToiDa);
