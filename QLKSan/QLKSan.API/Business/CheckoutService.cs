@@ -188,6 +188,8 @@ namespace QLKSan.Business
 
                     khachHang.DiemTichLuy -= diemSuDung;
                     khachHang.DiemDaDoi += diemSuDung;
+                    await PointLedger.AddAsync(_context, khachHang.MaKhachHang, -diemSuDung, PointLedger.DoiDiem,
+                        $"Đổi điểm thanh toán hoá đơn {maHoaDon}", maHoaDon, maNhanVienThu);
                     var traDiem = new ThanhToan
                     {
                         MaThanhToan = await IdGenerator.NextAsync(_context.ThanhToans.Select(t => t.MaThanhToan), "TT", 4),
@@ -256,6 +258,9 @@ namespace QLKSan.Business
                 {
                     int diemCongThem = (int)((hoaDon.TongTienCanThanhToan - tienDoiDiem) / _loyalty.SoTienMotDiem);
                     khachHang.DiemTichLuy += diemCongThem;
+                    if (diemCongThem > 0)
+                        await PointLedger.AddAsync(_context, khachHang.MaKhachHang, diemCongThem, PointLedger.TichDiem,
+                            $"Thanh toán hoá đơn {maHoaDon}", maHoaDon, maNhanVienThu);
                 }
 
                 await _context.SaveChangesAsync();

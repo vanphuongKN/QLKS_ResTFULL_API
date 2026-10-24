@@ -3,6 +3,7 @@
     ViewData["Title"] = "Hồ sơ";
     var customer = ViewBag.Customer as QLKSan.Models.DTOs.CustomerDto;
     var contact = customer?.LienHeDiaChis?.FirstOrDefault();
+    var lichSuDiem = ViewBag.Points as List<QLKSan.Models.DTOs.PointHistoryDto> ?? new List<QLKSan.Models.DTOs.PointHistoryDto>();
 
     // Hạng thành viên do API xét theo điểm trọn đời (điểm hiện có + điểm đã đổi)
     int points = customer != null ? customer.DiemTichLuy : 0;
@@ -93,6 +94,13 @@
                 <span>@(string.IsNullOrWhiteSpace(diaChi) ? "Chưa cập nhật" : diaChi)</span>
             </div>
         </div>
+        <div class="lr-contact-row">
+            <i class="fas fa-heart"></i>
+            <div>
+                <div class="lr-info-label" style="color:rgba(255,255,255,0.5)">Sở thích lưu trú</div>
+                <span>@(string.IsNullOrWhiteSpace(customer?.SoThich) ? "Chưa cập nhật" : customer.SoThich)</span>
+            </div>
+        </div>
         <button type="button" class="lr-btn-outline-sm mt-2" data-bs-toggle="modal" data-bs-target="#contactModal">
             <i class="fas fa-pen"></i> Cập nhật liên hệ
         </button>
@@ -121,9 +129,14 @@
                         <label class="form-label small fw-semibold" for="ctDiaChi">Địa chỉ</label>
                         <input id="ctDiaChi" name="DiaChi" class="form-control" value="@contact?.DiaChi" required maxlength="255" />
                     </div>
-                    <div>
+                    <div class="mb-3">
                         <label class="form-label small fw-semibold" for="ctQuocGia">Quốc gia</label>
                         <input id="ctQuocGia" name="QuocGia" class="form-control" value="@(contact?.QuocGia ?? "Việt Nam")" maxlength="50" />
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold" for="ctSoThich">Sở thích lưu trú</label>
+                        <textarea id="ctSoThich" name="SoThich" class="form-control" rows="2" maxlength="500" placeholder="Gối mềm, tầng cao, dị ứng…">@customer?.SoThich</textarea>
+                        <small class="text-muted">Khách sạn sẽ chuẩn bị theo sở thích của bạn khi còn phòng phù hợp.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -177,3 +190,22 @@
         <a href="@Url.Action("MyStays", "Customer")" class="bc-link">Xem kỳ nghỉ của tôi <i class="fas fa-arrow-right"></i></a>
     </div>
 </div>
+
+@if (lichSuDiem.Any())
+{
+    <div class="lr-card mt-4">
+        <h4>Lịch sử điểm</h4>
+        <table class="table mb-0">
+            <tbody>
+                @foreach (var x in lichSuDiem.Take(10))
+                {
+                    <tr>
+                        <td class="small text-muted" style="width:120px">@x.ThoiGian.ToString("dd/MM/yyyy")</td>
+                        <td class="small">@x.Loai@(string.IsNullOrEmpty(x.NoiDung) ? "" : " — " + x.NoiDung)</td>
+                        <td class="text-end fw-semibold @(x.SoDiem >= 0 ? "text-success" : "text-danger")">@(x.SoDiem > 0 ? "+" : "")@x.SoDiem.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

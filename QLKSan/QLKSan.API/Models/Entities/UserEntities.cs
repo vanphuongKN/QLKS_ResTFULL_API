@@ -91,6 +91,21 @@ namespace QLKSan.Models.Entities
         // Tổng điểm đã đổi trừ vào hoá đơn; hạng thành viên xét theo DiemTichLuy + DiemDaDoi
         public int DiemDaDoi { get; set; } = 0;
 
+        // Chăm sóc khách: VIP, sở thích lưu trú (khách tự cập nhật được), ghi chú nội bộ (chỉ nhân viên thấy)
+        public bool LaVIP { get; set; } = false;
+
+        [StringLength(500)]
+        public string? SoThich { get; set; }
+
+        [StringLength(1000)]
+        public string? GhiChuNoiBo { get; set; }
+
+        // Hạn chế: không cho đặt phòng trực tuyến (lễ tân vẫn xử lý trực tiếp)
+        public bool HanChe { get; set; } = false;
+
+        [StringLength(255)]
+        public string? LyDoHanChe { get; set; }
+
         public TaiKhoan TaiKhoan { get; set; }
         public ICollection<LienHeDiaChi> LienHeDiaChis { get; set; }
         public ICollection<PhieuDatPhong> PhieuDatPhongs { get; set; }
@@ -122,5 +137,38 @@ namespace QLKSan.Models.Entities
         public string QuocGia { get; set; } = "Việt Nam";
 
         public KhachHang KhachHang { get; set; }
+    }
+
+    // Lịch sử điểm thưởng: mỗi lần tích / đổi / trừ do hoàn tiền / điều chỉnh thủ công
+    public class LichSuDiem
+    {
+        [Key]
+        [StringLength(12)]
+        public string MaLichSu { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("KhachHang")]
+        public string MaKhachHang { get; set; }
+
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+
+        // Dương: cộng điểm; âm: trừ điểm
+        public int SoDiem { get; set; }
+
+        [StringLength(30)]
+        public string Loai { get; set; }
+
+        [StringLength(255)]
+        public string? NoiDung { get; set; }
+
+        [StringLength(10)]
+        public string? MaHoaDon { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
+        public KhachHang KhachHang { get; set; }
+        public NhanVien NhanVien { get; set; }
     }
 }

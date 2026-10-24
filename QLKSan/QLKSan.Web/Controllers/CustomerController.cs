@@ -89,10 +89,11 @@ namespace QLKSan.Controllers
             if (customer == null) return RedirectToAction("Login", "Auth");
 
             ViewBag.Customer = customer;
+            ViewBag.Points = await _customerApi.GetMyPointHistoryAsync();
             return View();
         }
 
-        // Khách tự cập nhật SĐT, email, địa chỉ (họ tên và CCCD do lễ tân quản lý)
+        // Khách tự cập nhật SĐT, email, địa chỉ, sở thích lưu trú (họ tên và CCCD do lễ tân quản lý)
         [HttpPost]
         public async Task<IActionResult> UpdateContact(UpdateContactRequest model)
         {

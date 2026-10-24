@@ -24,6 +24,10 @@ namespace QLKSan.Models.DTOs
         // Lấy từ liên hệ đầu tiên của khách
         public string SDT { get; set; }
         public string Email { get; set; }
+
+        // Để lễ tân chuẩn bị đón khách
+        public bool LaVIP { get; set; }
+        public string SoThich { get; set; }
     }
 
     public class CustomerDto
@@ -39,9 +43,28 @@ namespace QLKSan.Models.DTOs
         public int DiemDaDoi { get; set; }
         public int SoLanDatPhong { get; set; }
 
+        // Chăm sóc khách. GhiChuNoiBo / HanChe / LyDoHanChe chỉ trả cho nhân viên (API bỏ trống ở hồ sơ của chính khách)
+        public bool LaVIP { get; set; }
+        public string SoThich { get; set; }
+        public string GhiChuNoiBo { get; set; }
+        public bool HanChe { get; set; }
+        public string LyDoHanChe { get; set; }
+
         // Hạng thành viên và quyền lợi (API điền ở các endpoint hồ sơ khách)
         public MembershipDto ThanhVien { get; set; }
         public List<ContactDto> LienHeDiaChis { get; set; } = new List<ContactDto>();
+    }
+
+    // Một dòng lịch sử điểm: SoDiem dương = cộng, âm = trừ
+    public class PointHistoryDto
+    {
+        public string MaLichSu { get; set; }
+        public DateTime ThoiGian { get; set; }
+        public int SoDiem { get; set; }
+        public string Loai { get; set; }
+        public string NoiDung { get; set; }
+        public string MaHoaDon { get; set; }
+        public string TenNhanVien { get; set; }
     }
 
     public class MembershipDto

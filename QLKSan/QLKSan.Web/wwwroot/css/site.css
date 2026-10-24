@@ -895,3 +895,14 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
 .review-admin.is-hidden { background: #fafafa; }
 .review-admin .fa-star { font-size: 0.78rem; }
 .review-reply { background: var(--gold-light); border-radius: 6px; padding: 10px 14px; margin-bottom: 4px; }
+
+/* ============================================
+   HỒ SƠ KHÁCH (VIP, chăm sóc)
+   ============================================ */
+.vip-badge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: linear-gradient(135deg, #C5A059, #e2c48a); color: #fff; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; vertical-align: middle; font-family: 'Inter', sans-serif; }
+.profile-dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; margin: 0; font-size: 0.86rem; }
+.profile-dl dt { color: var(--text-muted); font-weight: 500; }
+.profile-dl dd { margin: 0; color: var(--text-dark); overflow-wrap: anywhere; }
+.care-card { border-top: 3px solid var(--gold); }
+.care-label { font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+.care-card p { font-size: 0.88rem; }

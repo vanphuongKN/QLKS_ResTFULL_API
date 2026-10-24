@@ -99,6 +99,8 @@ namespace QLKSan.Business
                 SoKhach = p.SoLuongKhach,
                 GioDenDuKien = p.GioDenDuKien,
                 YeuCauDacBiet = p.YeuCauDacBiet,
+                LaVIP = p.KhachHang?.LaVIP ?? false,
+                SoThich = p.KhachHang?.SoThich,
                 DaXuLy = daXuLy
             };
         }

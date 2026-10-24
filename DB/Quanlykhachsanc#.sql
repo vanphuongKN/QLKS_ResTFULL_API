@@ -65,6 +65,11 @@ CREATE TABLE KhachHang (
     CCCD_Passport VARCHAR(20) NOT NULL,
     DiemTichLuy INT DEFAULT 0,                      -- số điểm hiện có (đổi được)
     DiemDaDoi INT NOT NULL DEFAULT 0,               -- tổng điểm đã đổi; hạng thành viên xét theo DiemTichLuy + DiemDaDoi
+    LaVIP BIT NOT NULL DEFAULT 0,
+    SoThich NVARCHAR(500) NULL,                     -- sở thích lưu trú (khách tự cập nhật được)
+    GhiChuNoiBo NVARCHAR(1000) NULL,                -- chỉ nhân viên thấy
+    HanChe BIT NOT NULL DEFAULT 0,                  -- không cho đặt phòng trực tuyến
+    LyDoHanChe NVARCHAR(255) NULL,
     CONSTRAINT FK_KhachHang_TaiKhoan FOREIGN KEY (MaDangNhap) REFERENCES TaiKhoan(MaDangNhap)
 );
 CREATE UNIQUE INDEX UX_KhachHang_MaDangNhap ON KhachHang(MaDangNhap) WHERE MaDangNhap IS NOT NULL;
@@ -290,6 +295,21 @@ CREATE TABLE DanhGia (
 CREATE UNIQUE INDEX UX_DanhGia_MaDatPhong ON DanhGia(MaDatPhong) WHERE MaDatPhong IS NOT NULL;
 
 -- 7. NHÓM BUỒNG PHÒNG: công việc dọn phòng giao cho nhân viên buồng phòng
+-- Lịch sử điểm thưởng (tổng các dòng của một khách = số điểm hiện có)
+CREATE TABLE LichSuDiem (
+    MaLichSu VARCHAR(12) PRIMARY KEY,
+    MaKhachHang VARCHAR(10) NOT NULL,
+    ThoiGian DATETIME NOT NULL DEFAULT GETDATE(),
+    SoDiem INT NOT NULL,                            -- dương: cộng, âm: trừ
+    Loai NVARCHAR(30) NOT NULL,                     -- Tích điểm | Đổi điểm | Hoàn tiền | Điều chỉnh | Số dư đầu kỳ
+    NoiDung NVARCHAR(255) NULL,
+    MaHoaDon VARCHAR(10) NULL,
+    MaNhanVien VARCHAR(10) NULL,
+    CONSTRAINT FK_LichSuDiem_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
+    CONSTRAINT FK_LichSuDiem_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
+);
+CREATE INDEX IX_LichSuDiem_KhachHang ON LichSuDiem(MaKhachHang, ThoiGian);
+
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,
     MaPhong VARCHAR(10) NOT NULL,
@@ -576,6 +596,25 @@ UPDATE k SET DiemTichLuy = ISNULL((
     FROM ThanhToan t JOIN HoaDon h ON h.MaHoaDon = t.MaHoaDon JOIN PhieuDatPhong p ON p.MaDatPhong = h.MaDatPhong
     WHERE p.MaKhachHang = k.MaKhachHang AND t.LoaiGiaoDich = N'Hoàn'), 0)
 FROM KhachHang k;
+
+-- Lịch sử điểm: mỗi hoá đơn đã thanh toán một dòng tích điểm, mỗi lần hoàn tiền một dòng trừ điểm
+INSERT INTO LichSuDiem (MaLichSu, MaKhachHang, ThoiGian, SoDiem, Loai, NoiDung, MaHoaDon, MaNhanVien)
+SELECT 'LSD' + RIGHT('000000' + CAST(ROW_NUMBER() OVER (ORDER BY x.ThoiGian, x.MaHoaDon) AS VARCHAR(6)), 6), x.*
+FROM (
+    SELECT p.MaKhachHang, h.NgayLapHoaDon AS ThoiGian, CAST(FLOOR(h.TongTienCanThanhToan / 10000) AS INT) AS SoDiem,
+           N'Tích điểm' AS Loai, N'Thanh toán hoá đơn ' + h.MaHoaDon AS NoiDung, h.MaHoaDon, h.MaNhanVienLap AS MaNhanVien
+    FROM HoaDon h JOIN PhieuDatPhong p ON p.MaDatPhong = h.MaDatPhong
+    WHERE h.TrangThai = N'Đã thanh toán' AND FLOOR(h.TongTienCanThanhToan / 10000) > 0
+    UNION ALL
+    SELECT p.MaKhachHang, t.NgayThanhToan, -CAST(FLOOR(t.SoTienDaTra / 10000) AS INT),
+           N'Hoàn tiền', N'Hoàn tiền hoá đơn ' + h.MaHoaDon, h.MaHoaDon, t.MaNhanVien
+    FROM ThanhToan t JOIN HoaDon h ON h.MaHoaDon = t.MaHoaDon JOIN PhieuDatPhong p ON p.MaDatPhong = h.MaDatPhong
+    WHERE t.LoaiGiaoDich = N'Hoàn' AND FLOOR(t.SoTienDaTra / 10000) > 0
+) x;
+
+-- Khách VIP mẫu (lễ tân thấy sở thích / ghi chú khi khách đến)
+UPDATE KhachHang SET LaVIP = 1, SoThich = N'Gối mềm, tầng cao, không dùng hoa có mùi', GhiChuNoiBo = N'Khách quen, thường đặt Suite dịp kỷ niệm.'
+WHERE MaKhachHang = 'KH04';
 GO
 
 /* =====================================================================

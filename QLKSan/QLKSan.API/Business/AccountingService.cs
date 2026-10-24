@@ -143,7 +143,13 @@ namespace QLKSan.Business
                 // Trừ lại điểm tích luỹ tương ứng số tiền hoàn (1 điểm / 10.000đ)
                 var khachHang = h.PhieuDatPhong?.KhachHang;
                 if (khachHang != null)
+                {
+                    var truoc = khachHang.DiemTichLuy;
                     khachHang.DiemTichLuy = Math.Max(0, khachHang.DiemTichLuy - (int)(soTien / 10000));
+                    if (khachHang.DiemTichLuy != truoc)
+                        await PointLedger.AddAsync(_context, khachHang.MaKhachHang, khachHang.DiemTichLuy - truoc, PointLedger.HoanTien,
+                            $"Hoàn tiền hoá đơn {maHoaDon}: {lyDo}", maHoaDon, maNhanVien);
+                }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();

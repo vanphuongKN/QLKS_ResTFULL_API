@@ -147,22 +147,58 @@ namespace QLKSan.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Customers(string search)
+        public async Task<IActionResult> Customers(string search, bool vip = false)
         {
             ViewBag.Search = search;
+            ViewBag.Vip = vip;
             var customers = await _customerApi.GetAllAsync(search);
-            return View(customers);
+            return View(vip ? customers.Where(k => k.LaVIP).ToList() : customers);
         }
 
+        // Hồ sơ khách đầy đủ: thông tin, chăm sóc (VIP, sở thích, ghi chú nội bộ, hạn chế), lịch sử kỳ nghỉ, lịch sử điểm
         [HttpGet]
         public async Task<IActionResult> CustomerDetails(string id)
         {
-            var customer = await _customerApi.GetByIdAsync(id);
-            if (customer == null)
+            var customer = string.IsNullOrEmpty(id) ? null : await _customerApi.GetByIdAsync(id);
+            if (customer == null) return NotFound();
+            ViewBag.Points = await _customerApi.GetPointHistoryAsync(id);
+            return View(customer);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateCustomer(string maKhachHang, UpdateCustomerProfileRequest model)
+        {
+            if (!ModelState.IsValid)
             {
-                return NotFound("Không tìm thấy khách hàng.");
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(CustomerDetails), new { id = maKhachHang });
             }
-            return PartialView("_CustomerDetailsPartial", customer);
+            try
+            {
+                await _customerApi.UpdateProfileAsync(maKhachHang, model);
+                TempData["SuccessMessage"] = "Đã cập nhật hồ sơ khách.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(CustomerDetails), new { id = maKhachHang });
+        }
+
+        // Chỉ quản lý (API kiểm tra quyền)
+        [HttpPost]
+        public async Task<IActionResult> AdjustPoints(string maKhachHang, int soDiem, string lyDo)
+        {
+            try
+            {
+                await _customerApi.AdjustPointsAsync(maKhachHang, new PointAdjustmentRequest { SoDiem = soDiem, LyDo = lyDo });
+                TempData["SuccessMessage"] = $"Đã {(soDiem >= 0 ? "cộng" : "trừ")} {Math.Abs(soDiem):N0} điểm.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(CustomerDetails), new { id = maKhachHang });
         }
     }
 }

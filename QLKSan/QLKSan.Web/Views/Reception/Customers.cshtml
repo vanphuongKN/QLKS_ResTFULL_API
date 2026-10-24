@@ -15,6 +15,7 @@
             <button type="submit" class="btn-gold px-3 border-0" style="border-radius:4px;color:#fff">
                 <i class="fas fa-search"></i> Tìm kiếm
             </button>
+            <a href="@Url.Action("Customers", "Reception", new { search = ViewBag.Search, vip = !(bool)ViewBag.Vip })" class="btn @((bool)ViewBag.Vip ? "btn-gold" : "btn-outline-secondary") d-flex align-items-center" style="border-radius:4px"><i class="fas fa-crown me-1"></i>VIP</a>
             @if (!string.IsNullOrEmpty(ViewBag.Search as string))
             {
                 <a href="@Url.Action("Customers", "Reception")" class="btn btn-outline-secondary d-flex align-items-center" style="border-radius:4px">Xóa lọc</a>
@@ -60,8 +61,11 @@
                                         @k.Ten.Substring(0, Math.Min(1, k.Ten.Length)).ToUpper()
                                     </div>
                                     <div>
-                                        <strong class="d-block text-navy" style="font-size:0.95rem">@k.Ho @k.Ten</strong>
-                                        <small class="text-muted" style="font-size:0.7rem">@k.DiemTichLuy điểm tích luỹ</small>
+                                        <strong class="d-block text-navy" style="font-size:0.95rem">@k.Ho @k.Ten
+                                            @if (k.LaVIP) { <span class="vip-badge"><i class="fas fa-crown me-1"></i>VIP</span> }
+                                            @if (k.HanChe) { <span class="badge bg-danger ms-1" title="@k.LyDoHanChe">Hạn chế</span> }
+                                        </strong>
+                                        <small class="text-muted" style="font-size:0.7rem">@k.DiemTichLuy điểm · @(k.ThanhVien?.Hang ?? "Thành viên")</small>
                                     </div>
                                 </div>
                             </td>
@@ -89,9 +93,9 @@
                                 }
                             </td>
                             <td class="pe-4 text-end py-3">
-                                <button class="btn btn-sm btn-outline-navy px-2 py-1 btn-view-details" style="font-size:0.75rem" data-id="@k.MaKhachHang">
-                                    <i class="fas fa-eye me-1"></i> Xem
-                                </button>
+                                <a asp-action="CustomerDetails" asp-route-id="@k.MaKhachHang" class="btn btn-sm btn-outline-navy px-2 py-1" style="font-size:0.75rem">
+                                    <i class="fas fa-eye me-1"></i> Hồ sơ
+                                </a>
                             </td>
                         </tr>
                     }
@@ -109,71 +113,3 @@
         </table>
     </div>
 </div>
-
-<!-- Modal Chi Tiết Khách Hàng -->
-<div class="modal fade" id="customerDetailsModal" tabindex="-1" aria-labelledby="customerDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:12px">
-            <div class="modal-header text-white" style="background: #0A192F; border-top-left-radius: 12px; border-top-right-radius: 12px;">
-                <h5 class="modal-title fw-bold" id="customerDetailsModalLabel">
-                    <i class="fas fa-user-circle me-2 text-gold"></i> HỒ SƠ KHÁCH HÀNG
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
-            </div>
-            <div class="modal-body p-4" id="customerDetailsContent">
-                <!-- Nội dung sẽ được nạp động bằng AJAX -->
-                <div class="text-center py-5 text-muted">
-                    <div class="spinner-border text-gold mb-3" role="status" style="color: #C5A059 !important">
-                        <span class="visually-hidden">Đang tải...</span>
-                    </div>
-                    <p class="mb-0">Đang truy xuất hồ sơ và lịch sử kỳ nghỉ...</p>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0 bg-light" style="border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-                <button type="button" class="btn btn-navy px-4" data-bs-dismiss="modal">ĐÓNG HỒ SƠ</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        $(document).ready(function() {
-            $('.btn-view-details').on('click', function() {
-                var customerId = $(this).data('id');
-                
-                // Hiển thị trạng thái tải trong modal trước khi thực hiện AJAX
-                $('#customerDetailsContent').html(`
-                    <div class="text-center py-5 text-muted">
-                        <div class="spinner-border text-gold mb-3" role="status" style="color: #C5A059 !important">
-                            <span class="visually-hidden">Đang tải...</span>
-                        </div>
-                        <p class="mb-0">Đang truy xuất hồ sơ và lịch sử kỳ nghỉ của khách hàng #${customerId}...</p>
-                    </div>
-                `);
-                
-                // Hiển thị modal
-                $('#customerDetailsModal').modal('show');
-                
-                // Thực hiện AJAX lấy dữ liệu chi tiết
-                $.ajax({
-                    url: '@Url.Action("CustomerDetails", "Reception")',
-                    type: 'GET',
-                    data: { id: customerId },
-                    success: function(response) {
-                        $('#customerDetailsContent').html(response);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Lỗi AJAX: ", error);
-                        $('#customerDetailsContent').html(`
-                            <div class="alert alert-danger my-3" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Không thể tải thông tin chi tiết khách hàng. Vui lòng kiểm tra lại kết nối mạng hoặc liên hệ quản trị hệ thống.
-                            </div>
-                        `);
-                    }
-                });
-            });
-        });
-    </script>
-}

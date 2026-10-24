@@ -359,6 +359,8 @@ namespace QLKSan.Business
                     .ThenInclude(p => p.ChiTietDatPhongs)
                         .ThenInclude(c => c.Phong)
                             .ThenInclude(r => r.LoaiPhong)
+                .Include(k => k.PhieuDatPhongs).ThenInclude(p => p.HoaDon)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(k => k.MaKhachHang == id);
         }
     }

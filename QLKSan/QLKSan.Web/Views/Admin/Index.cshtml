@@ -158,11 +158,12 @@
                             @foreach (var k in ds)
                             {
                                 <tr>
-                                    <td><strong>@k.HoTenKhachHang</strong><div class="text-muted small">@k.MaDatPhong · @k.SoKhach khách</div></td>
+                                    <td><strong>@k.HoTenKhachHang</strong>@if (k.LaVIP) { <span class="vip-badge"><i class="fas fa-crown me-1"></i>VIP</span> }<div class="text-muted small">@k.MaDatPhong · @k.SoKhach khách</div></td>
                                     <td>@k.SoPhong<div class="text-muted small">@FormatHelper.TenHangPhong(k.TenLoaiPhong)</div></td>
                                     <td class="small">
                                         @if (!string.IsNullOrEmpty(k.GioDenDuKien)) { <div><i class="fas fa-clock text-muted me-1"></i>@k.GioDenDuKien</div> }
                                         @if (!string.IsNullOrEmpty(k.YeuCauDacBiet)) { <div class="text-truncate" style="max-width:220px" title="@k.YeuCauDacBiet"><i class="fas fa-comment-dots text-gold me-1"></i>@k.YeuCauDacBiet</div> }
+                                        @if (!string.IsNullOrEmpty(k.SoThich)) { <div class="text-truncate" style="max-width:220px" title="@k.SoThich"><i class="fas fa-heart text-gold me-1"></i>@k.SoThich</div> }
                                     </td>
                                     <td class="text-end"><span class="badge-status @(k.DaXuLy ? "badge-available" : "badge-pending")">@(k.DaXuLy ? nhanXong : nhanCho)</span></td>
                                 </tr>

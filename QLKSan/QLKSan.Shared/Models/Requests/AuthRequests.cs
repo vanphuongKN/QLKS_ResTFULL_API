@@ -84,5 +84,65 @@ namespace QLKSan.Models.Requests
 
         [StringLength(50)]
         public string QuocGia { get; set; }
+
+        // Sở thích lưu trú (gối, tầng, dị ứng…); null = giữ nguyên
+        [StringLength(500, ErrorMessage = "Sở thích tối đa 500 ký tự.")]
+        public string SoThich { get; set; }
+    }
+
+    // PUT /api/customers/{id}: lễ tân / quản lý cập nhật hồ sơ khách (gồm VIP, sở thích, ghi chú nội bộ, hạn chế)
+    public class UpdateCustomerProfileRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập họ.")]
+        [StringLength(50)]
+        public string Ho { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập tên.")]
+        [StringLength(50)]
+        public string Ten { get; set; }
+
+        public DateTime NgaySinh { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập CCCD/Passport.")]
+        [RegularExpression(@"^[0-9]{9,12}$", ErrorMessage = "CCCD/Passport phải gồm 9 đến 12 chữ số.")]
+        public string CCCD_Passport { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại.")]
+        [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})\b", ErrorMessage = "Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08, 09).")]
+        public string SDT { get; set; }
+
+        [EmailAddress(ErrorMessage = "Email sai định dạng.")]
+        [StringLength(100)]
+        public string Email { get; set; }
+
+        [StringLength(255)]
+        public string DiaChi { get; set; }
+
+        [StringLength(50)]
+        public string QuocGia { get; set; }
+
+        public bool LaVIP { get; set; }
+
+        [StringLength(500, ErrorMessage = "Sở thích tối đa 500 ký tự.")]
+        public string SoThich { get; set; }
+
+        [StringLength(1000, ErrorMessage = "Ghi chú nội bộ tối đa 1000 ký tự.")]
+        public string GhiChuNoiBo { get; set; }
+
+        public bool HanChe { get; set; }
+
+        [StringLength(255)]
+        public string LyDoHanChe { get; set; }
+    }
+
+    // POST /api/customers/{id}/point-adjustments: quản lý cộng / trừ điểm thủ công (bù đắp, sửa sai) kèm lý do
+    public class PointAdjustmentRequest
+    {
+        [Range(-1000000, 1000000, ErrorMessage = "Số điểm điều chỉnh không hợp lệ.")]
+        public int SoDiem { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng ghi lý do điều chỉnh.")]
+        [StringLength(255)]
+        public string LyDo { get; set; }
     }
 }

@@ -67,6 +67,8 @@ namespace QLKSan.Models.DTOs
         public int SoKhach { get; set; }
         public string GioDenDuKien { get; set; }
         public string YeuCauDacBiet { get; set; }
+        public bool LaVIP { get; set; }
+        public string SoThich { get; set; }
         public bool DaXuLy { get; set; }
     }
 

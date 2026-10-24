@@ -56,6 +56,10 @@ namespace QLKSan.ApiClients
         Task UpdateMyContactAsync(UpdateContactRequest request);
         Task<List<BookingDto>> GetMyBookingsAsync();
         Task<List<ReviewDto>> GetMyReviewsAsync();
+        Task UpdateProfileAsync(string maKhachHang, UpdateCustomerProfileRequest request);
+        Task<List<PointHistoryDto>> GetPointHistoryAsync(string maKhachHang);
+        Task AdjustPointsAsync(string maKhachHang, PointAdjustmentRequest request);
+        Task<List<PointHistoryDto>> GetMyPointHistoryAsync();
     }
 
     public class CustomerApiClient : ApiClientBase, ICustomerApiClient
@@ -72,6 +76,13 @@ namespace QLKSan.ApiClients
         public Task UpdateMyContactAsync(UpdateContactRequest request) => HttpPutAsync("api/customers/me/contact", request);
         public Task<List<BookingDto>> GetMyBookingsAsync() => HttpGetAsync<List<BookingDto>>("api/customers/me/bookings");
         public Task<List<ReviewDto>> GetMyReviewsAsync() => HttpGetAsync<List<ReviewDto>>("api/customers/me/reviews");
+        public Task UpdateProfileAsync(string maKhachHang, UpdateCustomerProfileRequest request)
+            => HttpPutAsync($"api/customers/{Uri.EscapeDataString(maKhachHang)}", request);
+        public Task<List<PointHistoryDto>> GetPointHistoryAsync(string maKhachHang)
+            => HttpGetAsync<List<PointHistoryDto>>($"api/customers/{Uri.EscapeDataString(maKhachHang)}/points");
+        public Task AdjustPointsAsync(string maKhachHang, PointAdjustmentRequest request)
+            => HttpPostAsync($"api/customers/{Uri.EscapeDataString(maKhachHang)}/point-adjustments", request);
+        public Task<List<PointHistoryDto>> GetMyPointHistoryAsync() => HttpGetAsync<List<PointHistoryDto>>("api/customers/me/points");
     }
 
     // ===== /api/invoices =====

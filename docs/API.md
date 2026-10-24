@@ -108,10 +108,14 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
 | GET | `/?search` | Cashier | Danh sách khách kèm hạng thành viên |
-| GET | `/{maKhachHang}` | Cashier | Hồ sơ và lịch sử đặt phòng |
+| GET | `/{maKhachHang}` | Cashier | Hồ sơ (VIP, sở thích, ghi chú nội bộ, hạn chế) và lịch sử đặt phòng kèm hoá đơn |
+| PUT | `/{maKhachHang}` | FrontDesk | Cập nhật hồ sơ: thông tin cá nhân, liên hệ, `LaVIP`, `SoThich`, `GhiChuNoiBo`, `HanChe` + `LyDoHanChe` (khách bị hạn chế không đặt online được) |
+| GET | `/{maKhachHang}/points` | Cashier | Lịch sử điểm (tích / đổi / hoàn tiền / điều chỉnh); tổng các dòng = số điểm hiện có |
+| POST | `/{maKhachHang}/point-adjustments` | Admin | Cộng / trừ điểm thủ công `{ "SoDiem": ±n, "LyDo" }` |
 | GET | `/by-cccd/{cccd}` | Cashier | Tìm theo CCCD/Passport |
-| GET | `/me` | Customer | Hồ sơ của tôi (hạng, quyền lợi, điểm, tiến độ lên hạng) |
-| PUT | `/me/contact` | Customer | Sửa SĐT, email, địa chỉ, quốc gia |
+| GET | `/me` | Customer | Hồ sơ của tôi (hạng, quyền lợi, điểm, tiến độ lên hạng; không gồm ghi chú nội bộ) |
+| PUT | `/me/contact` | Customer | Sửa SĐT, email, địa chỉ, quốc gia, sở thích lưu trú |
+| GET | `/me/points` | Customer | Lịch sử điểm của tôi |
 | GET | `/me/bookings` | Customer | Kỳ nghỉ của tôi |
 | GET | `/me/reviews` | Customer | Đánh giá tôi đã gửi |
 

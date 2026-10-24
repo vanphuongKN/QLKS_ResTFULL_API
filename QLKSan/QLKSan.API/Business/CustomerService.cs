@@ -54,6 +54,9 @@ namespace QLKSan.Business
             lienHe.Email = request.Email?.Trim() ?? "";
             lienHe.DiaChi = request.DiaChi.Trim();
             lienHe.QuocGia = string.IsNullOrWhiteSpace(request.QuocGia) ? "Việt Nam" : request.QuocGia.Trim();
+            // Sở thích lưu trú: chỉ cập nhật khi gửi kèm (chuỗi rỗng = xoá)
+            if (request.SoThich != null)
+                khach.SoThich = string.IsNullOrWhiteSpace(request.SoThich) ? null : request.SoThich.Trim();
             await _context.SaveChangesAsync();
             return khach;
         }
@@ -77,6 +80,9 @@ namespace QLKSan.Business
                 throw new BusinessException("Ngày nhận phòng không được ở trong quá khứ.");
             if (checkOut <= checkIn)
                 throw new BusinessException("Ngày trả phòng phải sau ngày nhận phòng.");
+
+            if (await _context.KhachHangs.AnyAsync(k => k.MaKhachHang == maKhachHang && k.HanChe))
+                throw new BusinessException("Tài khoản tạm thời không đặt phòng trực tuyến được. Vui lòng liên hệ lễ tân để được hỗ trợ.");
 
             // Mã khuyến mãi phải hợp lệ cho kỳ nghỉ này lúc đặt (kiểm tra sau khi xếp phòng để biết hạng phòng);
             // được lưu vào phiếu để áp dụng khi trả phòng

@@ -210,7 +210,37 @@ namespace QLKSan.Data
                     ALTER TABLE DanhGia ADD PhanHoi NVARCHAR(1000) NULL,
                                             NgayPhanHoi DATETIME NULL,
                                             MaNhanVienPhanHoi VARCHAR(10) NULL CONSTRAINT FK_DanhGia_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
-                                            An BIT NOT NULL CONSTRAINT DF_DanhGia_An DEFAULT 0;")
+                                            An BIT NOT NULL CONSTRAINT DF_DanhGia_An DEFAULT 0;"),
+
+            // A3: chăm sóc khách VIP + hạn chế đặt online
+            ("23. Thêm KhachHang.LaVIP, SoThich, GhiChuNoiBo, HanChe, LyDoHanChe", @"
+                IF COL_LENGTH('KhachHang', 'LaVIP') IS NULL
+                    ALTER TABLE KhachHang ADD LaVIP BIT NOT NULL CONSTRAINT DF_KhachHang_LaVIP DEFAULT 0,
+                                              SoThich NVARCHAR(500) NULL,
+                                              GhiChuNoiBo NVARCHAR(1000) NULL,
+                                              HanChe BIT NOT NULL CONSTRAINT DF_KhachHang_HanChe DEFAULT 0,
+                                              LyDoHanChe NVARCHAR(255) NULL;"),
+
+            // A3: lịch sử điểm; khách đang có điểm được ghi một dòng số dư đầu kỳ để tổng lịch sử = số điểm hiện có
+            ("24. Tạo bảng LichSuDiem", @"
+                IF OBJECT_ID('LichSuDiem', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE LichSuDiem (
+                        MaLichSu VARCHAR(12) PRIMARY KEY,
+                        MaKhachHang VARCHAR(10) NOT NULL CONSTRAINT FK_LichSuDiem_KhachHang FOREIGN KEY REFERENCES KhachHang(MaKhachHang),
+                        ThoiGian DATETIME NOT NULL CONSTRAINT DF_LichSuDiem_ThoiGian DEFAULT GETDATE(),
+                        SoDiem INT NOT NULL,
+                        Loai NVARCHAR(30) NOT NULL,
+                        NoiDung NVARCHAR(255) NULL,
+                        MaHoaDon VARCHAR(10) NULL,
+                        MaNhanVien VARCHAR(10) NULL CONSTRAINT FK_LichSuDiem_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien)
+                    );
+                    CREATE INDEX IX_LichSuDiem_KhachHang ON LichSuDiem(MaKhachHang, ThoiGian);
+                    INSERT INTO LichSuDiem (MaLichSu, MaKhachHang, ThoiGian, SoDiem, Loai, NoiDung)
+                    SELECT 'LSD' + RIGHT('000000' + CAST(ROW_NUMBER() OVER (ORDER BY MaKhachHang) AS VARCHAR(6)), 6),
+                           MaKhachHang, GETDATE(), DiemTichLuy, N'Số dư đầu kỳ', N'Điểm có trước khi ghi lịch sử điểm'
+                    FROM KhachHang WHERE DiemTichLuy > 0;
+                END")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

@@ -17,7 +17,9 @@ namespace QLKSan.Mappings
                 Ten = entity.Ten,
                 CCCD_Passport = entity.CCCD_Passport,
                 SDT = contact?.SDT,
-                Email = contact?.Email
+                Email = contact?.Email,
+                LaVIP = entity.LaVIP,
+                SoThich = entity.SoThich
             };
         }
 
@@ -51,9 +53,36 @@ namespace QLKSan.Mappings
             dto.CCCD_Passport = entity.CCCD_Passport;
             dto.DiemTichLuy = entity.DiemTichLuy;
             dto.DiemDaDoi = entity.DiemDaDoi;
+            dto.LaVIP = entity.LaVIP;
+            dto.SoThich = entity.SoThich;
+            dto.GhiChuNoiBo = entity.GhiChuNoiBo;
+            dto.HanChe = entity.HanChe;
+            dto.LyDoHanChe = entity.LyDoHanChe;
             dto.SoLanDatPhong = entity.PhieuDatPhongs?.Count ?? 0;
             dto.LienHeDiaChis = entity.LienHeDiaChis?.Select(l => l.ToDto()).ToList() ?? new List<ContactDto>();
         }
+
+        // Hồ sơ trả cho chính khách: bỏ các thông tin nội bộ của khách sạn
+        public static T WithoutInternalNotes<T>(this T dto) where T : CustomerDto
+        {
+            if (dto == null) return null;
+            dto.GhiChuNoiBo = null;
+            dto.HanChe = false;
+            dto.LyDoHanChe = null;
+            dto.LaVIP = false;
+            return dto;
+        }
+
+        public static PointHistoryDto ToDto(this LichSuDiem entity) => new PointHistoryDto
+        {
+            MaLichSu = entity.MaLichSu,
+            ThoiGian = entity.ThoiGian,
+            SoDiem = entity.SoDiem,
+            Loai = entity.Loai,
+            NoiDung = entity.NoiDung,
+            MaHoaDon = entity.MaHoaDon,
+            TenNhanVien = entity.NhanVien?.TenNhanVien
+        };
 
         // Hạng thành viên, quyền lợi và tiến độ lên hạng theo chương trình thành viên hiện hành
         public static T WithMembership<T>(this T dto, LoyaltyPolicy policy) where T : CustomerDto
