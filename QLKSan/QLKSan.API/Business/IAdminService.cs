@@ -9,13 +9,6 @@ namespace QLKSan.Business
     // Các thao tác thêm/sửa/xoá ném NotFoundException, BusinessException hoặc ConflictException khi thất bại
     public interface IAdminService
     {
-        // Dashboard Stats
-        Task<decimal> GetTotalRevenueAsync();
-        Task<List<decimal>> GetWeeklyRevenueAsync();
-        Task<List<MonthlyRevenueDto>> GetYearlyRevenueHistoryAsync(int year);
-        Task<int> GetTotalBookingsAsync();
-        Task<int> GetTotalCustomersAsync();
-
         // Room Types
         Task<IEnumerable<LoaiPhong>> GetAllRoomTypesAsync();
         Task<LoaiPhong> GetRoomTypeByIdAsync(string maLoai);

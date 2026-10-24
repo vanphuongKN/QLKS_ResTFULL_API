@@ -140,14 +140,13 @@ namespace QLKSan.ApiClients
     // ===== /api/dashboard =====
     public interface IDashboardApiClient
     {
-        Task<DashboardDto> GetAsync(int? year = null);
+        Task<DashboardDto> GetAsync();
     }
 
     public class DashboardApiClient : ApiClientBase, IDashboardApiClient
     {
         public DashboardApiClient(HttpClient http) : base(http) { }
 
-        public Task<DashboardDto> GetAsync(int? year = null)
-            => HttpGetAsync<DashboardDto>(year == null ? "api/dashboard" : $"api/dashboard?year={year}");
+        public Task<DashboardDto> GetAsync() => HttpGetAsync<DashboardDto>("api/dashboard");
     }
 }

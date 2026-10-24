@@ -52,14 +52,7 @@ namespace QLKSan.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var dashboard = await _dashboardApi.GetAsync(DateTime.Now.Year);
-            ViewBag.Revenue = dashboard.TongDoanhThu;
-            ViewBag.WeeklyRevenue = dashboard.DoanhThuTuan;
-            ViewBag.Bookings = dashboard.TongDatPhong;
-            ViewBag.Customers = dashboard.TongKhachHang;
-            ViewBag.Promotions = dashboard.KhuyenMais;
-            ViewBag.YearlyRevenue = dashboard.DoanhThuTheoThang;
-            return View();
+            return View(await _dashboardApi.GetAsync());
         }
 
         // ===== ROOM TYPES =====

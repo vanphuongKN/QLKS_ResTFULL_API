@@ -25,38 +25,46 @@
                 var ctrl = ViewContext.RouteData.Values["Controller"]?.ToString();
                 var act = ViewContext.RouteData.Values["Action"]?.ToString();
                 bool laAdmin = role == "Admin", laLeTan = role == "Receptionist", laBuongPhong = role == "Housekeeping", laKeToan = role == "Accountant";
-                string Active(string c, string a = null) => ctrl == c && (a == null || act == a) ? "active" : "";
+                bool Is(string c, params string[] acts) => ctrl == c && (acts.Length == 0 || acts.Contains(act));
+
+                // Menu theo nhóm nghiệp vụ; mỗi mục chỉ hiện với vai trò được phép (khớp ma trận phân quyền của API)
+                var menu = new List<(string Nhom, string Ten, string Icon, string Url, bool Active, bool Hien)>
+                {
+                    ("", "Bảng điều khiển", "fa-th-large", Url.Action("Index", "Admin"), Is("Admin", "Index"), laAdmin),
+                    ("", "Việc của tôi", "fa-clipboard-check", Url.Action("MyTasks", "Housekeeping"), Is("Housekeeping", "MyTasks"), laBuongPhong),
+
+                    ("Vận hành", "Lễ tân", "fa-concierge-bell", Url.Action("Index", "Reception"), Is("Reception", "Index", "WalkIn", "ChangeRoom"), laAdmin || laLeTan),
+                    ("Vận hành", "Phòng nghỉ", "fa-th", Url.Action("Status", "Room"), Is("Room", "Status", "Details"), laAdmin || laLeTan || laKeToan),
+                    ("Vận hành", "Lịch phòng", "fa-stream", Url.Action("Timeline", "Room"), Is("Room", "Timeline"), laAdmin || laLeTan || laKeToan),
+                    ("Vận hành", "Buồng phòng", "fa-broom", Url.Action("Tasks", "Housekeeping"), Is("Housekeeping", "Tasks"), laAdmin || laLeTan),
+                    ("Vận hành", "Gọi dịch vụ", "fa-mug-hot", Url.Action("Index", "Service"), Is("Service"), laAdmin || laLeTan),
+                    ("Vận hành", "Khách hàng", "fa-users", Url.Action("Customers", "Reception"), Is("Reception", "Customers", "CustomerDetails", "BookingHistory"), laAdmin || laLeTan),
+                    ("Vận hành", "Sổ lưu trú", "fa-id-card", Url.Action("Guests", "Room"), Is("Room", "Guests"), laAdmin || laLeTan || laKeToan),
+
+                    ("Doanh thu", "Hoá đơn", "fa-file-invoice-dollar", Url.Action("Invoices", "Accounting"), Is("Accounting", "Invoices", "Invoice"), laAdmin || laKeToan),
+                    ("Doanh thu", "Báo cáo", "fa-chart-line", Url.Action("Reports", "Accounting"), Is("Accounting", "Reports"), laAdmin || laKeToan),
+                    ("Doanh thu", "Bảng giá", "fa-calendar-alt", Url.Action("Pricing", "Admin"), Is("Admin", "Pricing"), laAdmin),
+                    ("Doanh thu", "Khuyến mãi", "fa-tags", Url.Action("Promotions", "Admin"), Is("Admin", "Promotions"), laAdmin),
+
+                    ("Danh mục", "Loại phòng", "fa-layer-group", Url.Action("RoomTypes", "Admin"), Is("Admin", "RoomTypes", "RoomTypeImages"), laAdmin),
+                    ("Danh mục", "Phòng", "fa-door-closed", Url.Action("Rooms", "Admin"), Is("Admin", "Rooms"), laAdmin),
+                    ("Danh mục", "Dịch vụ & giá", "fa-spa", Url.Action("Services", "Admin"), Is("Admin", "Services"), laAdmin),
+                    ("Danh mục", "Đánh giá", "fa-star", Url.Action("Reviews", "Admin"), Is("Admin", "Reviews"), laAdmin),
+
+                    ("Hệ thống", "Nhân sự", "fa-user-tie", Url.Action("Staff", "Admin"), Is("Admin", "Staff"), laAdmin),
+                };
             }
             <nav class="sidebar-nav">
-                @if (laAdmin)
+                @foreach (var nhom in menu.Where(m => m.Hien).GroupBy(m => m.Nhom))
                 {
-                    <a href="@Url.Action("Index", "Admin")" class="nav-item @Active("Admin", "Index")"><i class="fas fa-th-large"></i> Bảng điều khiển</a>
-                    <a href="@Url.Action("Pricing", "Admin")" class="nav-item @Active("Admin", "Pricing")"><i class="fas fa-calendar-alt"></i> Bảng giá</a>
-                }
-                @if (laAdmin || laLeTan)
-                {
-                    <a href="@Url.Action("Index", "Reception")" class="nav-item @Active("Reception", "Index")"><i class="fas fa-concierge-bell"></i> Lễ tân</a>
-                    <a href="@Url.Action("Customers", "Reception")" class="nav-item @Active("Reception", "Customers")"><i class="fas fa-users"></i> Khách hàng</a>
-                }
-                @if (laAdmin || laLeTan || laKeToan)
-                {
-                    <a href="@Url.Action("Status", "Room")" class="nav-item @(ctrl == "Room" && act is "Status" or "Details" ? "active" : "")"><i class="fas fa-th"></i> Phòng nghỉ</a>
-                    <a href="@Url.Action("Timeline", "Room")" class="nav-item @Active("Room", "Timeline")"><i class="fas fa-stream"></i> Lịch phòng</a>
-                    <a href="@Url.Action("Guests", "Room")" class="nav-item @Active("Room", "Guests")"><i class="fas fa-id-card"></i> Sổ lưu trú</a>
-                }
-                @if (laAdmin || laLeTan)
-                {
-                    <a href="@Url.Action("Index", "Service")" class="nav-item @Active("Service")"><i class="fas fa-mug-hot"></i> Dịch vụ</a>
-                    <a href="@Url.Action("Tasks", "Housekeeping")" class="nav-item @Active("Housekeeping", "Tasks")"><i class="fas fa-broom"></i> Buồng phòng</a>
-                }
-                @if (laBuongPhong)
-                {
-                    <a href="@Url.Action("MyTasks", "Housekeeping")" class="nav-item @Active("Housekeeping", "MyTasks")"><i class="fas fa-clipboard-check"></i> Việc của tôi</a>
-                }
-                @if (laAdmin || laKeToan)
-                {
-                    <a href="@Url.Action("Invoices", "Accounting")" class="nav-item @(ctrl == "Accounting" && act != "Reports" ? "active" : "")"><i class="fas fa-file-invoice-dollar"></i> Hoá đơn</a>
-                    <a href="@Url.Action("Reports", "Accounting")" class="nav-item @Active("Accounting", "Reports")"><i class="fas fa-chart-line"></i> Báo cáo</a>
+                    if (!string.IsNullOrEmpty(nhom.Key))
+                    {
+                        <div class="nav-section">@nhom.Key</div>
+                    }
+                    foreach (var m in nhom)
+                    {
+                        <a href="@m.Url" class="nav-item @(m.Active ? "active" : "")"><i class="fas @m.Icon"></i> @m.Ten</a>
+                    }
                 }
             </nav>
             <div class="sidebar-logout">

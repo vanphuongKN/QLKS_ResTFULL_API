@@ -1,197 +1,224 @@
+@model QLKSan.Models.DTOs.DashboardDto
 @{
-    ViewData["Title"] = "Bảng điều khiển Quản lý";
-    decimal revenue = ViewBag.Revenue ?? 0m;
-    var weeklyRevenue = ViewBag.WeeklyRevenue as List<decimal> ?? new List<decimal>(new decimal[7]);
-    decimal maxRevenue = weeklyRevenue.Any() && weeklyRevenue.Max() > 0 ? weeklyRevenue.Max() : 1m;
-    int totalBookings = ViewBag.Bookings ?? 0;
-    int totalCustomers = ViewBag.Customers ?? 0;
-    var promotions = ViewBag.Promotions as IEnumerable<QLKSan.Models.DTOs.PromotionDto>;
-    var yearlyRevenue = ViewBag.YearlyRevenue as List<QLKSan.Models.DTOs.MonthlyRevenueDto> ?? new List<QLKSan.Models.DTOs.MonthlyRevenueDto>();
+    ViewData["Title"] = "Bảng điều khiển";
+    var d = Model;
+    var thu = new[] { "Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy" };
+    var thuNgan = new[] { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+
+    // % thay đổi so với kỳ trước (null khi kỳ trước bằng 0)
+    decimal? Delta(decimal nay, decimal truoc) => truoc == 0 ? null : Math.Round((nay - truoc) * 100m / truoc, 1);
+    string Rut(decimal v) => v >= 1_000_000_000 ? (v / 1_000_000_000m).ToString("0.##") + " tỷ"
+        : v >= 1_000_000 ? (v / 1_000_000m).ToString("0.#") + " tr" : v >= 1_000 ? (v / 1_000m).ToString("0") + "k" : v.ToString("N0");
+
+    var kpi30 = new[]
+    {
+        ("Doanh thu thuần", FormatHelper.ToVND(d.KyNay.DoanhThuThuan), Delta(d.KyNay.DoanhThuThuan, d.KyTruoc.DoanhThuThuan), "Đã trừ hoàn tiền, gồm VAT"),
+        ("Công suất trung bình", d.KyNay.CongSuat.ToString("0.#") + "%", Delta(d.KyNay.CongSuat, d.KyTruoc.CongSuat), $"{d.KyNay.DemPhongDaBan} đêm phòng đã bán"),
+        ("ADR", FormatHelper.ToVND(d.KyNay.ADR), Delta(d.KyNay.ADR, d.KyTruoc.ADR), "Giá trung bình mỗi đêm phòng đã bán"),
+        ("RevPAR", FormatHelper.ToVND(d.KyNay.RevPAR), Delta(d.KyNay.RevPAR, d.KyTruoc.RevPAR), "Doanh thu phòng trên mỗi phòng sẵn có")
+    };
+    var maxThang = d.DoanhThuTheoThang.Count > 0 ? Math.Max(1, d.DoanhThuTheoThang.Max(m => m.DoanhThuThuan)) : 1;
+    var viec = new[]
+    {
+        (d.PhieuChoDuyet, "Phiếu online chờ duyệt", "fa-laptop", Url.Action("Index", "Reception"), d.PhieuChoDuyet > 0 ? "warn" : ""),
+        (d.SuCoBuongPhong, "Sự cố khi dọn phòng", "fa-triangle-exclamation", Url.Action("Tasks", "Housekeeping"), d.SuCoBuongPhong > 0 ? "danger" : ""),
+        (d.PhongBaoTri, "Phòng đang bảo trì", "fa-screwdriver-wrench", Url.Action("Status", "Room"), d.PhongBaoTri > 0 ? "danger" : ""),
+        (d.PhongDangDon, "Phòng đang dọn", "fa-broom", Url.Action("Tasks", "Housekeeping"), ""),
+        (d.ViecBuongPhongChuaXong, "Việc buồng phòng chưa xong", "fa-list-check", Url.Action("Tasks", "Housekeeping"), ""),
+        (d.KhuyenMaiSapHetHan.Count, "Khuyến mãi hết hạn trong 7 ngày", "fa-tags", Url.Action("Promotions", "Admin"), d.KhuyenMaiSapHetHan.Count > 0 ? "warn" : "")
+    };
 }
 
 <div class="page-header">
     <div>
         <p class="page-label">Tổng quan điều hành</p>
-        <h2>Bảng điều khiển Quản lý</h2>
+        <h2>@thu[(int)DateTime.Today.DayOfWeek], @DateTime.Today.ToString("dd/MM/yyyy")</h2>
+        <p class="page-desc">Cập nhật lúc @d.NgayCapNhat.ToString("HH:mm") · @d.TongSoPhong phòng</p>
     </div>
-    <div class="d-flex gap-2">
-        <a asp-action="Rooms" class="btn btn-outline-gold">Phòng</a>
-        <a asp-action="RoomTypes" class="btn btn-outline-gold">Loại phòng</a>
-        <a asp-action="Staff" class="btn btn-outline-gold">Nhân sự</a>
-        <a asp-action="Promotions" class="btn-gold"><i class="fas fa-tags me-2"></i>Khuyến mãi</a>
-    </div>
-</div>
-
-<!-- Revenue + Promotions -->
-<div class="row g-4 mb-4">
-    <div class="col-lg-8">
-        <div class="card p-4">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <h6 class="text-muted mb-1"><i class="fas fa-chart-bar me-2"></i>Tổng quan doanh thu</h6>
-                    <small class="text-muted">Biểu đồ: doanh thu từng ngày trong tuần này</small>
-                </div>
-                <div class="text-end">
-                    <h3 class="fw-bold text-navy mb-0">@revenue.ToString("N0") ₫</h3>
-                    <small class="text-muted">@totalBookings phiếu đặt · @totalCustomers khách hàng</small>
-                </div>
-            </div>
-            <!-- Dynamic Bar Chart -->
-            <div class="d-flex align-items-end gap-3 mt-4" style="height:180px">
-                @{
-                    string[] days = { "THỨ 2", "THỨ 3", "THỨ 4", "THỨ 5", "THỨ 6", "THỨ 7", "CN" };
-                    for (int i = 0; i < 7; i++)
-                    {
-                        var rev = weeklyRevenue[i];
-                        int heightPx = (int)((rev / maxRevenue) * 130); // cột cao nhất 130px, chừa chỗ cho nhãn số tiền
-                        if (rev > 0 && heightPx < 15) heightPx = 15; // minimum visible height if there's revenue
-                        if (rev == 0) heightPx = 5; // tiny height for 0 revenue to show empty state
-                        
-                        // Highlight current day if it's today
-                        int todayIndex = (int)DateTime.Today.DayOfWeek - 1;
-                        if (todayIndex == -1) todayIndex = 6;
-                        bool isToday = todayIndex == i;
-                        
-                        string bgColor = isToday ? "var(--gold)" : "#E8E8E8";
-                        
-                        var nhanCot = rev >= 1_000_000 ? (rev / 1_000_000m).ToString("0.#") + "tr" : rev >= 1_000 ? (rev / 1_000m).ToString("0") + "k" : "";
-                        <div class="d-flex flex-column align-items-center flex-fill position-relative" style="cursor: pointer;" title="Doanh thu: @rev.ToString("N0") ₫">
-                            <small class="text-muted mb-1" style="font-size:0.68rem;min-height:1em">@nhanCot</small>
-                            <div style="background:@bgColor; width:100%; height:@(heightPx)px; border-radius:4px; transition: height 0.5s ease, background 0.3s ease;" 
-                                 onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"></div>
-                            <small class="text-muted mt-2 fw-bold" style="font-size:0.7rem; @(isToday ? "color: var(--navy) !important;" : "")">@days[i]</small>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card p-4 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0"><i class="fas fa-tags me-2"></i>Khuyến mãi</h6>
-                <a asp-action="Promotions" class="small text-gold">Xem tất cả</a>
-            </div>
-            @if (promotions != null && promotions.Any()) {
-                foreach (var promo in promotions.Take(3)) {
-                    var (nhanKm, cssKm) = promo.NgayKetThuc.Date < DateTime.Today ? ("Hết hạn", "badge-muted")
-                        : promo.NgayBatDau.Date > DateTime.Today ? ("Sắp diễn ra", "badge-booked") : ("Đang hoạt động", "badge-available");
-                    <div class="promo-card">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="promo-name">@promo.MaKhuyenMai</span>
-                            <span class="badge-status @cssKm">@nhanKm</span>
-                        </div>
-                        <p class="text-muted small mb-1">@promo.TenKhuyenMai</p>
-                        <small class="text-muted"><i class="fas fa-calendar me-1"></i>Kết thúc @promo.NgayKetThuc.ToString("dd/MM")</small>
-                    </div>
-                }
-            } else {
-                <p class="text-muted small text-center py-3">Chưa có khuyến mãi nào.</p>
-            }
-        </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-controller="Reception" asp-action="Index" class="btn btn-outline-gold"><i class="fas fa-concierge-bell me-2"></i>Lễ tân</a>
+        <a asp-controller="Accounting" asp-action="Reports" class="btn-gold"><i class="fas fa-chart-line me-2"></i>Báo cáo chi tiết</a>
     </div>
 </div>
 
-<!-- Yearly Revenue Management -->
-<div class="card mb-4">
-    <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0"><i class="fas fa-calendar-alt me-2"></i>Lịch sử doanh thu @DateTime.Now.Year</h6>
-        </div>
-        
-        <div class="accordion accordion-flush" id="accordionYearlyRevenue">
-            @if (yearlyRevenue != null && yearlyRevenue.Any(m => m.TotalRevenue > 0))
-            {
-                @foreach (var month in yearlyRevenue.OrderByDescending(m => m.Month).Where(m => m.TotalRevenue > 0 || m.Month <= DateTime.Now.Month))
+<!-- HÔM NAY -->
+<div class="kpi-grid mb-4">
+    <div class="kpi-card kpi-card--dark">
+        <span class="kpi-label">Công suất hôm nay</span>
+        <div class="kpi-value">@d.CongSuatHomNay.ToString("0.#")%</div>
+        <div class="kpi-meter"><span style="width:@(Math.Min(100, d.CongSuatHomNay).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span></div>
+        <span class="kpi-sub">@d.PhongCoKhach / @d.TongSoPhong phòng có khách</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Khách đến</span>
+        <div class="kpi-value">@d.SoKhachDen</div>
+        <span class="kpi-sub">Đã nhận phòng @d.SoKhachDenDaNhan · còn @(d.SoKhachDen - d.SoKhachDenDaNhan)</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Khách đi</span>
+        <div class="kpi-value">@d.SoKhachDi</div>
+        <span class="kpi-sub">Đã trả phòng @d.SoKhachDiDaTra · còn @(d.SoKhachDi - d.SoKhachDiDaTra)</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Đang lưu trú</span>
+        <div class="kpi-value">@d.KhachDangLuuTru</div>
+        <span class="kpi-sub">phiếu đã nhận phòng</span>
+    </div>
+</div>
+
+<!-- 30 NGÀY QUA -->
+<div class="d-flex justify-content-between align-items-baseline mb-2">
+    <h6 class="dash-title mb-0">30 ngày qua</h6>
+    <small class="text-muted">@d.KyNay.TuNgay.ToString("dd/MM") – @d.KyNay.DenNgay.ToString("dd/MM") · so với @d.KyTruoc.TuNgay.ToString("dd/MM") – @d.KyTruoc.DenNgay.ToString("dd/MM")</small>
+</div>
+<div class="kpi-grid mb-4">
+    @foreach (var (ten, giaTri, delta, ghiChu) in kpi30)
+    {
+        <div class="kpi-card">
+            <span class="kpi-label">@ten</span>
+            <div class="kpi-value kpi-value--sm">@giaTri</div>
+            <span class="kpi-sub">
+                @if (delta != null)
                 {
-                    var monthId = $"month{month.Month}";
-                    <div class="accordion-item border mb-2 rounded">
-                        <h2 class="accordion-header" id="heading@(monthId)">
-                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(monthId)" aria-expanded="false" aria-controls="collapse@(monthId)">
-                                <div class="d-flex justify-content-between w-100 pe-3">
-                                    <span>@month.MonthLabel</span>
-                                    <span class="text-navy">@month.TotalRevenue.ToString("N0") ₫</span>
-                                </div>
-                            </button>
-                        </h2>
-                        <div id="collapse@(monthId)" class="accordion-collapse collapse" aria-labelledby="heading@(monthId)" data-bs-parent="#accordionYearlyRevenue">
-                            <div class="accordion-body p-0">
-                                <!-- Weeks Accordion inside Month -->
-                                <div class="accordion accordion-flush" id="accordionWeeks@(monthId)">
-                                    @foreach (var week in month.Weeks)
-                                    {
-                                        var weekId = $"month{month.Month}week{week.WeekLabel.Replace(" ", "")}";
-                                        <div class="accordion-item bg-light border-0 border-bottom">
-                                            <h2 class="accordion-header" id="heading@(weekId)">
-                                                <button class="accordion-button collapsed bg-light py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse@(weekId)" aria-expanded="false" aria-controls="collapse@(weekId)">
-                                                    <div class="d-flex justify-content-between w-100 pe-3 small">
-                                                        <span class="text-muted"><i class="fas fa-calendar-week me-2"></i>@week.WeekLabel <small>(@week.StartDate.ToString("dd/MM") - @week.EndDate.ToString("dd/MM"))</small></span>
-                                                        <span class="fw-bold">@week.TotalRevenue.ToString("N0") ₫</span>
-                                                    </div>
-                                                </button>
-                                            </h2>
-                                            <div id="collapse@(weekId)" class="accordion-collapse collapse" aria-labelledby="heading@(weekId)" data-bs-parent="#accordionWeeks@(monthId)">
-                                                <div class="accordion-body bg-white p-3">
-                                                    <div class="row g-2">
-                                                        @foreach (var day in week.Days)
-                                                        {
-                                                            <div class="col">
-                                                                <div class="card h-100 border-0 bg-light text-center p-2">
-                                                                    <small class="text-muted d-block mb-1">@day.DayOfWeekLabel</small>
-                                                                    <strong class="d-block mb-2" style="font-size:0.8rem">@day.DateLabel</strong>
-                                                                    <span class="badge @(day.Revenue > 0 ? "bg-success" : "bg-secondary text-white-50")">
-                                                                        @day.Revenue.ToString("N0") ₫
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                    <span class="kpi-delta @(delta >= 0 ? "up" : "down")"><i class="fas @(delta >= 0 ? "fa-arrow-up" : "fa-arrow-down")"></i> @Math.Abs(delta.Value).ToString("0.#")%</span>
+                }
+                else
+                {
+                    <span class="kpi-delta">—</span>
+                }
+                @ghiChu
+            </span>
+        </div>
+    }
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- DỰ BÁO 14 NGÀY -->
+    <div class="col-xl-8">
+        <div class="card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-baseline mb-3">
+                <h6 class="dash-title mb-0">Công suất đã đặt — 14 ngày tới</h6>
+                <a asp-controller="Room" asp-action="Timeline" class="small text-gold">Lịch phòng</a>
+            </div>
+            <div class="bar-chart">
+                @foreach (var n in d.DuBao14Ngay)
+                {
+                    var cuoiTuan = n.Ngay.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+                    <div class="bar-col" title="@n.Ngay.ToString("dd/MM"): @n.SoPhongCoKhach / @d.TongSoPhong phòng">
+                        <small class="bar-val">@n.TyLe.ToString("0")%</small>
+                        <div class="bar-track"><div class="bar @(n.Ngay == DateTime.Today ? "bar--today" : "")" style="height:@(Math.Max(2, n.TyLe).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+                        <small class="bar-label @(cuoiTuan ? "text-gold" : "")">@thuNgan[(int)n.Ngay.DayOfWeek]<br />@n.Ngay.ToString("dd/MM")</small>
                     </div>
                 }
-            }
-            else
+            </div>
+            <small class="text-muted mt-2">Gồm phiếu chờ duyệt, đã duyệt và đang lưu trú.</small>
+        </div>
+    </div>
+
+    <!-- VIỆC CẦN XỬ LÝ -->
+    <div class="col-xl-4">
+        <div class="card p-4 h-100">
+            <h6 class="dash-title mb-3">Việc cần xử lý</h6>
+            <div class="task-list">
+                @foreach (var (so, ten, icon, url, muc) in viec)
+                {
+                    <a href="@url" class="task-row @(so == 0 ? "is-zero" : muc)">
+                        <i class="fas @icon"></i><span>@ten</span><strong>@so</strong>
+                    </a>
+                }
+            </div>
+            @foreach (var km in d.KhuyenMaiSapHetHan)
             {
-                <div class="text-center p-4 text-muted">Chưa có dữ liệu doanh thu cho năm @DateTime.Now.Year.</div>
+                <small class="d-block text-muted mt-2"><i class="fas fa-tag me-1 text-gold"></i>@km.MaKhuyenMai — @km.TenKhuyenMai, hết hạn @km.NgayKetThuc.ToString("dd/MM/yyyy")</small>
             }
         </div>
     </div>
 </div>
 
-<!-- Quick Links -->
+<!-- KHÁCH ĐẾN / ĐI HÔM NAY -->
+<div class="row g-4 mb-4">
+    @foreach (var (tieuDe, ds, rong, nhanXong, nhanCho) in new[]
+    {
+        ("Khách đến hôm nay", d.KhachDen, "Không có khách đến hôm nay.", "Đã nhận", "Chờ nhận"),
+        ("Khách đi hôm nay", d.KhachDi, "Không có khách trả phòng hôm nay.", "Đã trả", "Đang ở")
+    })
+    {
+        <div class="col-xl-6">
+            <div class="card h-100">
+                <div class="p-4 pb-2 d-flex justify-content-between"><h6 class="dash-title mb-0">@tieuDe</h6><span class="text-muted small">@ds.Count phiếu</span></div>
+                @if (!ds.Any())
+                {
+                    <p class="text-muted small px-4 pb-4 mb-0">@rong</p>
+                }
+                else
+                {
+                    <table class="table table-custom mb-0">
+                        <thead><tr><th>Khách</th><th>Phòng</th><th>Ghi chú</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var k in ds)
+                            {
+                                <tr>
+                                    <td><strong>@k.HoTenKhachHang</strong><div class="text-muted small">@k.MaDatPhong · @k.SoKhach khách</div></td>
+                                    <td>@k.SoPhong<div class="text-muted small">@FormatHelper.TenHangPhong(k.TenLoaiPhong)</div></td>
+                                    <td class="small">
+                                        @if (!string.IsNullOrEmpty(k.GioDenDuKien)) { <div><i class="fas fa-clock text-muted me-1"></i>@k.GioDenDuKien</div> }
+                                        @if (!string.IsNullOrEmpty(k.YeuCauDacBiet)) { <div class="text-truncate" style="max-width:220px" title="@k.YeuCauDacBiet"><i class="fas fa-comment-dots text-gold me-1"></i>@k.YeuCauDacBiet</div> }
+                                    </td>
+                                    <td class="text-end"><span class="badge-status @(k.DaXuLy ? "badge-available" : "badge-pending")">@(k.DaXuLy ? nhanXong : nhanCho)</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+</div>
+
 <div class="row g-4">
-    <div class="col-md-3">
-        <a asp-action="Rooms" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <i class="fas fa-bed text-gold" style="font-size:2rem"></i>
-            <h6 class="fw-bold mt-2 mb-0">Quản lý Phòng</h6>
-            <small class="text-muted">Thêm / Xóa phòng</small>
-        </a>
+    <!-- DOANH THU THEO THÁNG -->
+    <div class="col-xl-8">
+        <div class="card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-baseline mb-3">
+                <h6 class="dash-title mb-0">Doanh thu thuần năm @DateTime.Today.Year</h6>
+                <strong class="text-navy">@FormatHelper.ToVND(d.DoanhThuTheoThang.Sum(m => m.DoanhThuThuan))</strong>
+            </div>
+            <div class="bar-chart bar-chart--months">
+                @foreach (var m in d.DoanhThuTheoThang)
+                {
+                    var tuongLai = m.Thang > DateTime.Today.Month;
+                    <div class="bar-col @(tuongLai ? "is-future" : "")" title="Tháng @m.Thang: @FormatHelper.ToVND(m.DoanhThuThuan)">
+                        <small class="bar-val">@(m.DoanhThuThuan != 0 ? Rut(m.DoanhThuThuan) : "")</small>
+                        <div class="bar-track"><div class="bar @(m.Thang == DateTime.Today.Month ? "bar--today" : "")" style="height:@(Math.Max(m.DoanhThuThuan > 0 ? 3 : 0, m.DoanhThuThuan * 100m / maxThang).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+                        <small class="bar-label">T@(m.Thang)</small>
+                    </div>
+                }
+            </div>
+        </div>
     </div>
-    <div class="col-md-3">
-        <a asp-action="Services" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <i class="fas fa-concierge-bell text-gold" style="font-size:2rem"></i>
-            <h6 class="fw-bold mt-2 mb-0">Dịch vụ</h6>
-            <small class="text-muted">Bảng giá dịch vụ</small>
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a asp-action="Staff" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <i class="fas fa-users text-gold" style="font-size:2rem"></i>
-            <h6 class="fw-bold mt-2 mb-0">Nhân sự</h6>
-            <small class="text-muted">Quản lý nhân viên</small>
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a asp-action="Reviews" class="card p-4 text-center text-decoration-none h-100" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <i class="fas fa-star text-gold" style="font-size:2rem"></i>
-            <h6 class="fw-bold mt-2 mb-0">Đánh giá</h6>
-            <small class="text-muted">Nhận xét khách hàng</small>
-        </a>
+
+    <!-- ĐÁNH GIÁ -->
+    <div class="col-xl-4">
+        <div class="card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-baseline mb-3">
+                <h6 class="dash-title mb-0">Đánh giá của khách</h6>
+                <a asp-action="Reviews" class="small text-gold">Tất cả</a>
+            </div>
+            <div class="d-flex align-items-baseline gap-2 mb-3">
+                <span class="kpi-value mb-0">@(d.DiemDanhGiaTrungBinh?.ToString("0.0") ?? "—")</span>
+                <span class="text-muted small">/ 5 · @d.TongSoDanhGia đánh giá</span>
+            </div>
+            @foreach (var r in d.DanhGiaMoi)
+            {
+                <div class="review-mini @(r.SoSao <= 3 ? "is-low" : "")">
+                    <div class="d-flex justify-content-between">
+                        <span>@for (var i = 1; i <= 5; i++) { <i class="fas fa-star @(i <= r.SoSao ? "text-gold" : "text-muted opacity-25")"></i> }</span>
+                        <small class="text-muted">@r.NgayDanhGia.ToString("dd/MM")</small>
+                    </div>
+                    <p class="mb-0 small">@(string.IsNullOrEmpty(r.NoiDung) ? "(Không có nhận xét)" : r.NoiDung)</p>
+                    <small class="text-muted">@r.HoTenKhachHang · @FormatHelper.TenHangPhong(r.TenLoaiPhong ?? "")</small>
+                </div>
+            }
+        </div>
     </div>
 </div>
