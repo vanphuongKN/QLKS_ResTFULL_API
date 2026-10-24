@@ -1,0 +1,65 @@
+@model QLKSan.Models.DTOs.HotelInfoDto
+@{
+    var laKhach = User.IsLoggedIn() && User.GetRole() == "Customer";
+}
+<footer class="lr-footer-rich">
+    <div class="lr-footer-grid">
+        <div>
+            <div class="lr-footer-brand">@Model.Ten</div>
+            @if (!string.IsNullOrWhiteSpace(Model.MoTaNgan))
+            {
+                <p>@Model.MoTaNgan</p>
+            }
+        </div>
+        <div>
+            <h4>Liên hệ</h4>
+            @if (!string.IsNullOrWhiteSpace(Model.DiaChi))
+            {
+                <p>@Model.DiaChi</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Hotline))
+            {
+                <p><a href="tel:@Model.Hotline.Replace(" ", "")">@Model.Hotline</a></p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Email))
+            {
+                <p><a href="mailto:@Model.Email">@Model.Email</a></p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.BanDoUrl))
+            {
+                <p><a href="@Model.BanDoUrl" target="_blank" rel="noopener">Xem bản đồ →</a></p>
+            }
+        </div>
+        <div>
+            <h4>Lưu trú</h4>
+            @if (Model.GioNhanPhong != null)
+            {
+                <p>Nhận phòng từ @Model.GioNhanPhong<br />Trả phòng trước @Model.GioTraPhong</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.ChinhSachHuy))
+            {
+                <p>@Model.ChinhSachHuy</p>
+            }
+        </div>
+        <div>
+            <h4>Khám phá</h4>
+            <ul>
+                <li><a href="@Url.Action("Index", "Home")#rooms">Hạng phòng</a></li>
+                <li><a href="@Url.Action("Index", "Home")#experiences">Trải nghiệm</a></li>
+                <li><a href="@Url.Action("BookRoom", "Customer")">Đặt phòng</a></li>
+                @if (laKhach)
+                {
+                    <li><a href="@Url.Action("MyStays", "Customer")">Kỳ nghỉ của tôi</a></li>
+                }
+                else if (!User.IsLoggedIn())
+                {
+                    <li><a href="@Url.Action("Login", "Auth")">Đăng nhập</a></li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="lr-footer-bottom">
+        <span>© @DateTime.Today.Year @Model.Ten</span>
+        <span>Giá phòng hiển thị chưa gồm VAT 8%, được tính khi thanh toán</span>
+    </div>
+</footer>

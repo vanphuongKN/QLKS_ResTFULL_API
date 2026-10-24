@@ -94,7 +94,7 @@
             realStays.Add(new StayItem
             {
                 Id = b.MaDatPhong,
-                RoomName = roomType?.TenLoai ?? "Premium Suite",
+                RoomName = FormatHelper.TenHangPhong(roomType?.TenLoai ?? "Phòng nghỉ"),
                 Location = room != null ? $"PHÒNG {room.SoPhong}, LUXE RESERVE" : "LUXE RESERVE",
                 ImageUrl = img,
                 DateText = $"{b.NgayCheckInDuKien:dd} Th{b.NgayCheckInDuKien.Month} – {b.NgayCheckOutDuKien:dd} Th{b.NgayCheckOutDuKien.Month}, {b.NgayCheckOutDuKien:yyyy}",
@@ -165,13 +165,13 @@
         background-color: #FAF8F5; /* Warm luxury ivory background */
         padding: 60px 40px;
         margin: -40px -20px -60px -20px; /* Offset original layout padding/margin */
-        color: #2E2D2B;
+        color: var(--lr-text);
         min-height: 100vh;
         box-sizing: border-box;
     }
 
     .font-playfair {
-        font-family: 'Playfair Display', serif;
+        font-family: var(--lr-serif);
     }
 
     .luxe-category {
@@ -186,7 +186,7 @@
     .luxe-title {
         font-size: 3rem;
         font-weight: 600;
-        color: #222222;
+        color: var(--lr-ink);
         letter-spacing: -0.5px;
         line-height: 1.1;
     }
@@ -202,7 +202,7 @@
     .luxe-btn-primary {
         display: inline-flex;
         align-items: center;
-        background-color: #222222;
+        background-color: var(--lr-ink);
         color: #FFFFFF !important;
         text-decoration: none !important;
         font-size: 0.75rem;
@@ -291,7 +291,7 @@
     .luxe-room-title {
         font-size: 2.2rem;
         font-weight: 500;
-        color: #222222;
+        color: var(--lr-ink);
         margin-bottom: 8px;
         line-height: 1.2;
     }
@@ -328,7 +328,7 @@
         align-items: center;
         justify-content: space-between;
         background-color: #FAF8F5;
-        color: #222222;
+        color: var(--lr-ink);
         border: 1px solid #EAE8E2;
         padding: 14px 20px;
         font-size: 0.75rem;
@@ -341,9 +341,9 @@
         text-decoration: none !important;
     }
     .luxe-btn-outline:hover {
-        background-color: #222222;
+        background-color: var(--lr-ink);
         color: #FFFFFF !important;
-        border-color: #222222;
+        border-color: var(--lr-ink);
     }
     .luxe-btn-outline i {
         transition: transform 0.3s ease;
@@ -363,8 +363,8 @@
 
     /* Membership Card */
     .luxe-member-card {
-        background-color: #222222;
-        border-color: #222222;
+        background-color: var(--lr-ink);
+        border-color: var(--lr-ink);
         color: #FFFFFF;
         padding: 40px;
         display: flex;
@@ -453,7 +453,7 @@
     .luxe-grid-title {
         font-size: 1.8rem;
         font-weight: 500;
-        color: #222222;
+        color: var(--lr-ink);
         margin: 8px 0 20px 0;
         line-height: 1.2;
     }
@@ -488,7 +488,7 @@
     .luxe-btn-dark {
         display: block;
         width: 100%;
-        background-color: #222222;
+        background-color: var(--lr-ink);
         color: #FFFFFF !important;
         text-decoration: none !important;
         text-align: center;
@@ -546,7 +546,7 @@
     .luxe-history-name {
         font-size: 1.05rem;
         font-weight: 600;
-        color: #222222;
+        color: var(--lr-ink);
     }
     .luxe-history-label {
         font-size: 0.6rem;
@@ -559,7 +559,7 @@
     .luxe-history-value {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #222222;
+        color: var(--lr-ink);
     }
     .luxe-btn-circle-download {
         display: inline-flex;
@@ -570,7 +570,7 @@
         border-radius: 50%;
         background-color: #FAF8F5;
         border: 1px solid #EAE8E2;
-        color: #222222;
+        color: var(--lr-ink);
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         margin-left: auto;
@@ -627,7 +627,7 @@
     
     <!-- Luxe Header Section -->
     <div class="luxe-header mb-5">
-        <div class="luxe-category">DANH MỤC</div>
+        <div class="luxe-category">TÀI KHOẢN</div>
         <div class="d-flex justify-content-between align-items-end flex-wrap gap-3">
             <h1 class="luxe-title font-playfair mb-0">Lịch sử kỳ nghỉ</h1>
             <a asp-action="BookRoom" class="luxe-btn-primary">
@@ -712,7 +712,7 @@
         {
             <div class="luxe-card luxe-featured-card" style="display: flex; align-items: center; justify-content: center; min-height: 380px; text-align: center; flex-direction: column; padding: 40px;">
                 <i class="fas fa-suitcase-rolling" style="font-size: 3rem; color: #EAE8E2; margin-bottom: 20px;"></i>
-                <h3 class="font-playfair" style="color: #222222; font-size: 1.5rem; margin-bottom: 10px;">Chưa có kỳ nghỉ nào</h3>
+                <h3 class="font-playfair" style="color: var(--lr-ink); font-size: 1.5rem; margin-bottom: 10px;">Chưa có kỳ nghỉ nào</h3>
                 <p style="color: #8E8A82; font-size: 0.9rem; max-width: 300px; margin-bottom: 20px;">Bạn chưa có kỳ nghỉ nào tại LUXE RESERVE. Hãy bắt đầu hành trình nghỉ dưỡng của bạn ngay hôm nay.</p>
                 <a asp-action="BookRoom" class="luxe-btn-primary">ĐẶT PHÒNG NGAY</a>
             </div>
@@ -735,7 +735,7 @@
             <div class="luxe-member-divider"></div>
             
             <div class="luxe-member-footer">
-                <div class="luxe-metric-label">ĐIỂM ĐẾN YÊU THÍCH</div>
+                <div class="luxe-metric-label">HẠNG PHÒNG YÊU THÍCH</div>
                 <div class="luxe-metric-value font-playfair" style="font-size: 1.45rem;">@favRoom</div>
             </div>
         </div>

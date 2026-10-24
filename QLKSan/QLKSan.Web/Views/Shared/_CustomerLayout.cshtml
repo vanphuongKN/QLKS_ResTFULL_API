@@ -10,15 +10,10 @@
     <title>@ViewData["Title"] - LUXE RESERVE</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/customer.css" asp-append-version="true" />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script>
-        // Ngăn chặn trình duyệt khôi phục vị trí cuộn ngay lập tức trong head
-        if ('scrollRestoration' in history) {
-            history.scrollRestoration = 'manual';
-        }
-        window.scrollTo(0, 0);
-    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
 </head>
 <body>
     <!-- Top Navigation -->
@@ -27,7 +22,8 @@
         var laKhach = User.IsLoggedIn() && navRole == "Customer";
         string NavActive(string c, string a) => currentController == c && currentAction == a ? "active" : "";
     }
-    <nav class="lr-navbar">
+    @* Trang có ảnh hero (ViewData["HeaderOverlay"] = true): header trong suốt nằm đè lên ảnh, chuyển nền trắng khi cuộn *@
+    <nav class="lr-navbar @(ViewData["HeaderOverlay"] is true ? "lr-navbar--overlay" : "")">
         <a href="@Url.Action("Index", "Home")" class="lr-brand">LUXE RESERVE</a>
         <button type="button" class="lr-nav-toggle" aria-label="Mở menu" onclick="this.closest('.lr-navbar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
         <div class="lr-nav-collapse">
@@ -71,36 +67,58 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="lr-content">
+    <!-- Main Content: trang tự dàn khối tràn chiều ngang (trang chủ) đặt ViewData["FullWidth"] = true -->
+    @if (ViewData["FullWidth"] is true)
+    {
         @RenderBody()
-    </div>
+    }
+    else
+    {
+        <div class="lr-content">
+            @RenderBody()
+        </div>
+    }
 
-    <!-- Footer -->
-    <footer class="lr-footer">
-        <p class="footer-brand">LUXE RESERVE</p>
-        <ul class="footer-links">
-            <li><a href="#">Chính sách bảo mật</a></li>
-            <li><a href="#">Điều khoản dịch vụ</a></li>
-            <li><a href="#">Hỗ trợ khách hàng</a></li>
-        </ul>
-    </footer>
+    @await Component.InvokeAsync("HotelFooter")
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
     <script>
-        // Đảm bảo cuộn lên đầu trang (0,0) trên mọi sự kiện tải trang
-        window.scrollTo(0, 0);
-        document.addEventListener('DOMContentLoaded', () => {
-            window.scrollTo(0, 0);
-        });
-        window.addEventListener('load', () => {
-            window.scrollTo(0, 0);
-            // Một số trình duyệt cần độ trễ nhỏ để cuộn đúng sau khi hình ảnh và layout ổn định
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-            }, 50);
-        });
+        // Header trong suốt: đổi sang nền trắng khi cuộn qua ảnh hero
+        (function () {
+            var nav = document.querySelector('.lr-navbar--overlay');
+            if (!nav) return;
+            var update = function () { nav.classList.toggle('scrolled', window.scrollY > 40); };
+            update();
+            window.addEventListener('scroll', update, { passive: true });
+        })();
+
+        // Ô chọn ngày: <input data-lr-date> dùng lịch tiếng Việt (hiển thị dd/mm/yyyy, gửi yyyy-MM-dd);
+        // data-lr-after="#CheckIn": ngày tối thiểu luôn sau ô kia 1 ngày
+        window.lrDatePickers = {};
+        (function () {
+            if (!window.flatpickr) return;
+            if (flatpickr.l10ns && flatpickr.l10ns.vn) flatpickr.localize(flatpickr.l10ns.vn);
+            document.querySelectorAll('input[data-lr-date]').forEach(function (el) {
+                window.lrDatePickers[el.id] = flatpickr(el, {
+                    altInput: true, altFormat: 'd/m/Y', dateFormat: 'Y-m-d', disableMobile: true,
+                    minDate: el.getAttribute('min') || null
+                });
+            });
+            document.querySelectorAll('input[data-lr-after]').forEach(function (el) {
+                var src = document.querySelector(el.getAttribute('data-lr-after'));
+                var fp = window.lrDatePickers[el.id];
+                if (!src || !fp) return;
+                src.addEventListener('change', function () {
+                    if (!src.value) return;
+                    var d = new Date(src.value + 'T00:00:00'); d.setDate(d.getDate() + 1);
+                    fp.set('minDate', d);
+                    if (!el.value || new Date(el.value + 'T00:00:00') < d) fp.setDate(d, true);
+                });
+            });
+        })();
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

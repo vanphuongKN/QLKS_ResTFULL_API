@@ -8,5 +8,12 @@ namespace QLKSan.Infrastructure
         {
             return amount.ToString("N0") + " ₫";
         }
+
+        // Tên hạng phòng hiển thị cho khách: bỏ mã viết tắt nội bộ ở cuối, ví dụ "Deluxe (DLX)" -> "Deluxe"
+        public static string TenHangPhong(string tenLoai)
+        {
+            if (string.IsNullOrWhiteSpace(tenLoai)) return tenLoai;
+            return System.Text.RegularExpressions.Regex.Replace(tenLoai, @"\s*\([A-Z]{2,5}\)\s*$", "");
+        }
     }
 }

@@ -1,5 +1,6 @@
 """Kiểm tra luồng khách hàng (kế hoạch nâng cấp khách hàng / giao diện hạng sang).
 GĐ1: liên kết tài khoản cho khách vãng lai, đổi mật khẩu, khách tự sửa liên hệ, nhãn ô đăng nhập.
+GĐ2: giao diện hạng sang — thông tin khách sạn công khai (/api/hotel), footer, trang chủ, đăng nhập chia đôi, lịch chọn ngày.
 CHỈ chạy trên database vừa dựng từ DB/Quanlykhachsanc#.sql (script ghi dữ liệu: tạo tài khoản cho KH06, đổi liên hệ KH01)."""
 import os
 from csrfhelp import with_token
@@ -135,6 +136,28 @@ s, _, body = web(web_session(), 'GET', '/Auth/Login')
 check('Ô đăng nhập không còn ghi "hoặc Email"', 'hoặc Email' not in body and 'Nhập tên đăng nhập' in body)
 s, loc, _ = web(web_session(), 'GET', '/Auth/ChangePassword')
 check('Chưa đăng nhập mở trang đổi mật khẩu → chuyển tới đăng nhập', s == 302 and '/Auth/Login' in (loc or ''), loc)
+
+print('\n===== GĐ2: Giao diện hạng sang =====')
+s, info = api('GET', '/api/hotel')
+check('GET /api/hotel công khai: liên hệ + giờ nhận/trả + phụ thu + chính sách huỷ', s == 200 and info['Hotline'] and info['GioNhanPhong'] == '14:00'
+      and info['GioTraPhong'] == '12:00' and len(info['PhuThuTraMuon']) == 2 and 'trước ngày nhận phòng' in info['ChinhSachHuy'], info and info.get('GioNhanPhong'))
+anon = web_session()
+s, _, body = web(anon, 'GET', '/')
+check('Trang chủ: ảnh hero tràn màn hình + header trong suốt', s == 200 and 'lx-hero' in body and 'lr-navbar--overlay' in body)
+check('  Không lộ giá theo giờ / mã hạng phòng nội bộ', '/giờ' not in body and 'LP0' not in body and '(DLX)' not in body)
+check('  Giá dạng "Từ … ₫ / đêm"', re.search(r'Từ\s*<strong>[\d,\.]+ ₫</strong> / đêm', body) is not None)
+check('  Không còn bảng giá dịch vụ (₫ / Kg, ₫ / Lần)', '₫ / Kg' not in body and '₫ / Lần' not in body)
+check('  Mục "Trải nghiệm" chỉ giới thiệu dịch vụ đang có (Spa, Ăn sáng)', 'Spa & trị liệu' in body and 'Đưa đón riêng' not in body)
+check('  Thanh tìm phòng dùng lịch chọn khoảng ngày', 'id="stay-range"' in body and 'flatpickr' in body)
+check('Footer: địa chỉ, hotline, giờ nhận/trả phòng, chính sách huỷ từ API', info['DiaChi'] in body and info['Hotline'] in body
+      and 'Nhận phòng từ 14:00' in body and 'Huỷ miễn phí' in body)
+s, _, body = web(anon, 'GET', '/Auth/Login')
+check('Đăng nhập: màn hình chia đôi (ảnh + biểu mẫu)', s == 200 and 'lr-auth-visual' in body and 'lr-auth-form' in body)
+s, _, body = web(kw, 'GET', '/Customer/BookRoom')
+check('Đặt phòng: ô ngày dùng lịch tiếng Việt, nhãn "Ngày nhận phòng"', 'data-lr-date' in body and 'Ngày nhận phòng' in body and 'Check-in' not in body)
+s, _, body = web(kw, 'GET', '/Customer/MyStays')
+check('Lịch sử kỳ nghỉ: tên hạng phòng không kèm mã nội bộ', '(DLX)' not in body and '(STD)' not in body and 'Deluxe' in body)
+check('Trang khách có footer mới', 'lr-footer-rich' in body)
 
 print(f"\n==> {sum(results)}/{len(results)} kiểm tra đạt")
 sys.exit(0 if all(results) else 1)

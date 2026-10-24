@@ -11,16 +11,19 @@ namespace QLKSan.Controllers
     {
         private readonly IRoomTypeApiClient _roomTypeApi;
         private readonly IServiceApiClient _serviceApi;
+        private readonly HotelInfoProvider _hotelInfo;
 
-        public HomeController(IRoomTypeApiClient roomTypeApi, IServiceApiClient serviceApi)
+        public HomeController(IRoomTypeApiClient roomTypeApi, IServiceApiClient serviceApi, HotelInfoProvider hotelInfo)
         {
             _roomTypeApi = roomTypeApi;
             _serviceApi = serviceApi;
+            _hotelInfo = hotelInfo;
         }
 
         // Trang giới thiệu: hạng phòng và dịch vụ lấy từ dữ liệu thật (API không chạy thì vẫn hiển thị trang, chỉ ẩn danh sách)
         public async Task<IActionResult> Index()
         {
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
             try
             {
                 ViewBag.RoomTypes = (await _roomTypeApi.GetAllAsync()).OrderByDescending(l => l.GiaThueNgay).ToList();

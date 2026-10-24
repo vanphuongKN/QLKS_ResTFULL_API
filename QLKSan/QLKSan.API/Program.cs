@@ -53,6 +53,7 @@ namespace QLKSan
 
             // Chính sách khách sạn (giờ nhận/trả phòng, phụ thu, tiền cọc, tự huỷ khi khách không đến)
             builder.Services.Configure<HotelPolicy>(builder.Configuration.GetSection(HotelPolicy.SectionName));
+            builder.Services.Configure<HotelInfo>(builder.Configuration.GetSection(HotelInfo.SectionName));
             builder.Services.AddHostedService<NoShowCleanupService>();
 
             builder.Services.AddScoped<IRoomAvailabilityService, RoomAvailabilityService>();

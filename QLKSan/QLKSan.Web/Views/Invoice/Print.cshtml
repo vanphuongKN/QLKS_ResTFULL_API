@@ -101,7 +101,7 @@
 
         <div class="info">
             <div><span>Khách hàng:</span> <strong>@b?.KhachHang?.HoTen</strong></div>
-            <div><span>Phòng:</span> <strong>@room?.Phong?.SoPhong</strong> — @room?.Phong?.LoaiPhong?.TenLoai</div>
+            <div><span>Phòng:</span> <strong>@room?.Phong?.SoPhong</strong> — @FormatHelper.TenHangPhong(room?.Phong?.LoaiPhong?.TenLoai)</div>
             <div><span>CCCD/Hộ chiếu:</span> @b?.KhachHang?.CCCD_Passport</div>
             <div><span>Số khách:</span> @b?.SoLuongKhach</div>
             <div><span>Điện thoại:</span> @b?.KhachHang?.SDT</div>
@@ -118,7 +118,7 @@
                 @{ var stt = 1; }
                 <tr>
                     <td>@(stt++)</td>
-                    <td>Tiền phòng @room?.Phong?.SoPhong (@room?.Phong?.LoaiPhong?.TenLoai)
+                    <td>Tiền phòng @room?.Phong?.SoPhong (@FormatHelper.TenHangPhong(room?.Phong?.LoaiPhong?.TenLoai))
                         @if (h.SoDem > 0 && room != null && h.TongTienPhong != room.GiaThueThucTe * h.SoDem)
                         {
                             <br /><small class="muted">Đã áp dụng giá cuối tuần / dịp lễ theo từng đêm</small>

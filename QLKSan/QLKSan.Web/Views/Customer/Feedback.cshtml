@@ -43,11 +43,11 @@
                     {
                         if (ViewBag.SelectedRoomId != null && ViewBag.SelectedRoomId == room.MaPhong)
                         {
-                            <option value="@room.MaPhong" selected>Phòng @room.SoPhong — @(room.LoaiPhong?.TenLoai ?? "Standard")</option>
+                            <option value="@room.MaPhong" selected>Phòng @room.SoPhong — @FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng")</option>
                         }
                         else
                         {
-                            <option value="@room.MaPhong">Phòng @room.SoPhong — @(room.LoaiPhong?.TenLoai ?? "Standard")</option>
+                            <option value="@room.MaPhong">Phòng @room.SoPhong — @FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng")</option>
                         }
                     }
                 }

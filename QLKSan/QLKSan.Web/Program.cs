@@ -59,6 +59,11 @@ namespace QLKSan
             AddApiClient<IHousekeepingApiClient, HousekeepingApiClient>();
             AddApiClient<IReportApiClient, ReportApiClient>();
             AddApiClient<IPricingRuleApiClient, PricingRuleApiClient>();
+            AddApiClient<IHotelApiClient, HotelApiClient>();
+
+            // Thông tin khách sạn dùng chung cho footer và trang chủ (lưu đệm trong bộ nhớ)
+            builder.Services.AddMemoryCache();
+            builder.Services.AddScoped<HotelInfoProvider>();
 
             var app = builder.Build();
 
