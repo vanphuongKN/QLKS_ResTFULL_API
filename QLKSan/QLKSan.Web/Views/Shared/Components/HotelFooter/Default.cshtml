@@ -44,8 +44,11 @@
         <div>
             <h4>Khám phá</h4>
             <ul>
+                <li><a href="@Url.Action("About", "Home")">Câu chuyện</a></li>
                 <li><a href="@Url.Action("Index", "Home")#rooms">Hạng phòng</a></li>
-                <li><a href="@Url.Action("Index", "Home")#experiences">Trải nghiệm</a></li>
+                <li><a href="@Url.Action("Dining", "Home")">Ẩm thực</a> · <a href="@Url.Action("Spa", "Home")">Spa</a></li>
+                <li><a href="@Url.Action("Gallery", "Home")">Thư viện ảnh</a></li>
+                <li><a href="@Url.Action("Membership", "Home")">Đặc quyền thành viên</a></li>
                 <li><a href="@Url.Action("BookRoom", "Customer")">Đặt phòng</a></li>
                 @if (laKhach)
                 {

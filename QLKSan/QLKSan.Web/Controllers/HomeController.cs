@@ -58,6 +58,54 @@ namespace QLKSan.Controllers
             return View(detail);
         }
 
+        // ===== Trang giới thiệu (nội dung tĩnh + thông tin khách sạn từ API) =====
+        [HttpGet]
+        public async Task<IActionResult> About()
+        {
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Dining()
+        {
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Spa()
+        {
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
+            return View();
+        }
+
+        // Thư viện ảnh: bộ ảnh của từng hạng phòng (quản trị tải lên) + ảnh không gian chung
+        [HttpGet]
+        public async Task<IActionResult> Gallery()
+        {
+            var albums = new List<RoomTypeDetailDto>();
+            try
+            {
+                foreach (var lp in (await _roomTypeApi.GetAllAsync()).OrderByDescending(l => l.GiaThueNgay))
+                {
+                    var detail = await _roomTypeApi.GetDetailAsync(lp.MaLoai);
+                    if (detail != null) albums.Add(detail);
+                }
+            }
+            catch (Exception ex) when (ex is ApiException or HttpRequestException) { }
+            ViewBag.Albums = albums;
+            return View();
+        }
+
+        // Đặc quyền thành viên: hạng, quyền lợi, cách tích / đổi điểm (theo chương trình cấu hình ở API)
+        [HttpGet]
+        public async Task<IActionResult> Membership()
+        {
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

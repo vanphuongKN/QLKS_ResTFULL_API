@@ -38,8 +38,12 @@
                 }
                 else
                 {
-                    <li><a href="@Url.Action("Index", "Home")#accommodation-section">Hạng phòng</a></li>
-                    <li><a href="@Url.Action("Index", "Home")#services-section">Đặc quyền</a></li>
+                    <li><a href="@Url.Action("About", "Home")" class="@NavActive("Home", "About")">Câu chuyện</a></li>
+                    <li><a href="@Url.Action("Index", "Home")#rooms">Hạng phòng</a></li>
+                    <li><a href="@Url.Action("Dining", "Home")" class="@NavActive("Home", "Dining")">Ẩm thực</a></li>
+                    <li><a href="@Url.Action("Spa", "Home")" class="@NavActive("Home", "Spa")">Spa</a></li>
+                    <li><a href="@Url.Action("Gallery", "Home")" class="@NavActive("Home", "Gallery")">Thư viện</a></li>
+                    <li><a href="@Url.Action("Membership", "Home")" class="@NavActive("Home", "Membership")">Đặc quyền</a></li>
                 }
             </ul>
             <div class="lr-nav-right">

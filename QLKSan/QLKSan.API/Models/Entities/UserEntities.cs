@@ -88,6 +88,9 @@ namespace QLKSan.Models.Entities
         
         public int DiemTichLuy { get; set; } = 0;
 
+        // Tổng điểm đã đổi trừ vào hoá đơn; hạng thành viên xét theo DiemTichLuy + DiemDaDoi
+        public int DiemDaDoi { get; set; } = 0;
+
         public TaiKhoan TaiKhoan { get; set; }
         public ICollection<LienHeDiaChi> LienHeDiaChis { get; set; }
         public ICollection<PhieuDatPhong> PhieuDatPhongs { get; set; }

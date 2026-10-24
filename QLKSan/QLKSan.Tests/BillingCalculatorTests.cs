@@ -10,7 +10,7 @@ namespace QLKSan.Tests
         private static readonly HotelPolicy Policy = HotelPolicy.MacDinh();
         private const decimal Gia = 500_000m;
 
-        private static BillingResult Tinh(string nhan, string tra, decimal dichVu = 0, string loaiGiam = null, decimal giaTriGiam = 0, decimal coc = 0, decimal gia = Gia)
+        private static BillingResult Tinh(string nhan, string tra, decimal dichVu = 0, string loaiGiam = null, decimal giaTriGiam = 0, decimal coc = 0, decimal gia = Gia, int giamThanhVien = 0)
             => BillingCalculator.Calculate(new BillingInput
             {
                 GiaMotDem = gia,
@@ -19,8 +19,31 @@ namespace QLKSan.Tests
                 TongTienDichVu = dichVu,
                 LoaiGiam = loaiGiam,
                 GiaTriGiam = giaTriGiam,
+                PhanTramGiamThanhVien = giamThanhVien,
                 TienCoc = coc
             }, Policy);
+
+        [Fact]
+        public void UuDaiThanhVien_GiamPhanTramTienPhong_KhongGiamDichVu()
+        {
+            // 2 đêm 1.000.000đ + dịch vụ 200.000đ, hạng Vàng giảm 5% tiền phòng = 50.000đ
+            var r = Tinh("2026-10-18 14:00", "2026-10-20 11:00", dichVu: 200_000m, giamThanhVien: 5);
+
+            Assert.Equal(50_000m, r.GiamGiaThanhVien);
+            Assert.Equal(1_150_000m, r.TienTruocThue);
+            Assert.Equal(1_242_000m, r.TongTien);
+        }
+
+        [Fact]
+        public void UuDaiThanhVien_CongDonKhuyenMai_KhongLamTongAm()
+        {
+            // Khuyến mãi cố định 990.000đ trên 1.000.000đ tiền phòng: ưu đãi 10% chỉ còn trừ được 10.000đ
+            var r = Tinh("2026-10-18 14:00", "2026-10-20 11:00", loaiGiam: "Cố định", giaTriGiam: 990_000m, giamThanhVien: 10);
+
+            Assert.Equal(990_000m, r.GiamGia);
+            Assert.Equal(10_000m, r.GiamGiaThanhVien);
+            Assert.Equal(0m, r.TienTruocThue);
+        }
 
         [Fact]
         public void TraDungHan_TinhTheoSoDemThucTe_KhongPhuThu()

@@ -55,12 +55,15 @@ namespace QLKSan.Controllers
             return invoice.ToDto();
         }
 
-        /// <summary>Thanh toán hoá đơn: trả phòng, chuyển phòng sang Đang dọn (tạo việc buồng phòng) và cộng điểm tích luỹ.</summary>
+        /// <summary>
+        /// Thanh toán hoá đơn: trả phòng, chuyển phòng sang Đang dọn (tạo việc buồng phòng) và cộng điểm tích luỹ.
+        /// DiemSuDung &gt; 0: đổi điểm của khách trừ vào số tiền còn phải trả (ghi nhận thành khoản "Điểm thưởng").
+        /// </summary>
         [HttpPost("{maHoaDon}/payments")]
         [Authorize(Roles = AppRoles.Cashier)]
         public async Task<ActionResult<InvoiceDto>> Pay(string maHoaDon, PaymentRequest request)
         {
-            var invoice = await _checkoutService.ProcessPaymentAsync(maHoaDon, request.PhuongThuc, User.GetMaNhanVien());
+            var invoice = await _checkoutService.ProcessPaymentAsync(maHoaDon, request.PhuongThuc, User.GetMaNhanVien(), request.DiemSuDung);
             return invoice.ToDto();
         }
 

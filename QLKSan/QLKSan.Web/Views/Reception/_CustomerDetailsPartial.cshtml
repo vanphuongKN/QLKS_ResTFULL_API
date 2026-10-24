@@ -7,30 +7,13 @@
     var country = contact?.QuocGia ?? "Việt Nam";
     var bookingCount = Model.PhieuDatPhongs?.Count() ?? 0;
     
-    // Dynamic membership ranking
+    // Hạng thành viên do API xét theo điểm trọn đời
     int currentPoints = Model.DiemTichLuy;
-    string memberTier = "Thành viên Đồng";
-    string tierIcon = "fa-medal";
-    string badgeClass = "bg-secondary text-white";
-    
-    if (currentPoints >= 5000)
-    {
-        memberTier = "Thành viên Kim Cương";
-        tierIcon = "fa-gem";
-        badgeClass = "bg-primary text-white";
-    }
-    else if (currentPoints >= 3000)
-    {
-        memberTier = "Thành viên Vàng";
-        tierIcon = "fa-crown";
-        badgeClass = "bg-warning text-dark";
-    }
-    else if (currentPoints >= 1000)
-    {
-        memberTier = "Thành viên Bạc";
-        tierIcon = "fa-award";
-        badgeClass = "bg-light text-dark border border-secondary";
-    }
+    var tv = Model.ThanhVien;
+    string memberTier = tv?.Hang ?? "Thành viên";
+    var giam = tv?.PhanTramGiamPhong ?? 0;
+    string tierIcon = giam >= 10 ? "fa-gem" : giam >= 5 ? "fa-crown" : giam > 0 ? "fa-award" : "fa-medal";
+    string badgeClass = giam >= 10 ? "bg-primary text-white" : giam >= 5 ? "bg-warning text-dark" : giam > 0 ? "bg-light text-dark border border-secondary" : "bg-secondary text-white";
 }
 
 <style>

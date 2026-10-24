@@ -63,7 +63,8 @@ CREATE TABLE KhachHang (
     Ten NVARCHAR(50) NOT NULL,
     NgaySinh DATE,
     CCCD_Passport VARCHAR(20) NOT NULL,
-    DiemTichLuy INT DEFAULT 0,
+    DiemTichLuy INT DEFAULT 0,                      -- số điểm hiện có (đổi được)
+    DiemDaDoi INT NOT NULL DEFAULT 0,               -- tổng điểm đã đổi; hạng thành viên xét theo DiemTichLuy + DiemDaDoi
     CONSTRAINT FK_KhachHang_TaiKhoan FOREIGN KEY (MaDangNhap) REFERENCES TaiKhoan(MaDangNhap)
 );
 CREATE UNIQUE INDEX UX_KhachHang_MaDangNhap ON KhachHang(MaDangNhap) WHERE MaDangNhap IS NOT NULL;
@@ -227,10 +228,12 @@ CREATE TABLE HoaDon (
     MaKhuyenMai VARCHAR(10) NULL,
     GiamGiaKhuyenMai DECIMAL(18,0) DEFAULT 0,
     TienPhat DECIMAL(18,0) DEFAULT 0,               -- phụ thu trả phòng muộn
-    ThueVAT AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai) * 0.08),
-    TongTienCanThanhToan AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai) * 1.08),
+    GiamGiaThanhVien DECIMAL(18,0) NOT NULL DEFAULT 0, -- ưu đãi hạng thành viên (% tiền phòng)
+    HangThanhVien NVARCHAR(50) NULL,                -- hạng của khách lúc lập hoá đơn
+    ThueVAT AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 0.08),
+    TongTienCanThanhToan AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 1.08),
     TienCoc DECIMAL(18,0) NOT NULL DEFAULT 0,       -- tiền cọc của phiếu đặt
-    SoTienConLai AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai) * 1.08 - TienCoc),
+    SoTienConLai AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 1.08 - TienCoc),
     TrangThai NVARCHAR(50) DEFAULT N'Chưa thanh toán',
     CONSTRAINT FK_HoaDon_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong),
     CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (MaKhuyenMai) REFERENCES KhuyenMai(MaKhuyenMai),

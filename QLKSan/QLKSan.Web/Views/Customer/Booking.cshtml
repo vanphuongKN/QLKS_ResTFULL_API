@@ -182,6 +182,10 @@ else
                 {
                     <div class="bk-line" style="color:#2e7d32"><span style="color:inherit">Ưu đãi</span><span>−@FormatHelper.ToVND(hd.GiamGiaKhuyenMai)</span></div>
                 }
+                @if (hd.GiamGiaThanhVien > 0)
+                {
+                    <div class="bk-line" style="color:#2e7d32"><span style="color:inherit">@hd.HangThanhVien</span><span>−@FormatHelper.ToVND(hd.GiamGiaThanhVien)</span></div>
+                }
                 <div class="bk-line"><span>VAT</span><span>@FormatHelper.ToVND(hd.ThueVAT)</span></div>
                 <div class="bk-sum-total"><span>Tổng cộng</span><strong>@FormatHelper.ToVND(hd.TongTienCanThanhToan)</strong></div>
                 <a href="@Url.Action("Print", "Invoice", new { id = hd.MaHoaDon })" target="_blank" class="lr-btn lr-btn-ghost w-100 mt-3">Xem hoá đơn</a>

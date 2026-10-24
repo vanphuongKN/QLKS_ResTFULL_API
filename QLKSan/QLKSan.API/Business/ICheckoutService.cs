@@ -10,6 +10,7 @@ namespace QLKSan.Business
         Task<HoaDon> GenerateInvoiceAsync(string maDatPhong, string maNhanVienLap, string? maKhuyenMai = null);
 
         // Thanh toán hoá đơn, trả phòng và chuyển phòng sang trạng thái đang dọn
-        Task<HoaDon> ProcessPaymentAsync(string maHoaDon, string phuongThucThanhToan, string maNhanVienThu);
+        // diemSuDung > 0: đổi điểm của khách trừ vào số tiền còn phải trả
+        Task<HoaDon> ProcessPaymentAsync(string maHoaDon, string phuongThucThanhToan, string maNhanVienThu, int diemSuDung = 0);
     }
 }

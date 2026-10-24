@@ -36,8 +36,31 @@ namespace QLKSan.Models.DTOs
         public DateTime NgaySinh { get; set; }
         public string CCCD_Passport { get; set; }
         public int DiemTichLuy { get; set; }
+        public int DiemDaDoi { get; set; }
         public int SoLanDatPhong { get; set; }
+
+        // Hạng thành viên và quyền lợi (API điền ở các endpoint hồ sơ khách)
+        public MembershipDto ThanhVien { get; set; }
         public List<ContactDto> LienHeDiaChis { get; set; } = new List<ContactDto>();
+    }
+
+    public class MembershipDto
+    {
+        public string Hang { get; set; }
+        public int PhanTramGiamPhong { get; set; }
+        public List<string> QuyenLoi { get; set; } = new List<string>();
+
+        // Điểm trọn đời dùng xét hạng (điểm hiện có + điểm đã đổi)
+        public int DiemXetHang { get; set; }
+
+        // Hạng kế tiếp (null nếu đã ở hạng cao nhất), số điểm còn thiếu và mốc điểm của hạng đó
+        public string HangKeTiep { get; set; }
+        public int DiemLenHang { get; set; }
+        public int MocHangKeTiep { get; set; }
+
+        // Quy đổi điểm khi thanh toán
+        public int GiaTriMotDiem { get; set; }
+        public int DiemDoiToiThieu { get; set; }
     }
 
     // Hồ sơ khách kèm lịch sử đặt phòng

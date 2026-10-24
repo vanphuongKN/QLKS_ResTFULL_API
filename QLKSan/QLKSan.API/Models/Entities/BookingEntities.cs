@@ -195,6 +195,13 @@ namespace QLKSan.Models.Entities
         
         [Column(TypeName = "decimal(18,0)")]
         public decimal TienPhat { get; set; } = 0;
+
+        // Ưu đãi hạng thành viên (% tiền phòng) và hạng của khách tại thời điểm lập hoá đơn
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal GiamGiaThanhVien { get; set; } = 0;
+
+        [StringLength(50)]
+        public string? HangThanhVien { get; set; }
         
         [Column(TypeName = "decimal(18,0)")]
         public decimal ThueVAT { get; set; }

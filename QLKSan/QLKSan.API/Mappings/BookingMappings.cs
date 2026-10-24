@@ -104,6 +104,8 @@ namespace QLKSan.Mappings
                 TongTienDichVu = entity.TongTienDichVu,
                 MaKhuyenMai = entity.MaKhuyenMai,
                 GiamGiaKhuyenMai = entity.GiamGiaKhuyenMai,
+                GiamGiaThanhVien = entity.GiamGiaThanhVien,
+                HangThanhVien = entity.HangThanhVien,
                 TienPhat = entity.TienPhat,
                 ThueVAT = entity.ThueVAT,
                 TongTienCanThanhToan = entity.TongTienCanThanhToan,

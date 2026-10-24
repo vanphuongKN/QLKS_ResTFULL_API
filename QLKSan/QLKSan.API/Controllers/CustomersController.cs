@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using QLKSan.Business;
 using QLKSan.Common;
 using QLKSan.Mappings;
@@ -15,11 +16,13 @@ namespace QLKSan.Controllers
     {
         private readonly IReceptionService _receptionService;
         private readonly ICustomerService _customerService;
+        private readonly LoyaltyPolicy _loyalty;
 
-        public CustomersController(IReceptionService receptionService, ICustomerService customerService)
+        public CustomersController(IReceptionService receptionService, ICustomerService customerService, IOptions<LoyaltyPolicy> loyalty)
         {
             _receptionService = receptionService;
             _customerService = customerService;
+            _loyalty = loyalty.Value;
         }
 
         /// <summary>Danh sách khách hàng, tìm theo tên, CCCD hoặc số điện thoại.</summary>
@@ -28,7 +31,7 @@ namespace QLKSan.Controllers
         public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAll([FromQuery] string search)
         {
             var customers = await _receptionService.GetAllCustomersAsync(search);
-            return Ok(customers.Select(k => k.ToDto()));
+            return Ok(customers.Select(k => k.ToDto().WithMembership(_loyalty)));
         }
 
         /// <summary>Hồ sơ khách hàng kèm lịch sử đặt phòng.</summary>
@@ -38,7 +41,7 @@ namespace QLKSan.Controllers
         {
             var customer = await _receptionService.GetCustomerDetailsAsync(maKhachHang);
             if (customer == null) return NotFound();
-            return customer.ToDetailDto();
+            return customer.ToDetailDto().WithMembership(_loyalty);
         }
 
         /// <summary>Tìm khách hàng theo số CCCD/Passport.</summary>
@@ -48,17 +51,17 @@ namespace QLKSan.Controllers
         {
             var customer = await _receptionService.GetCustomerByCccdAsync(cccd);
             if (customer == null) return NotFound();
-            return customer.ToDto();
+            return customer.ToDto().WithMembership(_loyalty);
         }
 
-        /// <summary>Hồ sơ của khách hàng đang đăng nhập.</summary>
+        /// <summary>Hồ sơ của khách hàng đang đăng nhập (kèm hạng thành viên và quyền lợi).</summary>
         [HttpGet("me")]
         [Authorize(Roles = AppRoles.Customer)]
         public async Task<ActionResult<CustomerDto>> GetMe()
         {
             var customer = await _customerService.GetCustomerByAccountIdAsync(User.GetMaDangNhap());
             if (customer == null) return NotFound();
-            return customer.ToDto();
+            return customer.ToDto().WithMembership(_loyalty);
         }
 
         /// <summary>Khách hàng cập nhật liên hệ của mình: SĐT, email, địa chỉ, quốc gia.</summary>
@@ -67,7 +70,7 @@ namespace QLKSan.Controllers
         public async Task<ActionResult<CustomerDto>> UpdateMyContact(UpdateContactRequest request)
         {
             var customer = await _customerService.UpdateContactAsync(User.GetMaKhachHang(), request);
-            return customer.ToDto();
+            return customer.ToDto().WithMembership(_loyalty);
         }
 
         /// <summary>Lịch sử đặt phòng của khách hàng đang đăng nhập (kèm hoá đơn, thanh toán).</summary>

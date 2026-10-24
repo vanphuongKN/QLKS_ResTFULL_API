@@ -24,6 +24,9 @@ namespace QLKSan.Business
         public string LoaiGiam { get; set; }
         public decimal GiaTriGiam { get; set; }
 
+        // Ưu đãi hạng thành viên: giảm % tiền phòng (0 = không có)
+        public int PhanTramGiamThanhVien { get; set; }
+
         public decimal TienCoc { get; set; }
     }
 
@@ -34,6 +37,7 @@ namespace QLKSan.Business
         public decimal PhuThuTraMuon { get; set; }
         public int PhanTramPhuThu { get; set; }
         public decimal GiamGia { get; set; }
+        public decimal GiamGiaThanhVien { get; set; }
         public decimal TienTruocThue { get; set; }
         public decimal ThueVAT { get; set; }
         public decimal TongTien { get; set; }
@@ -86,7 +90,11 @@ namespace QLKSan.Business
                 giamGia = Math.Min(giamGia, tienPhong + input.TongTienDichVu + phuThu);
             }
 
-            var tienTruocThue = tienPhong + input.TongTienDichVu + phuThu - giamGia;
+            // Ưu đãi thành viên tính trên tiền phòng, cộng dồn với khuyến mãi nhưng không làm tổng âm
+            var giamThanhVien = Math.Min(Round(tienPhong * input.PhanTramGiamThanhVien / 100m),
+                                         tienPhong + input.TongTienDichVu + phuThu - giamGia);
+
+            var tienTruocThue = tienPhong + input.TongTienDichVu + phuThu - giamGia - giamThanhVien;
             var tongTien = tienTruocThue * (1 + VatRate);
 
             return new BillingResult
@@ -96,6 +104,7 @@ namespace QLKSan.Business
                 PhuThuTraMuon = phuThu,
                 PhanTramPhuThu = phanTramPhuThu,
                 GiamGia = giamGia,
+                GiamGiaThanhVien = giamThanhVien,
                 TienTruocThue = tienTruocThue,
                 ThueVAT = tienTruocThue * VatRate,
                 TongTien = tongTien,

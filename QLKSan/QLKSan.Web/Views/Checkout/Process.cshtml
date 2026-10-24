@@ -2,6 +2,8 @@
     ViewData["Title"] = "Trả phòng khách hàng";
     var booking = ViewBag.Booking as QLKSan.Models.DTOs.BookingDto;
     var invoice = ViewBag.Invoice as QLKSan.Models.DTOs.InvoiceDto;
+    var customer = ViewBag.Customer as QLKSan.Models.DTOs.CustomerDto;
+    var tv = customer?.ThanhVien;
 }
 
 <div class="page-header">
@@ -115,6 +117,13 @@
                     <div class="d-flex justify-content-between mb-2 text-success">
                         <span class="text-muted text-success">Khuyến mãi @(string.IsNullOrEmpty(invoice.MaKhuyenMai) ? "" : $"({invoice.MaKhuyenMai})")</span>
                         <strong class="text-success">-@invoice.GiamGiaKhuyenMai.ToString("N0") ₫</strong>
+                    </div>
+                }
+                @if (invoice.GiamGiaThanhVien > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span class="text-success">Ưu đãi @invoice.HangThanhVien</span>
+                        <strong class="text-success">-@invoice.GiamGiaThanhVien.ToString("N0") ₫</strong>
                     </div>
                 }
                 <div class="d-flex justify-content-between mb-3">
@@ -291,6 +300,32 @@
                                 </div>
                             </label>
                         </div>
+
+                        @if (customer != null && tv != null)
+                        {
+                            var conPhaiTra = Math.Max(0, Math.Round(invoice.SoTienConLai, 0));
+                            var diemToiDa = (int)Math.Min(customer.DiemTichLuy, Math.Floor(conPhaiTra / tv.GiaTriMotDiem));
+                            <div class="mb-4 p-3 rounded" style="background:#fbf7ef;border:1px solid #eaddc4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold text-navy small"><i class="fas fa-crown text-gold me-1"></i>@tv.Hang</span>
+                                    <span class="small">Hiện có <strong>@customer.DiemTichLuy.ToString("N0")</strong> điểm</span>
+                                </div>
+                                @if (diemToiDa >= tv.DiemDoiToiThieu)
+                                {
+                                    <label class="form-label small mb-1" for="diemSuDung">Đổi điểm (1 điểm = @tv.GiaTriMotDiem.ToString("N0") ₫, tối thiểu @tv.DiemDoiToiThieu)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" name="diemSuDung" id="diemSuDung" class="form-control" min="0" max="@diemToiDa" step="1" value="0"
+                                               oninput="document.getElementById('diemQuyDoi').textContent = (Math.max(0, parseInt(this.value || 0)) * @tv.GiaTriMotDiem).toLocaleString('en-US') + ' ₫'">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="var i=document.getElementById('diemSuDung'); i.value=@diemToiDa; i.dispatchEvent(new Event('input'))">Tối đa</button>
+                                    </div>
+                                    <small class="text-muted">Trừ vào hoá đơn: <strong id="diemQuyDoi">0 ₫</strong> — phần còn lại thu bằng phương thức đã chọn.</small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">Chưa đủ điểm để đổi (tối thiểu @tv.DiemDoiToiThieu điểm).</small>
+                                }
+                            </div>
+                        }
 
                         <button type="submit" class="btn btn-gold w-100 py-3 fw-bold" style="letter-spacing: 1px;">XÁC NHẬN THANH TOÁN & TRẢ PHÒNG</button>
                     </form>

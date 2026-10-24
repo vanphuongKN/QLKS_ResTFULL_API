@@ -7,7 +7,7 @@
     var room = b?.ChiTietDatPhongs?.FirstOrDefault();
     var daThanhToan = h.TrangThai == InvoiceStatus.Paid;
     var laKhach = User.IsInRole(WebRoles.Customer);
-    var tamTinh = h.TongTienPhong + h.TongTienDichVu + h.TienPhat - h.GiamGiaKhuyenMai;
+    var tamTinh = h.TongTienPhong + h.TongTienDichVu + h.TienPhat - h.GiamGiaKhuyenMai - h.GiamGiaThanhVien;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -161,6 +161,10 @@
             @if (h.GiamGiaKhuyenMai > 0)
             {
                 <tr><td>Khuyến mãi (@h.MaKhuyenMai)</td><td class="num">-@h.GiamGiaKhuyenMai.ToString("N0")</td></tr>
+            }
+            @if (h.GiamGiaThanhVien > 0)
+            {
+                <tr><td>Ưu đãi @h.HangThanhVien</td><td class="num">-@h.GiamGiaThanhVien.ToString("N0")</td></tr>
             }
             <tr><td>Cộng tiền hàng</td><td class="num">@tamTinh.ToString("N0")</td></tr>
             <tr><td>Thuế VAT (8%)</td><td class="num">@h.ThueVAT.ToString("N0")</td></tr>

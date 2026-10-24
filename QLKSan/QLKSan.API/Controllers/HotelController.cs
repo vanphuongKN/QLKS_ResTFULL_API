@@ -13,14 +13,16 @@ namespace QLKSan.Controllers
     {
         private readonly HotelInfo _info;
         private readonly HotelPolicy _policy;
+        private readonly LoyaltyPolicy _loyalty;
 
-        public HotelController(IOptions<HotelInfo> info, IOptions<HotelPolicy> policy)
+        public HotelController(IOptions<HotelInfo> info, IOptions<HotelPolicy> policy, IOptions<LoyaltyPolicy> loyalty)
         {
             _info = info.Value;
             _policy = policy.Value;
+            _loyalty = loyalty.Value;
         }
 
-        /// <summary>Thông tin liên hệ và chính sách lưu trú (giờ nhận/trả phòng, phụ thu trả muộn, huỷ phòng) — công khai.</summary>
+        /// <summary>Thông tin liên hệ, chính sách lưu trú (giờ nhận/trả phòng, phụ thu trả muộn, huỷ phòng) và chương trình thành viên — công khai.</summary>
         [HttpGet]
         public ActionResult<HotelInfoDto> Get()
         {
@@ -39,7 +41,16 @@ namespace QLKSan.Controllers
                     .Select(m => new LateCheckoutFeeDto { DenGio = $"{m.DenGio:00}:00", PhanTram = m.PhanTram })
                     .ToList(),
                 // Khớp quy tắc ReceptionService.CancelBookingAsync: khách tự huỷ được trước ngày nhận phòng
-                ChinhSachHuy = "Huỷ miễn phí trước ngày nhận phòng. Từ ngày nhận phòng, vui lòng liên hệ lễ tân để được hỗ trợ."
+                ChinhSachHuy = "Huỷ miễn phí trước ngày nhận phòng. Từ ngày nhận phòng, vui lòng liên hệ lễ tân để được hỗ trợ.",
+                ThanhVien = new LoyaltyProgramDto
+                {
+                    SoTienMotDiem = _loyalty.SoTienMotDiem,
+                    GiaTriMotDiem = _loyalty.GiaTriMotDiem,
+                    DiemDoiToiThieu = _loyalty.DiemDoiToiThieu,
+                    Hangs = _loyalty.Hangs.OrderBy(h => h.DiemToiThieu)
+                        .Select(h => new MembershipTierDto { Ten = h.Ten, DiemToiThieu = h.DiemToiThieu, PhanTramGiamPhong = h.PhanTramGiamPhong, QuyenLoi = h.QuyenLoi.ToList() })
+                        .ToList()
+                }
             };
         }
     }

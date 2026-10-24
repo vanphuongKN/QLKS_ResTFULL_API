@@ -121,10 +121,8 @@
                           .Select(g => g.Key)
                           .FirstOrDefault() ?? "—";
 
-    string memberTier = "Thành viên Đồng";
-    if (currentPoints >= 5000) memberTier = "Thành viên Kim Cương";
-    else if (currentPoints >= 3000) memberTier = "Thành viên Vàng";
-    else if (currentPoints >= 1000) memberTier = "Thành viên Bạc";
+    // Hạng thành viên do API xét theo điểm trọn đời (đổi điểm không làm tụt hạng)
+    string memberTier = customer?.ThanhVien?.Hang ?? "Thành viên";
 }
 
 @functions {

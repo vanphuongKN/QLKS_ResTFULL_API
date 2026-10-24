@@ -234,6 +234,10 @@ else
                 }
                 <div class="bk-line" id="discountLine" style="display:none;color:#2e7d32"><span style="color:inherit">Ưu đãi</span><span id="discountValue"></span></div>
                 <div class="bk-sum-total"><span>Tổng tiền phòng</span><strong id="totalValue">@FormatHelper.ToVND(q.TongTien)</strong></div>
+                @if (customer?.ThanhVien?.PhanTramGiamPhong > 0)
+                {
+                    <p class="bk-note" style="color:var(--lr-gold)"><i class="fas fa-crown me-1"></i>Ưu đãi @customer.ThanhVien.Hang: giảm @customer.ThanhVien.PhanTramGiamPhong% tiền phòng, tự áp dụng khi thanh toán.</p>
+                }
                 <p class="bk-note">Chưa gồm VAT và dịch vụ phát sinh trong kỳ nghỉ.</p>
                 <a href="@BookUrl(null)" class="lr-link" style="font-size:0.78rem">Đổi hạng phòng</a>
             </div>

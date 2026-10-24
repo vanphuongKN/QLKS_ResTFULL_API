@@ -15,12 +15,14 @@ namespace QLKSan.Business
     {
         private readonly ApplicationDbContext _context;
         private readonly HotelPolicy _policy;
+        private readonly LoyaltyPolicy _loyalty;
         private readonly IPricingService _pricing;
 
-        public CheckoutService(ApplicationDbContext context, IOptions<HotelPolicy> policy, IPricingService pricing)
+        public CheckoutService(ApplicationDbContext context, IOptions<HotelPolicy> policy, IOptions<LoyaltyPolicy> loyalty, IPricingService pricing)
         {
             _context = context;
             _policy = policy.Value;
+            _loyalty = loyalty.Value;
             _pricing = pricing;
         }
 
@@ -119,6 +121,10 @@ namespace QLKSan.Business
             var soDem = BillingCalculator.TinhSoDem(ngayNhan, thoiDiemTra);
             var giaTungDem = await _pricing.GetNightlyPricesAsync(chiTiet?.Phong?.MaLoai, giaGoc, ngayNhan, soDem);
 
+            // Hạng thành viên của khách (xét theo điểm trọn đời) quyết định % giảm tiền phòng
+            var khach = booking.KhachHang;
+            var hang = khach == null ? null : _loyalty.HangTheoDiem(khach.DiemTichLuy + khach.DiemDaDoi);
+
             var result = BillingCalculator.Calculate(new BillingInput
             {
                 GiaMotDem = giaGoc,
@@ -128,6 +134,7 @@ namespace QLKSan.Business
                 TongTienDichVu = tongTienDichVu,
                 LoaiGiam = promo?.LoaiGiam,
                 GiaTriGiam = promo?.GiaTriGiam ?? 0,
+                PhanTramGiamThanhVien = hang?.PhanTramGiamPhong ?? 0,
                 TienCoc = booking.TienCoc
             }, _policy);
 
@@ -137,10 +144,12 @@ namespace QLKSan.Business
             hoaDon.TienPhat = result.PhuThuTraMuon;
             hoaDon.MaKhuyenMai = promo?.MaKhuyenMai;
             hoaDon.GiamGiaKhuyenMai = result.GiamGia;
+            hoaDon.GiamGiaThanhVien = result.GiamGiaThanhVien;
+            hoaDon.HangThanhVien = hang?.Ten;
             hoaDon.TienCoc = booking.TienCoc;
         }
 
-        public async Task<HoaDon> ProcessPaymentAsync(string maHoaDon, string phuongThucThanhToan, string maNhanVienThu)
+        public async Task<HoaDon> ProcessPaymentAsync(string maHoaDon, string phuongThucThanhToan, string maNhanVienThu, int diemSuDung = 0)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -158,7 +167,41 @@ namespace QLKSan.Business
                     throw new ConflictException("Hóa đơn này đã được thanh toán.");
 
                 // Khách trả phần còn lại sau khi trừ tiền cọc (cọc thừa thì không thu thêm)
-                var soTienThu = Math.Max(0, hoaDon.SoTienConLai);
+                var conPhaiTra = Math.Max(0, Math.Round(hoaDon.SoTienConLai, 0));
+                var khachHang = hoaDon.PhieuDatPhong.KhachHang;
+
+                // Đổi điểm: ghi thành một khoản thanh toán "Điểm thưởng", phần còn lại thu bằng phương thức đã chọn
+                decimal tienDoiDiem = 0;
+                if (diemSuDung > 0)
+                {
+                    if (khachHang == null)
+                        throw new BusinessException("Phiếu đặt không gắn với khách hàng nên không đổi điểm được.");
+                    if (diemSuDung < _loyalty.DiemDoiToiThieu)
+                        throw new BusinessException($"Mỗi lần đổi tối thiểu {_loyalty.DiemDoiToiThieu} điểm.");
+                    if (diemSuDung > khachHang.DiemTichLuy)
+                        throw new BusinessException($"Khách chỉ còn {khachHang.DiemTichLuy} điểm.");
+                    tienDoiDiem = (decimal)diemSuDung * _loyalty.GiaTriMotDiem;
+                    if (tienDoiDiem > conPhaiTra)
+                        throw new BusinessException($"Số điểm đổi vượt quá số tiền còn phải trả (tối đa {Math.Floor(conPhaiTra / _loyalty.GiaTriMotDiem):N0} điểm).");
+
+                    khachHang.DiemTichLuy -= diemSuDung;
+                    khachHang.DiemDaDoi += diemSuDung;
+                    var traDiem = new ThanhToan
+                    {
+                        MaThanhToan = await IdGenerator.NextAsync(_context.ThanhToans.Select(t => t.MaThanhToan), "TT", 4),
+                        MaHoaDon = maHoaDon,
+                        PhuongThuc = LoyaltyPolicy.PhuongThucDiem,
+                        NgayThanhToan = DateTime.Now,
+                        SoTienDaTra = tienDoiDiem,
+                        GhiChu = $"Đổi {diemSuDung:N0} điểm",
+                        LoaiGiaoDich = PaymentType.Payment,
+                        MaNhanVien = maNhanVienThu
+                    };
+                    _context.ThanhToans.Add(traDiem);
+                    // Lưu trước để mã thanh toán / giao dịch kế tiếp không trùng
+                    await _context.SaveChangesAsync();
+                }
+                var soTienThu = conPhaiTra - tienDoiDiem;
 
                 var thanhToan = new ThanhToan
                 {
@@ -206,11 +249,11 @@ namespace QLKSan.Business
                     }
                 }
 
-                // Cộng điểm tích lũy: 1 điểm cho mỗi 10,000 VNĐ giá trị hoá đơn (tính cả phần đã cọc)
-                if (hoaDon.PhieuDatPhong.KhachHang != null)
+                // Cộng điểm tích lũy theo số tiền khách thực trả (tính cả phần đã cọc, không tính phần trả bằng điểm)
+                if (khachHang != null)
                 {
-                    int diemCongThem = (int)(hoaDon.TongTienCanThanhToan / 10000);
-                    hoaDon.PhieuDatPhong.KhachHang.DiemTichLuy += diemCongThem;
+                    int diemCongThem = (int)((hoaDon.TongTienCanThanhToan - tienDoiDiem) / _loyalty.SoTienMotDiem);
+                    khachHang.DiemTichLuy += diemCongThem;
                 }
 
                 await _context.SaveChangesAsync();

@@ -174,7 +174,27 @@ namespace QLKSan.Data
                                        WHERE p.MaKhachHang = d.MaKhachHang AND c.MaPhong = d.MaPhong AND p.TrangThai = N''Đã trả phòng''
                                        ORDER BY p.NgayCheckOutThucTe DESC) x');
                     EXEC('CREATE UNIQUE INDEX UX_DanhGia_MaDatPhong ON DanhGia(MaDatPhong) WHERE MaDatPhong IS NOT NULL');
-                END")
+                END"),
+
+            // GĐ4: ưu đãi hạng thành viên trên hoá đơn — cột tính toán VAT / tổng / còn lại phải trừ thêm GiamGiaThanhVien
+            ("19. Thêm HoaDon.GiamGiaThanhVien, HangThanhVien và cập nhật cột tính toán", @"
+                IF COL_LENGTH('HoaDon', 'GiamGiaThanhVien') IS NULL
+                BEGIN
+                    BEGIN TRANSACTION;
+                    ALTER TABLE HoaDon ADD GiamGiaThanhVien DECIMAL(18,0) NOT NULL CONSTRAINT DF_HoaDon_GiamGiaThanhVien DEFAULT 0,
+                                           HangThanhVien NVARCHAR(50) NULL;
+                    EXEC('ALTER TABLE HoaDon DROP COLUMN ThueVAT, TongTienCanThanhToan, SoTienConLai');
+                    EXEC('ALTER TABLE HoaDon ADD
+                        ThueVAT AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 0.08),
+                        TongTienCanThanhToan AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 1.08),
+                        SoTienConLai AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 1.08 - TienCoc)');
+                    COMMIT TRANSACTION;
+                END"),
+
+            // GĐ4: điểm đã đổi — hạng thành viên xét theo điểm trọn đời (số dư + đã đổi)
+            ("20. Thêm KhachHang.DiemDaDoi", @"
+                IF COL_LENGTH('KhachHang', 'DiemDaDoi') IS NULL
+                    ALTER TABLE KhachHang ADD DiemDaDoi INT NOT NULL CONSTRAINT DF_KhachHang_DiemDaDoi DEFAULT 0;")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

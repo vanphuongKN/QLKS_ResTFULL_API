@@ -12,11 +12,13 @@ namespace QLKSan.Controllers
     {
         private readonly IRoomApiClient _roomApi;
         private readonly IInvoiceApiClient _invoiceApi;
+        private readonly ICustomerApiClient _customerApi;
 
-        public CheckoutController(IRoomApiClient roomApi, IInvoiceApiClient invoiceApi)
+        public CheckoutController(IRoomApiClient roomApi, IInvoiceApiClient invoiceApi, ICustomerApiClient customerApi)
         {
             _roomApi = roomApi;
             _invoiceApi = invoiceApi;
+            _customerApi = customerApi;
         }
 
         [HttpGet]
@@ -36,6 +38,9 @@ namespace QLKSan.Controllers
 
             ViewBag.Booking = booking;
             ViewBag.Invoice = booking.HoaDon;
+            // Hạng thành viên + số điểm hiện có để đổi khi thanh toán
+            if (!string.IsNullOrEmpty(booking.MaKhachHang))
+                ViewBag.Customer = await _customerApi.GetByIdAsync(booking.MaKhachHang);
             return View();
         }
 
@@ -71,11 +76,11 @@ namespace QLKSan.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Pay(string maHoaDon, string phuongThuc)
+        public async Task<IActionResult> Pay(string maHoaDon, string phuongThuc, int diemSuDung = 0)
         {
             try
             {
-                await _invoiceApi.PayAsync(maHoaDon, new PaymentRequest { PhuongThuc = phuongThuc });
+                await _invoiceApi.PayAsync(maHoaDon, new PaymentRequest { PhuongThuc = phuongThuc, DiemSuDung = diemSuDung });
                 TempData["SuccessMessage"] = "Thanh toán và trả phòng thành công!";
                 TempData["PrintInvoiceId"] = maHoaDon;
             }

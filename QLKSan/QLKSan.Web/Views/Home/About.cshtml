@@ -1,0 +1,60 @@
+@using QLKSan.Models.DTOs
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Câu chuyện";
+    ViewData["HeaderOverlay"] = true;
+    ViewData["FullWidth"] = true;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto { Ten = "LUXE RESERVE" };
+}
+
+<section class="lx-hero lx-hero--page" style="background-image:url('/images/hero.png')">
+    <div class="lx-hero-inner">
+        <span class="lr-eyebrow">Câu chuyện của chúng tôi</span>
+        <h1>Hiếu khách là <em>một nghệ thuật</em></h1>
+        <p>@(string.IsNullOrWhiteSpace(hotel.MoTaNgan) ? "Một chốn nghỉ riêng tư, nơi mỗi chi tiết đều được chăm chút." : hotel.MoTaNgan)</p>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-intro">
+        <div>
+            <span class="lr-eyebrow">@hotel.Ten</span>
+            <h2>Nơi kỳ nghỉ bắt đầu từ sự thong thả</h2>
+            <p>Chúng tôi tin rằng sự sang trọng không nằm ở những điều phô trương, mà ở cảm giác được chăm sóc một cách tự nhiên: căn phòng đã sẵn sàng trước giờ bạn đến, lời nhắn được ghi nhớ, và không ai phải hỏi lại điều bạn đã dặn.</p>
+            <p>Mỗi hạng phòng được thiết kế cho một nhịp nghỉ riêng — từ những đêm ngắn cho chuyến công tác đến kỳ nghỉ dài ngày cùng gia đình — với ánh sáng tự nhiên, chất liệu ấm và tầm nhìn mở ra khung cảnh xung quanh.</p>
+            <a href="@Url.Action("Index", "Home")#rooms" class="lr-link">Khám phá hạng phòng</a>
+        </div>
+        <div class="lx-intro-img"><img src="/images/room_ocean.png" alt="Phòng nghỉ tại @hotel.Ten" /></div>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-section-head">
+        <span class="lr-eyebrow">Điều chúng tôi theo đuổi</span>
+        <h2>Ba cam kết với mỗi vị khách</h2>
+    </div>
+    <div class="lx-pillars">
+        <div class="lx-pillar">
+            <span class="lx-exp-num">01</span>
+            <h3>Minh bạch</h3>
+            <p>Giá từng đêm hiển thị rõ trước khi đặt, hoá đơn ghi đủ từng khoản — không có phụ phí bất ngờ khi trả phòng.</p>
+        </div>
+        <div class="lx-pillar">
+            <span class="lx-exp-num">02</span>
+            <h3>Cá nhân hoá</h3>
+            <p>Yêu cầu riêng bạn gửi khi đặt phòng được chuyển thẳng đến lễ tân, để mọi thứ sẵn sàng trước khi bạn đến.</p>
+        </div>
+        <div class="lx-pillar">
+            <span class="lx-exp-num">03</span>
+            <h3>Gắn bó</h3>
+            <p>Mỗi kỳ nghỉ đều được ghi nhận bằng điểm thành viên — càng quay lại, đặc quyền càng nhiều.</p>
+        </div>
+    </div>
+</section>
+
+<section class="lx-cta">
+    <span class="lr-eyebrow">Ghé thăm chúng tôi</span>
+    <h2>Chúng tôi luôn sẵn sàng đón bạn</h2>
+    <p>@(string.IsNullOrWhiteSpace(hotel.DiaChi) ? "" : hotel.DiaChi)@(string.IsNullOrWhiteSpace(hotel.Hotline) ? "" : " · " + hotel.Hotline)</p>
+    <a href="@Url.Action("BookRoom", "Customer")" class="lr-btn lr-btn-primary">Đặt phòng</a>
+</section>

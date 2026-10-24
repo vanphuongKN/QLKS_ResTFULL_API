@@ -35,6 +35,10 @@ namespace QLKSan.Business
         private static decimal DaThu(HoaDon h) => h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Payment).Sum(t => t.SoTienDaTra) ?? 0;
         private static decimal DaHoan(HoaDon h) => h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Refund).Sum(t => t.SoTienDaTra) ?? 0;
 
+        // Phần khách trả bằng điểm thưởng: không hoàn thành tiền
+        private static decimal TraBangDiem(HoaDon h) => h.ThanhToans?
+            .Where(t => t.LoaiGiaoDich == PaymentType.Payment && t.PhuongThuc == LoyaltyPolicy.PhuongThucDiem).Sum(t => t.SoTienDaTra) ?? 0;
+
         // Ngày ghi nhận doanh thu: ngày thanh toán (hoặc ngày lập nếu không có giao dịch thu)
         private static DateTime NgayGhiNhan(HoaDon h)
             => h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Payment).Select(t => (DateTime?)t.NgayThanhToan).Min() ?? h.NgayLapHoaDon;
@@ -89,7 +93,7 @@ namespace QLKSan.Business
                 TenNhanVienLap = h.NhanVienLap?.TenNhanVien,
                 DaThu = daThu,
                 DaHoan = daHoan,
-                CoTheHoan = h.TrangThai == InvoiceStatus.Paid ? Math.Max(0, Math.Round(h.TongTienCanThanhToan, 0) - daHoan) : 0,
+                CoTheHoan = h.TrangThai == InvoiceStatus.Paid ? Math.Max(0, Math.Round(h.TongTienCanThanhToan, 0) - TraBangDiem(h) - daHoan) : 0,
                 GiaoDich = h.ThanhToans.OrderBy(t => t.NgayThanhToan).Select(t => t.ToDto()).ToList()
             };
         }
@@ -107,8 +111,8 @@ namespace QLKSan.Business
                 if (h.TrangThai != InvoiceStatus.Paid)
                     throw new ConflictException("Chỉ hoàn tiền cho hoá đơn đã thanh toán.");
 
-                // Tổng đã thu (gồm cả tiền cọc) = tổng giá trị hoá đơn; không hoàn quá phần còn lại
-                var coTheHoan = Math.Round(h.TongTienCanThanhToan, 0) - DaHoan(h);
+                // Tổng đã thu (gồm cả tiền cọc) = tổng giá trị hoá đơn; không hoàn quá phần còn lại, không hoàn phần trả bằng điểm
+                var coTheHoan = Math.Round(h.TongTienCanThanhToan, 0) - TraBangDiem(h) - DaHoan(h);
                 if (soTien > coTheHoan)
                     throw new BusinessException($"Số tiền hoàn vượt quá số tiền còn có thể hoàn ({coTheHoan:N0}đ).");
 

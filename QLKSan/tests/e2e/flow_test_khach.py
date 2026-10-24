@@ -2,6 +2,7 @@
 GĐ1: liên kết tài khoản cho khách vãng lai, đổi mật khẩu, khách tự sửa liên hệ, nhãn ô đăng nhập.
 GĐ2: giao diện hạng sang — thông tin khách sạn công khai (/api/hotel), footer, trang chủ, đăng nhập chia đôi, lịch chọn ngày.
 GĐ3: hạng phòng (ảnh, tiện nghi, đánh giá), đặt theo hạng + tự xác nhận, lễ tân đổi phòng, trang chi tiết phiếu, đánh giá theo kỳ nghỉ.
+GĐ4: hạng thành viên (ưu đãi tiền phòng), đổi điểm khi thanh toán, trang nội dung (Câu chuyện, Ẩm thực, Spa, Thư viện, Đặc quyền).
 CHỈ chạy trên database vừa dựng từ DB/Quanlykhachsanc#.sql (script ghi dữ liệu: tạo tài khoản cho KH06, đổi liên hệ KH01)."""
 import os
 from csrfhelp import with_token
@@ -342,6 +343,72 @@ opts = re.findall(r'name="maPhong" value="([^"]+)"', body)
 check('Lễ tân: trang đổi phòng liệt kê phòng trống đủ sức chứa', s == 200 and opts and r['ChiTietDatPhongs'][0]['MaPhong'] not in opts, opts)
 s, loc, body = web_post(lw, f'/Reception/ChangeRoom/{B3}', {'id': B3, 'maPhong': opts[0]})
 check('  Chọn phòng mới → phiếu chuyển sang phòng đã chọn', alert(body)[0] == 'success' and api('GET', f'/api/bookings/{B3}', L)[1]['ChiTietDatPhongs'][0]['MaPhong'] == opts[0], alert(body))
+
+print('\n===== GĐ4: Hạng thành viên, đổi điểm khi thanh toán, trang nội dung =====')
+import subprocess
+s, info = api('GET', '/api/hotel')
+ct = info.get('ThanhVien') or {}
+check('GET /api/hotel: chương trình thành viên (4 hạng, 1 điểm = 1.000đ, tối thiểu 100 điểm)', len(ct.get('Hangs', [])) == 4 and ct['GiaTriMotDiem'] == 1000
+      and ct['DiemDoiToiThieu'] == 100 and [h['PhanTramGiamPhong'] for h in ct['Hangs']] == [0, 3, 5, 10], ct and [h['Ten'] for h in ct.get('Hangs', [])])
+s, me = api('GET', '/api/customers/me', K)
+tv = me.get('ThanhVien') or {}
+check('Hồ sơ khách: hạng Đồng, hạng kế tiếp Bạc và số điểm còn thiếu', tv.get('Hang') == 'Thành viên Đồng' and tv.get('HangKeTiep') == 'Thành viên Bạc'
+      and tv.get('DiemLenHang') == 1000 - me['DiemTichLuy'] - me['DiemDaDoi'], tv)
+
+DB = os.environ.get('QLKSAN_DB')
+if not DB:
+    print('SKIP phần đổi điểm: cần QLKSAN_DB trỏ tới database kiểm thử')
+else:
+    # KH04 (khach4) lên 3.200 điểm → hạng Vàng (giảm 5% tiền phòng)
+    subprocess.run(['sqlcmd', '-S', 'localhost', '-U', 'sa', '-P', '12345', '-I', '-d', DB, '-Q', "UPDATE KhachHang SET DiemTichLuy = 3200, DiemDaDoi = 0 WHERE MaKhachHang = 'KH04'"], capture_output=True)
+    K4 = tok('khach4')
+    me4 = api('GET', '/api/customers/me', K4)[1]
+    check('Khách 3.200 điểm → hạng Vàng, còn 1.800 điểm lên Kim Cương', me4['ThanhVien']['Hang'] == 'Thành viên Vàng' and me4['ThanhVien']['DiemLenHang'] == 1800, me4['ThanhVien'])
+    av = api('GET', f'/api/room-types/available?checkIn={d(0)}&checkOut={d(1)}&soNguoi=1')[1]
+    s, b = api('POST', '/api/bookings', K4, {'MaLoai': av[0]['LoaiPhong']['MaLoai'], 'SoNguoi': 1, 'CheckIn': d(0), 'CheckOut': d(1)})
+    B4 = b['MaDatPhong']; P4 = b['ChiTietDatPhongs'][0]['MaPhong']
+    s, _ = api('POST', f'/api/bookings/{B4}/check-in', L)
+    s, inv = api('POST', '/api/invoices', L, {'MaDatPhong': B4})
+    check('Hoá đơn khách hạng Vàng: tự giảm 5% tiền phòng, ghi hạng lên hoá đơn', s == 200 and inv['HangThanhVien'] == 'Thành viên Vàng'
+          and inv['GiamGiaThanhVien'] == round(inv['TongTienPhong'] * 0.05)
+          and round(inv['TongTienCanThanhToan']) == round((inv['TongTienPhong'] + inv['TongTienDichVu'] + inv['TienPhat'] - inv['GiamGiaKhuyenMai'] - inv['GiamGiaThanhVien']) * 1.08), inv and (inv.get('GiamGiaThanhVien'), inv.get('TongTienPhong')))
+    s, _, body = web(lw, 'GET', f'/Checkout/Process?maPhong={P4}')
+    check('Web trả phòng: hiện dòng ưu đãi thành viên và ô đổi điểm', 'Ưu đãi Thành viên Vàng' in body and 'name="diemSuDung"' in body and '3,200' in body)
+    M = inv['MaHoaDon']
+    s, r = api('POST', f'/api/invoices/{M}/payments', L, {'PhuongThuc': 'Tiền mặt', 'DiemSuDung': 50})
+    check('Đổi dưới mức tối thiểu (50 điểm) → 400', s == 400 and 'tối thiểu' in detail(r), detail(r))
+    s, r = api('POST', f'/api/invoices/{M}/payments', L, {'PhuongThuc': 'Tiền mặt', 'DiemSuDung': 5000})
+    check('Đổi nhiều hơn số điểm hiện có → 400', s == 400 and 'chỉ còn' in detail(r), detail(r))
+    s, loc, body = web_post(lw, '/Checkout/Pay', {'maHoaDon': M, 'phuongThuc': 'Tiền mặt', 'diemSuDung': 500})
+    paid = api('GET', f'/api/invoices/{M}', L)[1]
+    gd = paid['GiaoDich']
+    tong = round(paid['HoaDon']['TongTienCanThanhToan'])
+    check('Web: thanh toán đổi 500 điểm → khoản "Điểm thưởng" 500.000đ + phần còn lại bằng tiền mặt', alert(body)[0] == 'success'
+          and any(t['PhuongThuc'] == 'Điểm thưởng' and t['SoTienDaTra'] == 500000 for t in gd)
+          and any(t['PhuongThuc'] == 'Tiền mặt' and t['SoTienDaTra'] == tong - 500000 for t in gd), [(t['PhuongThuc'], t['SoTienDaTra']) for t in gd])
+    me4 = api('GET', '/api/customers/me', K4)[1]
+    earned = (tong - 500000) // 10000
+    check('  Điểm: trừ 500 điểm đã đổi, cộng điểm theo phần trả bằng tiền; hạng vẫn Vàng', me4['DiemTichLuy'] == 3200 - 500 + earned and me4['DiemDaDoi'] == 500
+          and me4['ThanhVien']['Hang'] == 'Thành viên Vàng', (me4['DiemTichLuy'], me4['DiemDaDoi'], earned))
+    check('  Phần trả bằng điểm không được hoàn thành tiền', paid['CoTheHoan'] == tong - 500000, paid['CoTheHoan'])
+    KT = tok('ketoan1')
+    s, r = api('POST', f'/api/invoices/{M}/refunds', KT, {'SoTien': tong - 499999, 'PhuongThuc': 'Tiền mặt', 'LyDo': 'x'})
+    check('  Hoàn vượt phần trả bằng tiền → 400', s == 400 and 'vượt quá' in detail(r), detail(r))
+    s, _, body = web(web_login('khach4'), 'GET', '/Customer/Profile')
+    check('Web hồ sơ: hạng Vàng, quyền lợi và tiến độ lên Kim Cương', 'Thành viên Vàng' in body and 'Giảm 5% tiền phòng' in body and 'để lên Thành viên Kim Cương' in body)
+    s, _, body = web(web_login('khach4'), 'GET', f'/Customer/Booking/{B4}')
+    check('Web trang phiếu: hoá đơn có dòng ưu đãi thành viên', 'Thành viên Vàng' in body and 'Đã thanh toán' in body)
+
+anon = web_session()
+for path, text in [('/Home/About', 'Ba cam kết'), ('/Home/Dining', 'Bữa sáng'), ('/Home/Spa', 'Liệu trình'), ('/Home/Gallery', 'lx-gallery'), ('/Home/Membership', 'Thành viên Kim Cương')]:
+    s, _, body = web(anon, 'GET', path)
+    check(f'Trang nội dung {path} (công khai)', s == 200 and text in body and 'lr-footer-rich' in body, s)
+s, _, body = web(anon, 'GET', '/Home/Membership')
+check('  Đặc quyền: hiển thị cách tích / đổi điểm từ cấu hình API', '1 điểm cho mỗi 10,000 ₫' in body and '−10%' in body)
+s, _, body = web(anon, 'GET', '/Home/Gallery')
+check('  Thư viện ảnh: ảnh của các hạng phòng, lọc theo hạng', 'data-filter="LP03"' in body and body.count('<figure') >= 5)
+s, _, body = web(anon, 'GET', '/')
+check('Menu khách vãng lai dẫn tới các trang nội dung', all(p in body for p in ['/Home/About', '/Home/Dining', '/Home/Spa', '/Home/Gallery', '/Home/Membership']))
 
 print(f"\n==> {sum(results)}/{len(results)} kiểm tra đạt")
 sys.exit(0 if all(results) else 1)

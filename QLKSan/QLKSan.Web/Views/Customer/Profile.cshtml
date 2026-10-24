@@ -4,16 +4,12 @@
     var customer = ViewBag.Customer as QLKSan.Models.DTOs.CustomerDto;
     var contact = customer?.LienHeDiaChis?.FirstOrDefault();
 
+    // Hạng thành viên do API xét theo điểm trọn đời (điểm hiện có + điểm đã đổi)
     int points = customer != null ? customer.DiemTichLuy : 0;
-    string tierName = "Thành viên Đồng";
-    string nextTier = "Thành viên Bạc";
-    int maxForNext = 1000;
-
-    if (points >= 5000) { tierName = "Thành viên Kim Cương"; nextTier = "Thành viên Kim Cương"; maxForNext = points; }
-    else if (points >= 3000) { tierName = "Thành viên Vàng"; nextTier = "Thành viên Kim Cương"; maxForNext = 5000; }
-    else if (points >= 1000) { tierName = "Thành viên Bạc"; nextTier = "Thành viên Vàng"; maxForNext = 3000; }
-
-    double progress = maxForNext > 0 && points < 5000 ? (double)points / maxForNext * 100 : 100;
+    var tv = customer?.ThanhVien;
+    string tierName = tv?.Hang ?? "Thành viên";
+    string nextTier = tv?.HangKeTiep ?? tierName;
+    double progress = tv == null || tv.HangKeTiep == null || tv.MocHangKeTiep <= 0 ? 100 : Math.Min(100, (double)tv.DiemXetHang / tv.MocHangKeTiep * 100);
     var diaChi = contact == null ? null : string.Join(", ", new[] { contact.DiaChi, contact.QuocGia }.Where(x => !string.IsNullOrWhiteSpace(x)));
 }
 
@@ -144,7 +140,22 @@
     <div class="bottom-card">
         <div class="bc-icon"><i class="fas fa-tag"></i></div>
         <h5>@tierName</h5>
-        <p>Bạn đã tích luỹ @points.ToString("N0") điểm tại LUXE RESERVE.</p>
+        <p>
+            Hiện có <strong>@points.ToString("N0")</strong> điểm@(tv != null && points >= tv.DiemDoiToiThieu ? $" — đổi được {points * tv.GiaTriMotDiem:N0} ₫ khi thanh toán" : "").
+            @if (tv?.HangKeTiep != null)
+            {
+                <span>Còn @tv.DiemLenHang.ToString("N0") điểm để lên @tv.HangKeTiep.</span>
+            }
+        </p>
+        @if (tv != null && tv.QuyenLoi.Any())
+        {
+            <ul class="small ps-3 mb-3" style="color:var(--lr-text-muted)">
+                @foreach (var q in tv.QuyenLoi)
+                {
+                    <li>@q</li>
+                }
+            </ul>
+        }
         <div class="membership-bar" style="background:#eee">
             <div class="membership-bar-fill" style="width:@(progress.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%;background:var(--lr-gold); height:8px; border-radius:4px;"></div>
         </div>

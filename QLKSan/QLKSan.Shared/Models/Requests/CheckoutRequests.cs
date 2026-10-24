@@ -17,5 +17,9 @@ namespace QLKSan.Models.Requests
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán.")]
         [StringLength(50)]
         public string PhuongThuc { get; set; }
+
+        // Số điểm khách đổi trừ vào hoá đơn (0 = không đổi)
+        [Range(0, int.MaxValue, ErrorMessage = "Số điểm đổi không hợp lệ.")]
+        public int DiemSuDung { get; set; }
     }
 }

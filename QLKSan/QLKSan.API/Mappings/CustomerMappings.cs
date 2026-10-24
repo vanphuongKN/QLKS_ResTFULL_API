@@ -1,3 +1,4 @@
+using QLKSan.Common;
 using QLKSan.Models.DTOs;
 using QLKSan.Models.Entities;
 
@@ -49,8 +50,31 @@ namespace QLKSan.Mappings
             dto.NgaySinh = entity.NgaySinh;
             dto.CCCD_Passport = entity.CCCD_Passport;
             dto.DiemTichLuy = entity.DiemTichLuy;
+            dto.DiemDaDoi = entity.DiemDaDoi;
             dto.SoLanDatPhong = entity.PhieuDatPhongs?.Count ?? 0;
             dto.LienHeDiaChis = entity.LienHeDiaChis?.Select(l => l.ToDto()).ToList() ?? new List<ContactDto>();
+        }
+
+        // Hạng thành viên, quyền lợi và tiến độ lên hạng theo chương trình thành viên hiện hành
+        public static T WithMembership<T>(this T dto, LoyaltyPolicy policy) where T : CustomerDto
+        {
+            if (dto == null) return null;
+            var diem = dto.DiemTichLuy + dto.DiemDaDoi;
+            var hang = policy.HangTheoDiem(diem);
+            var keTiep = policy.HangKeTiep(diem);
+            dto.ThanhVien = new MembershipDto
+            {
+                Hang = hang.Ten,
+                PhanTramGiamPhong = hang.PhanTramGiamPhong,
+                QuyenLoi = hang.QuyenLoi.ToList(),
+                DiemXetHang = diem,
+                HangKeTiep = keTiep?.Ten,
+                DiemLenHang = keTiep == null ? 0 : keTiep.DiemToiThieu - diem,
+                MocHangKeTiep = keTiep?.DiemToiThieu ?? diem,
+                GiaTriMotDiem = policy.GiaTriMotDiem,
+                DiemDoiToiThieu = policy.DiemDoiToiThieu
+            };
+            return dto;
         }
 
         public static ContactDto ToDto(this LienHeDiaChi entity)

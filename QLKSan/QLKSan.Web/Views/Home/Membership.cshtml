@@ -1,0 +1,87 @@
+@using QLKSan.Models.DTOs
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Đặc quyền thành viên";
+    ViewData["HeaderOverlay"] = true;
+    ViewData["FullWidth"] = true;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto { Ten = "LUXE RESERVE" };
+    var ct = hotel.ThanhVien ?? new LoyaltyProgramDto();
+    var laKhach = User.IsLoggedIn() && User.GetRole() == "Customer";
+}
+
+<section class="lx-hero lx-hero--page" style="background-image:url('/images/room_presidential.png')">
+    <div class="lx-hero-inner">
+        <span class="lr-eyebrow">Chương trình thành viên</span>
+        <h1>Càng quay lại, <em>càng được trân trọng</em></h1>
+        <p>Tích điểm sau mỗi kỳ nghỉ, đổi điểm trừ thẳng vào hoá đơn và nhận ưu đãi theo hạng — tự động, không cần thẻ.</p>
+        <div class="lx-hero-actions">
+            @if (laKhach)
+            {
+                <a href="@Url.Action("Profile", "Customer")" class="lr-btn lr-btn-light">Xem hạng của tôi</a>
+            }
+            else if (!User.IsLoggedIn())
+            {
+                <a href="@Url.Action("Register", "Auth")" class="lr-btn lr-btn-light">Trở thành thành viên</a>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-section-head">
+        <span class="lr-eyebrow">Cách hoạt động</span>
+        <h2>Tích điểm &amp; đổi điểm</h2>
+    </div>
+    <div class="lx-pillars">
+        <div class="lx-pillar">
+            <span class="lx-exp-num">01</span>
+            <h3>Tích điểm</h3>
+            <p>Nhận 1 điểm cho mỗi @ct.SoTienMotDiem.ToString("N0") ₫ thanh toán khi trả phòng — tính cả tiền phòng và dịch vụ trong kỳ nghỉ.</p>
+        </div>
+        <div class="lx-pillar">
+            <span class="lx-exp-num">02</span>
+            <h3>Đổi điểm</h3>
+            <p>Mỗi điểm trị giá @ct.GiaTriMotDiem.ToString("N0") ₫, đổi từ @ct.DiemDoiToiThieu điểm trở lên để trừ vào hoá đơn ngay tại quầy lễ tân.</p>
+        </div>
+        <div class="lx-pillar">
+            <span class="lx-exp-num">03</span>
+            <h3>Lên hạng</h3>
+            <p>Hạng xét theo tổng điểm đã tích luỹ — đổi điểm không làm giảm hạng. Ưu đãi tiền phòng được áp dụng tự động trên hoá đơn.</p>
+        </div>
+    </div>
+</section>
+
+@if (ct.Hangs.Any())
+{
+    <section class="lx-section">
+        <div class="lx-section-head">
+            <span class="lr-eyebrow">Hạng thành viên</span>
+            <h2>Đặc quyền theo từng hạng</h2>
+        </div>
+        <div class="lx-tiers">
+            @for (var i = 0; i < ct.Hangs.Count; i++)
+            {
+                var h = ct.Hangs[i];
+                <div class="lx-tier @(i == ct.Hangs.Count - 1 ? "featured" : "")">
+                    <span class="lr-eyebrow">@(h.DiemToiThieu == 0 ? "Khi đăng ký" : $"Từ {h.DiemToiThieu:N0} điểm")</span>
+                    <h3>@h.Ten</h3>
+                    <div class="lx-tier-pct">@(h.PhanTramGiamPhong > 0 ? $"−{h.PhanTramGiamPhong}%" : "—")<small>@(h.PhanTramGiamPhong > 0 ? "tiền phòng" : "")</small></div>
+                    <ul>
+                        @foreach (var q in h.QuyenLoi)
+                        {
+                            <li>@q</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+        <p class="text-center mt-4" style="color:var(--lr-text-muted);font-size:0.85rem">Các quyền lợi như nâng hạng phòng, nhận phòng sớm hay trả phòng muộn được phục vụ khi còn phòng trống.</p>
+    </section>
+}
+
+<section class="lx-cta">
+    <span class="lr-eyebrow">Bắt đầu tích điểm</span>
+    <h2>Kỳ nghỉ tiếp theo đang chờ</h2>
+    <p>Đặt phòng trực tuyến bằng tài khoản thành viên để mọi kỳ nghỉ đều được ghi nhận.</p>
+    <a href="@Url.Action("BookRoom", "Customer")" class="lr-btn lr-btn-primary">Đặt phòng</a>
+</section>

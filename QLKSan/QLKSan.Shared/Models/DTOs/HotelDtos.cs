@@ -21,6 +21,25 @@ namespace QLKSan.Models.DTOs
 
         // Mô tả chính sách huỷ đúng với quy tắc nghiệp vụ của API
         public string ChinhSachHuy { get; set; }
+
+        // Chương trình thành viên: cách tích / đổi điểm và quyền lợi từng hạng
+        public LoyaltyProgramDto ThanhVien { get; set; }
+    }
+
+    public class LoyaltyProgramDto
+    {
+        public int SoTienMotDiem { get; set; }
+        public int GiaTriMotDiem { get; set; }
+        public int DiemDoiToiThieu { get; set; }
+        public List<MembershipTierDto> Hangs { get; set; } = new List<MembershipTierDto>();
+    }
+
+    public class MembershipTierDto
+    {
+        public string Ten { get; set; }
+        public int DiemToiThieu { get; set; }
+        public int PhanTramGiamPhong { get; set; }
+        public List<string> QuyenLoi { get; set; } = new List<string>();
     }
 
     public class LateCheckoutFeeDto

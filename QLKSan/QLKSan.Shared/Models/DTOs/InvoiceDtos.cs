@@ -14,6 +14,10 @@ namespace QLKSan.Models.DTOs
         public decimal TongTienDichVu { get; set; }
         public string MaKhuyenMai { get; set; }
         public decimal GiamGiaKhuyenMai { get; set; }
+
+        // Ưu đãi hạng thành viên (% tiền phòng) và hạng của khách lúc lập hoá đơn
+        public decimal GiamGiaThanhVien { get; set; }
+        public string HangThanhVien { get; set; }
         public decimal TienPhat { get; set; }
         public decimal ThueVAT { get; set; }
         public decimal TongTienCanThanhToan { get; set; }
