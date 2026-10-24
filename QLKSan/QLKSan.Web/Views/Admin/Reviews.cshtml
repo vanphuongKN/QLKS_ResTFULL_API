@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Đánh giá khách hàng";
-    var reviews = ViewBag.Reviews as IEnumerable<QLKSan.Models.Entities.DanhGia>;
+    var reviews = ViewBag.Reviews as IEnumerable<QLKSan.Models.DTOs.ReviewDto>;
 }
 
 <div class="page-header">
@@ -30,7 +30,7 @@
                     {
                         <tr>
                             <td>
-                                <strong>@(r.AnDanh == true ? "Ẩn danh" : $"{r.KhachHang?.Ho} {r.KhachHang?.Ten}" ?? "N/A")</strong>
+                                <strong>@(r.AnDanh ? "Ẩn danh" : (r.HoTenKhachHang ?? "N/A"))</strong>
                             </td>
                             <td>@(r.MaPhong ?? "N/A")</td>
                             <td>

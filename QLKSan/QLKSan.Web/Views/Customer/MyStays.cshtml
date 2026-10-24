@@ -1,17 +1,25 @@
-@using QLKSan.Models.Entities
+@using QLKSan.Models.DTOs
 @using QLKSan.Enums
 @{
     Layout = "_CustomerLayout";
     ViewData["Title"] = "Lịch sử kỳ nghỉ";
-    var customer = ViewBag.Customer as KhachHang;
-    var bookings = ViewBag.Bookings as IEnumerable<PhieuDatPhong>;
+    var customer = ViewBag.Customer as CustomerDto;
+    var bookings = ViewBag.Bookings as IEnumerable<BookingDto>;
 
     // 1. Map real bookings
     var reviewedRoomIds = ViewBag.ReviewedRoomIds as HashSet<string> ?? new HashSet<string>();
     var realStays = new List<StayItem>();
     if (bookings != null)
     {
-        foreach (var b in bookings)
+        int Hang(BookingDto x) => x.TrangThai switch
+        {
+            BookingStatus.CheckedIn => 0,
+            BookingStatus.Pending or BookingStatus.Approved => 1,
+            BookingStatus.CheckedOut => 2,
+            _ => 3
+        };
+        var sorted = bookings.OrderBy(Hang).ThenBy(x => Hang(x) == 1 ? x.NgayCheckInDuKien.Ticks : -x.NgayCheckInDuKien.Ticks);
+        foreach (var b in sorted)
         {
             var detail = b.ChiTietDatPhongs?.FirstOrDefault();
             var room = detail?.Phong;
@@ -38,7 +46,7 @@
             }
 
             var paymentText = "Chưa thanh toán";
-            var paymentMethod = "CASH";
+            var paymentMethod = "";
             if (b.HoaDon != null)
             {
                 if (b.HoaDon.TrangThai == InvoiceStatus.Paid)
@@ -52,7 +60,6 @@
                     else
                     {
                         paymentText = "Đã thanh toán";
-                        paymentMethod = "CASH";
                     }
                 }
                 else if (b.HoaDon.TrangThai == InvoiceStatus.Cancelled)
@@ -86,7 +93,7 @@
 
             realStays.Add(new StayItem
             {
-                Id = "#LR-" + b.MaDatPhong.Substring(Math.Max(0, b.MaDatPhong.Length - 5)),
+                Id = b.MaDatPhong,
                 RoomName = roomType?.TenLoai ?? "Premium Suite",
                 Location = room != null ? $"PHÒNG {room.SoPhong}, LUXE RESERVE" : "LUXE RESERVE",
                 ImageUrl = img,
@@ -100,7 +107,11 @@
                 IsReal = true,
                 RealBookingId = b.MaDatPhong,
                 RoomId = room?.MaPhong,
+                // Chỉ mở bản in khi đã có hoá đơn (lúc trả phòng)
+                InvoiceId = b.HoaDon?.MaHoaDon,
                 CanReview = b.TrangThai == BookingStatus.CheckedOut,
+                // Chính sách: khách tự huỷ được phiếu chưa nhận phòng, trước ngày nhận phòng
+                CanCancel = (b.TrangThai == BookingStatus.Pending || b.TrangThai == BookingStatus.Approved) && DateTime.Today < b.NgayCheckInDuKien.Date,
                 HasReviewed = room != null && reviewedRoomIds.Contains(room.MaPhong)
             });
         }
@@ -141,7 +152,9 @@
         public bool IsReal { get; set; }
         public string? RealBookingId { get; set; }
         public string? RoomId { get; set; }
+        public string? InvoiceId { get; set; }
         public bool CanReview { get; set; }
+        public bool CanCancel { get; set; }
         public bool HasReviewed { get; set; }
     }
 }
@@ -463,6 +476,15 @@
         font-size: 0.85rem;
         color: #C5A059;
     }
+    .luxe-grid-body .luxe-btn-dark + .luxe-btn-dark, .luxe-grid-body form + .luxe-btn-dark, .luxe-featured-actions > * + * { margin-top: 10px; }
+    .luxe-btn-done, .luxe-btn-done:hover, .luxe-btn-dark.luxe-btn-done, .luxe-btn-outline.luxe-btn-done {
+        background-color: #F1EFEA !important;
+        border: 1px solid #E2DED5 !important;
+        color: #5F5B53 !important;
+        cursor: default !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
     .luxe-btn-dark {
         display: block;
         width: 100%;
@@ -594,6 +616,14 @@
 </style>
 
 <div class="luxe-stays-page">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success mb-4"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger mb-4"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]</div>
+    }
     
     <!-- Luxe Header Section -->
     <div class="luxe-header mb-5">
@@ -622,7 +652,7 @@
                 <div class="luxe-featured-details">
                     <div class="luxe-card-top">
                         <span class="luxe-badge" style="background-color: @(f.StatusColor)15; color: @f.StatusColor;">@f.StatusText</span>
-                        <span class="luxe-id">ID: @f.Id</span>
+                        <span class="luxe-id">Mã: @f.Id</span>
                     </div>
                     <h2 class="luxe-room-title font-playfair">@f.RoomName</h2>
                     <div class="luxe-room-location">@f.Location</div>
@@ -639,11 +669,22 @@
                 </div>
                 
                 <div class="luxe-featured-actions mt-auto">
-                    @if (f.IsReal && f.CanReview)
+                    @if (f.IsReal && f.CanCancel)
+                    {
+                        <form asp-action="CancelBooking" method="post" class="d-inline" onsubmit="return confirmCancel(this)">
+                            <input type="hidden" name="id" value="@f.RealBookingId" />
+                            <input type="hidden" name="lyDo" />
+                            <button type="submit" class="luxe-btn-outline" style="border-color:#c62828;color:#c62828">
+                                <span>HUỶ ĐẶT PHÒNG</span>
+                                <i class="fas fa-times ms-2"></i>
+                            </button>
+                        </form>
+                    }
+                    else if (f.IsReal && f.CanReview)
                     {
                         if (f.HasReviewed)
                         {
-                            <button class="luxe-btn-outline" style="background-color: #FAF8F5; border-color: #EAE8E2; color: #8E8A82; cursor: default;" disabled>
+                            <button class="luxe-btn-outline luxe-btn-done" disabled>
                                 <span>ĐÃ ĐÁNH GIÁ</span>
                                 <i class="fas fa-check-circle ms-2" style="color: #2e7d32;"></i>
                             </button>
@@ -656,12 +697,12 @@
                             </a>
                         }
                     }
-                    else
+                    @if (f.InvoiceId != null)
                     {
-                        <button class="luxe-btn-outline" onclick="alert('Đang hiển thị hóa đơn điện tử cho chuyến đi @f.Id. Hóa đơn chi tiết đã được gửi đến email đăng ký của bạn.')">
+                        <a href="@Url.Action("Print", "Invoice", new { id = f.InvoiceId })" target="_blank" class="luxe-btn-outline">
                             <span>XEM HÓA ĐƠN</span>
                             <i class="fas fa-arrow-right ms-2"></i>
-                        </button>
+                        </a>
                     }
                 </div>
             </div>
@@ -714,33 +755,42 @@
                     <div class="luxe-grid-body">
                     <div class="luxe-card-top">
                         <span class="luxe-grid-date">@s.DateText</span>
-                        <span class="luxe-grid-id">ID: @s.Id</span>
+                        <span class="luxe-grid-id">Mã: @s.Id</span>
                     </div>
                     <h3 class="luxe-grid-title font-playfair">@s.RoomName</h3>
                     
                     <div class="luxe-grid-payment-row">
                         @{
-                            string paymentIcon = "fa-credit-card";
-                            if (s.PaymentMethod.Contains("APPLE")) paymentIcon = "fa-brands fa-apple-pay";
-                            else if (s.PaymentMethod.Contains("VISA")) paymentIcon = "fa-brands fa-cc-visa";
-                            else if (s.PaymentMethod.Contains("MASTER")) paymentIcon = "fa-brands fa-cc-mastercard";
-                            else if (s.PaymentMethod.Contains("AMEX")) paymentIcon = "fa-brands fa-cc-amex";
+                            var pm = s.PaymentMethod ?? "";
+                            string paymentIcon = pm.Contains("VISA") ? "fa-brands fa-cc-visa"
+                                : pm.Contains("MASTER") ? "fa-brands fa-cc-mastercard"
+                                : pm.Contains("TIỀN MẶT") ? "fas fa-money-bill-wave"
+                                : pm.Contains("CHUYỂN KHOẢN") ? "fas fa-building-columns"
+                                : "fas fa-credit-card";
                         }
                         <div class="luxe-pay-badge">
                             <i class="@paymentIcon"></i>
-                            <span class="ms-1">@s.PaymentMethod</span>
+                            <span class="ms-1">@(string.IsNullOrEmpty(pm) ? s.PaymentText : pm)</span>
                         </div>
-                        <div class="luxe-invoice-badge">
-                            <i class="fas fa-receipt"></i>
-                            <span>ĐÃ XUẤT HĐ</span>
+                        <div class="luxe-invoice-badge" style="color:@s.StatusColor">
+                            <i class="fas @(s.InvoiceId != null ? "fa-receipt" : "fa-circle-info")"></i>
+                            <span>@(s.InvoiceId != null ? "ĐÃ XUẤT HĐ" : s.StatusText)</span>
                         </div>
                     </div>
                     
-                    @if (s.IsReal && s.CanReview)
+                    @if (s.IsReal && s.CanCancel)
+                    {
+                        <form asp-action="CancelBooking" method="post" class="d-inline" onsubmit="return confirmCancel(this)">
+                            <input type="hidden" name="id" value="@s.RealBookingId" />
+                            <input type="hidden" name="lyDo" />
+                            <button type="submit" class="luxe-btn-dark" style="background:#c62828;border-color:#c62828">HUỶ ĐẶT PHÒNG</button>
+                        </form>
+                    }
+                    else if (s.IsReal && s.CanReview)
                     {
                         if (s.HasReviewed)
                         {
-                            <button class="luxe-btn-dark" style="background-color: #FAF8F5; border-color: #EAE8E2; color: #8E8A82; cursor: default;" disabled>
+                            <button class="luxe-btn-dark luxe-btn-done" disabled>
                                 <span>ĐÃ ĐÁNH GIÁ</span>
                                 <i class="fas fa-check-circle ms-2" style="color: #2e7d32;"></i>
                             </button>
@@ -752,11 +802,11 @@
                             </a>
                         }
                     }
-                    else
+                    @if (s.InvoiceId != null)
                     {
-                        <button class="luxe-btn-dark" onclick="alert('Bắt đầu tải xuống bản sao PDF hóa đơn điện tử cho chuyến đi @s.Id...')">
+                        <a href="@Url.Action("Print", "Invoice", new { id = s.InvoiceId })" target="_blank" class="luxe-btn-dark">
                             TẢI HÓA ĐƠN
-                        </button>
+                        </a>
                     }
                 </div>
             </div>
@@ -786,9 +836,12 @@
                         <div class="luxe-history-value">@s.PaymentText.Replace("Thanh toán qua ", "")</div>
                     </div>
                     <div class="luxe-history-action">
-                        <button class="luxe-btn-circle-download" title="Tải hóa đơn" onclick="alert('Đang tải xuống hóa đơn điện tử của @s.RoomName...')">
-                            <i class="fas fa-download"></i>
-                        </button>
+                        @if (s.InvoiceId != null)
+                        {
+                            <a href="@Url.Action("Print", "Invoice", new { id = s.InvoiceId })" target="_blank" class="luxe-btn-circle-download" title="Tải hóa đơn">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        }
                     </div>
                 </div>
             }
@@ -796,3 +849,13 @@
     </div>
     }
 </div>
+
+<script>
+    // Hỏi lý do và xác nhận trước khi huỷ phiếu
+    function confirmCancel(form) {
+        var lyDo = prompt('Bạn chắc chắn muốn huỷ phiếu đặt phòng này?\nLý do huỷ (không bắt buộc):', '');
+        if (lyDo === null) return false;
+        form.querySelector('input[name=lyDo]').value = lyDo;
+        return true;
+    }
+</script>

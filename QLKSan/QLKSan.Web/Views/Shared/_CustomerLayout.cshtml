@@ -1,4 +1,4 @@
-@{
+﻿@{
     var currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
     var currentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
 }
@@ -22,66 +22,52 @@
 </head>
 <body>
     <!-- Top Navigation -->
+    @{
+        var navRole = User.GetRole();
+        var laKhach = User.IsLoggedIn() && navRole == "Customer";
+        string NavActive(string c, string a) => currentController == c && currentAction == a ? "active" : "";
+    }
     <nav class="lr-navbar">
         <a href="@Url.Action("Index", "Home")" class="lr-brand">LUXE RESERVE</a>
-        <ul class="lr-nav-links">
-            @if (currentController == "Customer")
-            {
-                var role = Context.Request.Cookies["UserRole"];
-                @if (role == "Customer")
+        <button type="button" class="lr-nav-toggle" aria-label="Mở menu" onclick="this.closest('.lr-navbar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
+        <div class="lr-nav-collapse">
+            <ul class="lr-nav-links">
+                <li><a href="@Url.Action("Index", "Home")" class="@NavActive("Home", "Index")">Trang chủ</a></li>
+                @if (laKhach)
                 {
-                    <li><a href="@Url.Action("Profile", "Customer")" class="@(currentController == "Customer" && currentAction == "Profile" ? "active" : "")">Hồ sơ</a></li>
-                    <li><a href="@Url.Action("MyStays", "Customer")" class="@(currentController == "Customer" && currentAction == "MyStays" ? "active" : "")">Kỳ nghỉ</a></li>
-                    <li><a href="@Url.Action("Feedback", "Customer")" class="@(currentController == "Customer" && currentAction == "Feedback" ? "active" : "")">Đánh giá</a></li>
+                    <li><a href="@Url.Action("BookRoom", "Customer")" class="@NavActive("Customer", "BookRoom")">Đặt phòng</a></li>
+                    <li><a href="@Url.Action("MyStays", "Customer")" class="@NavActive("Customer", "MyStays")">Kỳ nghỉ</a></li>
+                    <li><a href="@Url.Action("Feedback", "Customer")" class="@NavActive("Customer", "Feedback")">Đánh giá</a></li>
+                    <li><a href="@Url.Action("Profile", "Customer")" class="@NavActive("Customer", "Profile")">Hồ sơ</a></li>
                 }
-            }
-            else
-            {
-                <li><a href="@Url.Action("Index", "Home")" class="@(currentController == "Home" && currentAction == "Index" ? "active" : "")">Trang chủ</a></li>
-                <li><a href="#accommodation-section">Hạng phòng</a></li>
-                <li><a href="#services-section">Đặc quyền</a></li>
-            }
-        </ul>
-        <div class="lr-nav-right">
-            @if (Context.Request.Cookies.ContainsKey("Username"))
-            {
-                var role = Context.Request.Cookies["UserRole"];
-                var username = Context.Request.Cookies["Username"];
-                <div class="d-flex align-items-center gap-3">
-                    @if (role == "Customer")
+                else
+                {
+                    <li><a href="@Url.Action("Index", "Home")#accommodation-section">Hạng phòng</a></li>
+                    <li><a href="@Url.Action("Index", "Home")#services-section">Đặc quyền</a></li>
+                }
+            </ul>
+            <div class="lr-nav-right">
+                @if (User.IsLoggedIn())
+                {
+                    var tenHienThi = User.GetHoTen();
+                    if (string.IsNullOrWhiteSpace(tenHienThi)) tenHienThi = User.Identity?.Name;
+                    if (laKhach)
                     {
-                        <a href="@Url.Action("Profile", "Customer")" class="lr-login-link text-uppercase" style="color: var(--lr-gold); font-weight: 600; font-size: 0.75rem; letter-spacing: 1px; text-decoration: none;">
-                            <i class="fas fa-user-circle me-1"></i> @username
-                        </a>
+                        <a href="@Url.Action("Profile", "Customer")" class="lr-user-link"><i class="fas fa-user-circle"></i> @tenHienThi</a>
                     }
                     else
                     {
-                        <span class="lr-login-link text-uppercase" style="color: var(--lr-gold); font-weight: 600; font-size: 0.75rem; letter-spacing: 1px;">
-                            <i class="fas fa-user-circle me-1"></i> @username
-                        </span>
+                        <span class="lr-user-link"><i class="fas fa-user-circle"></i> @tenHienThi</span>
+                        <a href="@Url.Action("Portal", "Auth")" class="lr-btn-outline-sm"><i class="fas fa-briefcase"></i> Trang nhân viên</a>
                     }
-                    @if (role == "Admin")
-                    {
-                        <a href="@Url.Action("Index", "Admin")" class="btn btn-sm btn-outline-gold px-3 py-1" style="font-size:0.75rem; border-color:var(--lr-gold); color:var(--lr-gold); text-transform:uppercase;"><i class="fas fa-cog me-1"></i> Admin Portal</a>
-                    }
-                    else if (role == "Receptionist")
-                    {
-                        <a href="@Url.Action("Index", "Reception")" class="btn btn-sm btn-outline-gold px-3 py-1" style="font-size:0.75rem; border-color:var(--lr-gold); color:var(--lr-gold); text-transform:uppercase;"><i class="fas fa-concierge-bell me-1"></i> Lễ Tân</a>
-                    }
-                    <a href="@Url.Action("Logout", "Auth")" class="lr-login-link text-danger ms-2" style="font-size:0.8rem; font-weight: 600;"><i class="fas fa-sign-out-alt"></i></a>
-                </div>
-            }
-            else
-            {
-                <div class="d-flex align-items-center gap-2">
-                    <a href="@Url.Action("Login", "Auth")" class="btn btn-sm btn-outline-gold px-4 py-2" style="font-size: 0.75rem; font-weight:600; letter-spacing:1px; border-color:var(--lr-gold); color:var(--lr-gold); text-transform:uppercase; border-radius: 4px; transition: all 0.3s;">
-                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
-                    </a>
-                    <a href="@Url.Action("Register", "Auth")" class="btn btn-sm px-4 py-2" style="font-size: 0.75rem; font-weight:600; letter-spacing:1px; background-color:var(--lr-gold); color:var(--lr-white); text-transform:uppercase; border-radius: 4px; transition: all 0.3s;">
-                        <i class="fas fa-user-plus me-2"></i>Đăng ký
-                    </a>
-                </div>
-            }
+                    <a href="@Url.Action("Logout", "Auth")" class="lr-logout-link" title="Đăng xuất"><i class="fas fa-sign-out-alt"></i><span class="lr-logout-text">Đăng xuất</span></a>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "Auth")" class="lr-btn-outline-sm"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
+                    <a href="@Url.Action("Register", "Auth")" class="lr-btn-gold-sm"><i class="fas fa-user-plus"></i> Đăng ký</a>
+                }
+            </div>
         </div>
     </nav>
 

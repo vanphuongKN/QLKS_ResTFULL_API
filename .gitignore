@@ -33,3 +33,6 @@ build_errors.txt
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Ban sao luu cuc bo (zip, .bak) - khong dua vao git
+backup/

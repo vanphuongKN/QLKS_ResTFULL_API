@@ -1,4 +1,4 @@
-@model IEnumerable<QLKSan.Models.Entities.Phong>
+@model IEnumerable<QLKSan.Models.DTOs.RoomDto>
 @{
     ViewData["Title"] = "Trạng thái phòng";
     
@@ -11,7 +11,7 @@
 <!-- Hero Banner -->
 <div class="hero-banner mb-4">
     <h2>Tổng quan trạng thái phòng</h2>
-    <p>Tổng quan hàng ngày về tình trạng phòng và chu kỳ phục vụ của Grand Reserve. Quản lý việc khách đến và lịch trình dịch vụ với độ chính xác tuyệt đối từ Cơ sở dữ liệu.</p>
+    <p>Tình trạng từng phòng theo thời gian thực: phòng trống, đang có khách, sắp có khách đến, đang dọn và đang bảo trì.</p>
     <div class="d-flex gap-5">
         <div>
             <div class="stat-label">Công suất phòng</div>
@@ -30,7 +30,7 @@
     <button class="filter-btn" data-filter="Available">Trống</button>
     <button class="filter-btn" data-filter="Occupied">Đang ở</button>
     <button class="filter-btn" data-filter="Booked">Đã đặt</button>
-    <button class="filter-btn" data-filter="Cleaning">Dọn dẹp</button>
+    <button class="filter-btn" data-filter="Cleaning">Đang dọn</button>
     <button class="filter-btn" data-filter="Maintenance">Bảo trì</button>
 </div>
 
@@ -101,9 +101,7 @@
             }
             else if (room.TrangThai == QLKSan.Enums.RoomStatus.Occupied)
             {
-                var activeStay = room.ChiTietDatPhongs?
-                    .Select(c => c.PhieuDatPhong)
-                    .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn);
+                var activeStay = room.DangLuuTru;
                     
                 var customerName = activeStay != null ? $"{activeStay.KhachHang.Ho} {activeStay.KhachHang.Ten}" : "Khách lưu trú";
                 var checkInDate = activeStay != null ? (activeStay.NgayCheckInThucTe?.ToString("dd/MM") ?? "--") : "--";
@@ -131,12 +129,10 @@
             }
             else if (room.TrangThai == QLKSan.Enums.RoomStatus.Booked)
             {
-                var activeBooking = room.ChiTietDatPhongs?
-                    .Select(c => c.PhieuDatPhong)
-                    .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.Approved || p.TrangThai == QLKSan.Enums.BookingStatus.Pending);
+                var activeBooking = room.DatPhongHienTai;
                     
                 var bookedCustomer = activeBooking != null ? $"{activeBooking.KhachHang.Ho} {activeBooking.KhachHang.Ten}" : "Khách đã đặt";
-                var expectedArrival = activeBooking != null ? activeBooking.NgayCheckInDuKien.ToString("dd/MM/yyyy HH:mm") : "Hôm nay, 14:00";
+                var expectedArrival = activeBooking != null ? activeBooking.NgayCheckInDuKien.ToString("dd/MM/yyyy") : "—";
                 
                 <div class="col-lg-3 col-md-6 room-col" data-status="Booked" data-room-number="@room.SoPhong" data-room-type="@room.LoaiPhong.TenLoai" data-customer="@bookedCustomer">
                     <div class="room-card" onclick="location.href='/Room/Details/@room.MaPhong'">
@@ -149,11 +145,8 @@
                         </div>
                         <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
                         <p class="mb-1 text-navy" style="font-size:0.9rem;"><i class="fas fa-user me-2 text-muted small"></i><strong>@bookedCustomer</strong></p>
-                        <p class="text-muted small mb-2">Dự kiến: @expectedArrival</p>
-                        <div class="progress mb-2" style="height:4px">
-                            <div class="progress-bar" style="width:100%;background:#C5A059"></div>
-                        </div>
-                        <button class="btn btn-outline-navy btn-sm w-100" onclick="event.stopPropagation(); location.href='/Reception/Index'">Xem lịch lễ tân</button>
+                        <p class="text-muted small mb-3">Dự kiến nhận phòng: @expectedArrival</p>
+                        <button class="btn btn-outline-navy btn-sm w-100" onclick="event.stopPropagation(); location.href='/Room/Timeline'">Xem lịch phòng</button>
                     </div>
                 </div>
             }
@@ -166,17 +159,13 @@
                                 <span class="room-type">@room.LoaiPhong.TenLoai</span>
                                 <div class="room-number">Phòng @room.SoPhong</div>
                             </div>
-                            <span class="badge-status badge-cleaning">Dọn dẹp</span>
+                            <span class="badge-status badge-cleaning">Đang dọn</span>
                         </div>
                         <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
                         <div class="text-center py-3">
                             <i class="fas fa-broom fs-2 text-gold opacity-75 animate-bounce"></i>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Ưu tiên</small>
-                            <small class="text-danger fw-bold">CAO</small>
-                        </div>
-                        <p class="text-muted small mb-0">Đang dọn phòng làm sạch</p>
+                        <p class="text-muted small mb-0">Chờ buồng phòng dọn xong trước khi đón khách mới</p>
                     </div>
                 </div>
             }
@@ -189,17 +178,13 @@
                                 <span class="room-type">@room.LoaiPhong.TenLoai</span>
                                 <div class="room-number">Phòng @room.SoPhong</div>
                             </div>
-                            <span class="badge-status" style="background-color:#f1f3f5; color:#6c757d; font-weight:700; padding:6px 14px; border-radius:4px; font-size:0.8rem;">Bảo trì</span>
+                            <span class="badge-status badge-maintenance">Bảo trì</span>
                         </div>
                         <img src="@imageUrl" alt="Room" style="border-radius:4px; margin-bottom: 12px; width: 100%; height: 120px; object-fit: cover;">
                         <div class="text-center py-3">
                             <i class="fas fa-tools fs-2 text-secondary opacity-75"></i>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Bộ phận</small>
-                            <small class="text-navy fw-bold">KỸ THUẬT</small>
-                        </div>
-                        <p class="text-muted small mb-0">Đang chờ khắc phục sự cố</p>
+                        <p class="text-muted small mb-0">Tạm ngưng nhận khách cho đến khi khắc phục xong</p>
                     </div>
                 </div>
             }
@@ -208,7 +193,7 @@
     else
     {
         <div class="col-12 text-center py-5">
-            <h5 class="text-muted">Không tìm thấy phòng nào trong Cơ sở dữ liệu.</h5>
+            <h5 class="text-muted">Chưa có phòng nào.</h5>
         </div>
     }
 </div>

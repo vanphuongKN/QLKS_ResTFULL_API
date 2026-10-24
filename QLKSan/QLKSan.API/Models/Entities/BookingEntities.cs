@@ -86,8 +86,12 @@ namespace QLKSan.Models.Entities
         [Column(TypeName = "decimal(18,0)")]
         [Range(0, double.MaxValue, ErrorMessage = "Tiền cọc không được âm")]
         public decimal TienCoc { get; set; } = 0;
-        
+
         public string? GhiChu { get; set; }
+
+        // Mã khuyến mãi khách chọn khi đặt online (được áp dụng khi lập hoá đơn)
+        [StringLength(10)]
+        public string? MaKhuyenMai { get; set; }
 
         public KhachHang KhachHang { get; set; }
         public NhanVien NhanVien { get; set; }
@@ -185,6 +189,16 @@ namespace QLKSan.Models.Entities
         
         [Column(TypeName = "decimal(18,0)")]
         public decimal TongTienCanThanhToan { get; set; }
+
+        // Số đêm tính tiền thực tế (giá có thể khác nhau từng đêm nên không suy ra được từ TongTienPhong)
+        public int SoDem { get; set; }
+
+        // Tiền cọc của phiếu đặt, trừ vào số tiền phải thu khi thanh toán
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TienCoc { get; set; } = 0;
+
+        // Cột tính toán trong SQL: TongTienCanThanhToan - TienCoc (âm = khách cọc thừa)
+        public decimal SoTienConLai { get; set; }
         
         public InvoiceStatus TrangThai { get; set; } = InvoiceStatus.Unpaid;
 
@@ -215,8 +229,53 @@ namespace QLKSan.Models.Entities
         [StringLength(255)]
         public string GhiChu { get; set; }
 
+        // Thu tiền khách hay hoàn tiền cho khách (số tiền luôn dương)
+        public PaymentType LoaiGiaoDich { get; set; } = PaymentType.Payment;
+
+        // Nhân viên thực hiện giao dịch (dùng để đối soát/chốt ca)
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
         public HoaDon? HoaDon { get; set; }
+        public NhanVien? NhanVien { get; set; }
         public ICollection<LichSuGiaoDich> LichSuGiaoDichs { get; set; }
+    }
+
+    // Công việc dọn phòng giao cho nhân viên buồng phòng
+    public class PhanCongDonPhong
+    {
+        [Key]
+        [StringLength(10)]
+        public string MaPhanCong { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("Phong")]
+        public string MaPhong { get; set; }
+
+        // NULL = chưa giao cho ai
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
+        // Phiếu đặt vừa trả phòng tạo ra công việc này (nếu có)
+        [StringLength(10)]
+        public string? MaDatPhong { get; set; }
+
+        [StringLength(50)]
+        public string LoaiCongViec { get; set; }
+
+        public HousekeepingTaskStatus TrangThai { get; set; } = HousekeepingTaskStatus.Unassigned;
+        public DateTime ThoiGianTao { get; set; } = DateTime.Now;
+        public DateTime? ThoiGianGiao { get; set; }
+        public DateTime? ThoiGianBatDau { get; set; }
+        public DateTime? ThoiGianHoanThanh { get; set; }
+
+        [StringLength(500)]
+        public string? GhiChu { get; set; }
+
+        public Phong Phong { get; set; }
+        public NhanVien? NhanVien { get; set; }
     }
 
     public class LichSuGiaoDich

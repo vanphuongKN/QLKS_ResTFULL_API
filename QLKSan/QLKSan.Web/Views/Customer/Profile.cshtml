@@ -1,88 +1,92 @@
 @{
     Layout = "_CustomerLayout";
     ViewData["Title"] = "Hồ sơ";
-    var customer = ViewBag.Customer as QLKSan.Models.Entities.KhachHang;
+    var customer = ViewBag.Customer as QLKSan.Models.DTOs.CustomerDto;
     var contact = customer?.LienHeDiaChis?.FirstOrDefault();
 
     int points = customer != null ? customer.DiemTichLuy : 0;
     string tierName = "Thành viên Đồng";
     string nextTier = "Thành viên Bạc";
     int maxForNext = 1000;
-    
+
     if (points >= 5000) { tierName = "Thành viên Kim Cương"; nextTier = "Thành viên Kim Cương"; maxForNext = points; }
     else if (points >= 3000) { tierName = "Thành viên Vàng"; nextTier = "Thành viên Kim Cương"; maxForNext = 5000; }
     else if (points >= 1000) { tierName = "Thành viên Bạc"; nextTier = "Thành viên Vàng"; maxForNext = 3000; }
 
     double progress = maxForNext > 0 && points < 5000 ? (double)points / maxForNext * 100 : 100;
+    var diaChi = contact == null ? null : string.Join(", ", new[] { contact.DiaChi, contact.QuocGia }.Where(x => !string.IsNullOrWhiteSpace(x)));
 }
 
 <!-- Hero Section -->
 <div class="profile-hero">
     <div class="profile-hero-left">
         <div class="welcome-label">Chào mừng quay trở lại</div>
-        <div class="profile-name">@(customer != null ? customer.Ten : "Khách quý")</div>
+        <div class="profile-name">@(customer?.HoTen ?? "Quý khách")</div>
         <div class="profile-points">
             <div>
-                <div class="points-label">Trạng thái Điểm Tích Lũy</div>
+                <div class="points-label">Điểm tích luỹ</div>
                 <div class="d-flex align-items-baseline gap-2">
                     <i class="fas fa-gem" style="color:var(--lr-gold)"></i>
-                    <span class="points-value">@(customer != null ? customer.DiemTichLuy.ToString("N0") : "0")</span>
-                    <span style="font-size:0.85rem">Điểm</span>
+                    <span class="points-value">@points.ToString("N0")</span>
+                    <span style="font-size:0.85rem">điểm · @tierName</span>
                 </div>
             </div>
         </div>
     </div>
     <div class="profile-hero-right">
-        <img src="/images/hero.png" alt="Luxe Hotel Terrace">
+        <img src="/images/hero.png" alt="Sảnh khách sạn LUXE RESERVE">
     </div>
 </div>
 
 <!-- Info Grid -->
 <div class="profile-grid">
     <div class="lr-card">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4>Thông tin cá nhân</h4>
-            <a href="#" onclick="alert('Tính năng chỉnh sửa thông tin cá nhân đang được bảo trì. Vui lòng liên hệ lễ tân để được hỗ trợ!')" class="lr-edit-link">Chỉnh sửa</a>
-        </div>
-        <div class="mb-3">
-            <div class="lr-info-label">Họ và tên</div>
-            <div class="lr-info-row">
-                <span class="lr-info-value">@(customer != null ? $"{customer.Ho} {customer.Ten}" : "Chưa cập nhật")</span>
-                <span class="lr-info-label">CCCD / Passport</span>
+        <h4>Thông tin cá nhân</h4>
+        <div class="row g-3">
+            <div class="col-sm-6">
+                <div class="lr-info-label">Họ và tên</div>
+                <div class="lr-info-value">@(customer?.HoTen ?? "Chưa cập nhật")</div>
             </div>
-            <span class="lr-info-value" style="float:right;margin-top:-20px">@(customer != null ? customer.CCCD_Passport : "N/A")</span>
+            <div class="col-sm-6">
+                <div class="lr-info-label">CCCD / Hộ chiếu</div>
+                <div class="lr-info-value">@(customer?.CCCD_Passport ?? "Chưa cập nhật")</div>
+            </div>
+            <div class="col-sm-6">
+                <div class="lr-info-label">Ngày sinh</div>
+                <div class="lr-info-value">@(customer != null && customer.NgaySinh > DateTime.MinValue ? customer.NgaySinh.ToString("dd/MM/yyyy") : "Chưa cập nhật")</div>
+            </div>
+            <div class="col-sm-6">
+                <div class="lr-info-label">Số lần đặt phòng</div>
+                <div class="lr-info-value">@(customer?.SoLanDatPhong ?? 0) lần</div>
+            </div>
         </div>
-        <div class="mb-0 mt-4">
-            <div class="lr-info-label">Sở thích nghỉ dưỡng</div>
-            <div class="lr-info-value">Hạng phòng cao cấp, Hướng biển đẹp, Dịch vụ ẩm thực Michelin, Phục vụ chu đáo 24/7</div>
-        </div>
+        <p class="text-muted small mt-4 mb-0"><i class="fas fa-circle-info me-1"></i>Cần thay đổi họ tên hoặc giấy tờ? Vui lòng liên hệ quầy lễ tân để được cập nhật.</p>
     </div>
 
     <div class="lr-card-dark">
-        <div class="lr-card-label">Liên hệ & Địa chỉ</div>
-        <h4 style="font-family:'Playfair Display',serif;color:#fff">Liên hệ & Địa chỉ</h4>
+        <div class="lr-card-label">Liên hệ</div>
+        <h4 style="font-family:'Playfair Display',serif;color:#fff">Liên hệ &amp; Địa chỉ</h4>
         <div class="lr-contact-row">
             <i class="fas fa-envelope"></i>
             <div>
                 <div class="lr-info-label" style="color:rgba(255,255,255,0.5)">Email</div>
-                <span>@(contact != null ? contact.Email : "chưa cập nhật")</span>
+                <span>@(string.IsNullOrWhiteSpace(contact?.Email) ? "Chưa cập nhật" : contact.Email)</span>
             </div>
         </div>
         <div class="lr-contact-row">
             <i class="fas fa-phone"></i>
             <div>
                 <div class="lr-info-label" style="color:rgba(255,255,255,0.5)">Số điện thoại</div>
-                <span>@(contact != null ? contact.SDT : "chưa cập nhật")</span>
+                <span>@(string.IsNullOrWhiteSpace(contact?.SDT) ? "Chưa cập nhật" : contact.SDT)</span>
             </div>
         </div>
-        <div class="lr-contact-row">
+        <div class="lr-contact-row mb-0">
             <i class="fas fa-map-marker-alt"></i>
             <div>
                 <div class="lr-info-label" style="color:rgba(255,255,255,0.5)">Địa chỉ</div>
-                <span>@(contact != null ? $"{contact.DiaChi}, {contact.QuocGia}" : "chưa cập nhật")</span>
+                <span>@(string.IsNullOrWhiteSpace(diaChi) ? "Chưa cập nhật" : diaChi)</span>
             </div>
         </div>
-        <button onclick="alert('Tính năng đang được cập nhật!')" class="btn-dark-full mt-3">Cập nhật thông tin liên hệ</button>
     </div>
 </div>
 
@@ -91,9 +95,9 @@
     <div class="bottom-card">
         <div class="bc-icon"><i class="fas fa-tag"></i></div>
         <h5>@tierName</h5>
-        <p>Bạn tích lũy được @(points.ToString("N0")) điểm dịch vụ tại Luxe Reserve.</p>
+        <p>Bạn đã tích luỹ @points.ToString("N0") điểm tại LUXE RESERVE.</p>
         <div class="membership-bar" style="background:#eee">
-            <div class="membership-bar-fill" style="width:@(progress)%;background:var(--lr-gold); height:8px; border-radius:4px;"></div>
+            <div class="membership-bar-fill" style="width:@(progress.ToString("0", System.Globalization.CultureInfo.InvariantCulture))%;background:var(--lr-gold); height:8px; border-radius:4px;"></div>
         </div>
         <div class="d-flex justify-content-between mt-2">
             <small class="text-muted">HIỆN TẠI</small>
@@ -101,15 +105,15 @@
         </div>
     </div>
     <div class="bottom-card">
-        <div class="bc-label">Trải nghiệm thượng lưu</div>
-        <h5>Dịch vụ ẩm thực Michelin</h5>
-        <p>Thưởng thức tinh hoa ẩm thực đỉnh cao với thẻ thành viên hoàng gia.</p>
-        <a href="#accommodation-section" class="bc-link">Xem thực đơn Michelin →</a>
+        <div class="bc-label">Đặt phòng</div>
+        <h5>Lên kế hoạch kỳ nghỉ mới</h5>
+        <p>Xem phòng trống theo ngày và giá từng đêm trước khi đặt.</p>
+        <a href="@Url.Action("BookRoom", "Customer")" class="bc-link">Đặt phòng ngay <i class="fas fa-arrow-right"></i></a>
     </div>
     <div class="bottom-card">
-        <div class="bc-label">Quản gia</div>
-        <h5>Hỗ trợ riêng biệt</h5>
-        <p>Trợ lý cá nhân của bạn đã sẵn sàng hỗ trợ lịch trình.</p>
-        <a href="mailto:concierge@luxereserve.com" class="bc-link">Gửi email cho Quản gia <i class="fas fa-envelope"></i></a>
+        <div class="bc-label">Kỳ nghỉ</div>
+        <h5>Lịch sử &amp; hoá đơn</h5>
+        <p>Theo dõi phiếu đặt, huỷ phiếu chưa nhận phòng và tải hoá đơn.</p>
+        <a href="@Url.Action("MyStays", "Customer")" class="bc-link">Xem kỳ nghỉ của tôi <i class="fas fa-arrow-right"></i></a>
     </div>
 </div>

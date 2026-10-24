@@ -1,27 +1,33 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QLKSan.Business;
-using QLKSan.ViewModels;
+using QLKSan.ApiClients;
+using QLKSan.Infrastructure;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
 {
+    [Authorize(Roles = WebRoles.FrontDesk)]
     public class ReceptionController : Controller
     {
-        private readonly IReceptionService _receptionService;
+        private readonly IRoomApiClient _roomApi;
+        private readonly IBookingApiClient _bookingApi;
+        private readonly ICustomerApiClient _customerApi;
 
-        public ReceptionController(IReceptionService receptionService)
+        public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi)
         {
-            _receptionService = receptionService;
+            _roomApi = roomApi;
+            _bookingApi = bookingApi;
+            _customerApi = customerApi;
         }
 
-        // Dashboard Lễ Tân
         [HttpGet]
         public async Task<IActionResult> Index(string search = null)
         {
             ViewBag.Search = search;
-            ViewBag.Rooms = await _receptionService.GetAllRoomsAsync();
-            ViewBag.OnlineBookings = await _receptionService.GetOnlineBookingsAsync();
-            ViewBag.Bookings = await _receptionService.GetAllBookingsAsync(search);
+            ViewBag.Rooms = await _roomApi.GetAllAsync();
+            ViewBag.OnlineBookings = await _bookingApi.GetOnlineAsync();
+            ViewBag.Bookings = await _bookingApi.GetAllAsync(search);
             return View();
         }
 
@@ -29,73 +35,78 @@ namespace QLKSan.Controllers
         [HttpPost]
         public async Task<IActionResult> ApproveBooking(string id)
         {
-            bool success = await _receptionService.ApproveOnlineBookingAsync(id);
-            if (success) TempData["SuccessMessage"] = "Đã duyệt yêu cầu đặt phòng trực tuyến.";
-            else TempData["ErrorMessage"] = "Không thể duyệt yêu cầu này.";
+            try
+            {
+                await _bookingApi.ApproveAsync(id);
+                TempData["SuccessMessage"] = "Đã duyệt yêu cầu đặt phòng trực tuyến.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể duyệt yêu cầu này. " + ex.UserMessage;
+            }
             return RedirectToAction("Index");
         }
 
-        // Check-in phòng online
+        // Check-in phòng online (mã nhân viên lấy từ JWT phía API)
         [HttpPost]
         public async Task<IActionResult> CheckInOnlineBooking(string id)
         {
-            string maNhanVien = "NV01"; // Default fallback
-            var username = Request.Cookies["Username"];
-            if (!string.IsNullOrEmpty(username))
+            try
             {
-                var account = await _receptionService.GetAccountByUsernameAsync(username);
-                if (account != null && account.NhanVien != null)
-                {
-                    maNhanVien = account.NhanVien.MaNhanVien;
-                }
+                await _bookingApi.CheckInAsync(id);
+                TempData["SuccessMessage"] = "Khách đã nhận phòng thành công.";
             }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể check-in cho đơn này. " + ex.UserMessage;
+            }
+            return RedirectToAction("Index");
+        }
 
-            bool success = await _receptionService.CheckInOnlineBookingAsync(id, maNhanVien);
-            if (success) TempData["SuccessMessage"] = "Khách đã nhận phòng thành công.";
-            else TempData["ErrorMessage"] = "Không thể check-in cho đơn này. Vui lòng thử lại.";
+        // Từ chối phiếu chờ duyệt / huỷ phiếu đã duyệt
+        [HttpPost]
+        public async Task<IActionResult> CancelBooking(string id, string lyDo)
+        {
+            try
+            {
+                await _bookingApi.CancelAsync(id, lyDo);
+                TempData["SuccessMessage"] = $"Đã huỷ/từ chối phiếu đặt phòng {id}.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể huỷ phiếu. " + ex.UserMessage;
+            }
             return RedirectToAction("Index");
         }
 
         // --- WALK-IN CHECK-IN (Khách vãng lai) ---
 
         [HttpGet]
-        public async Task<IActionResult> WalkIn()
+        // maPhong: chọn sẵn phòng khi bấm "Nhận khách" từ sơ đồ phòng
+        public async Task<IActionResult> WalkIn(string maPhong)
         {
-            var availableRooms = await _receptionService.GetAvailableRoomsAsync();
-            ViewBag.AvailableRooms = availableRooms;
-            return View(new CheckInViewModel());
+            ViewBag.AvailableRooms = await _roomApi.GetAvailableAsync();
+            return View(new CheckInRequest { MaPhong = maPhong });
         }
 
         [HttpPost]
-        public async Task<IActionResult> WalkIn(CheckInViewModel model)
+        public async Task<IActionResult> WalkIn(CheckInRequest model)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                ViewBag.AvailableRooms = await _receptionService.GetAvailableRoomsAsync();
-                return View(model);
-            }
-
-            string maNhanVien = "NV01"; // Default fallback
-            var username = Request.Cookies["Username"];
-            if (!string.IsNullOrEmpty(username))
-            {
-                var account = await _receptionService.GetAccountByUsernameAsync(username);
-                if (account != null && account.NhanVien != null)
+                try
                 {
-                    maNhanVien = account.NhanVien.MaNhanVien;
+                    await _bookingApi.WalkInAsync(model);
+                    TempData["SuccessMessage"] = "Tạo mới đặt phòng và Check-in thành công!";
+                    return RedirectToAction("Index");
+                }
+                catch (ApiException ex)
+                {
+                    ModelState.AddModelError("", ex.UserMessage);
                 }
             }
 
-            string error = await _receptionService.ProcessCheckInAsync(model, maNhanVien);
-            
-            if (error == null)
-            {
-                TempData["SuccessMessage"] = "Tạo mới đặt phòng và Check-in thành công!";
-                return RedirectToAction("Index");
-            }
-            
-            ModelState.AddModelError("", error);
-            ViewBag.AvailableRooms = await _receptionService.GetAvailableRoomsAsync();
+            ViewBag.AvailableRooms = await _roomApi.GetAvailableAsync();
             return View(model);
         }
 
@@ -103,7 +114,7 @@ namespace QLKSan.Controllers
         public async Task<IActionResult> BookingHistory(string search)
         {
             ViewBag.Search = search;
-            var bookings = await _receptionService.GetAllBookingsAsync(search);
+            var bookings = await _bookingApi.GetAllAsync(search);
             return View(bookings);
         }
 
@@ -111,14 +122,14 @@ namespace QLKSan.Controllers
         public async Task<IActionResult> Customers(string search)
         {
             ViewBag.Search = search;
-            var customers = await _receptionService.GetAllCustomersAsync(search);
+            var customers = await _customerApi.GetAllAsync(search);
             return View(customers);
         }
 
         [HttpGet]
         public async Task<IActionResult> CustomerDetails(string id)
         {
-            var customer = await _receptionService.GetCustomerDetailsAsync(id);
+            var customer = await _customerApi.GetByIdAsync(id);
             if (customer == null)
             {
                 return NotFound("Không tìm thấy khách hàng.");

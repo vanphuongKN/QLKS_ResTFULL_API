@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Quản lý Phòng";
-    var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.Entities.Phong>;
-    var roomTypes = ViewBag.RoomTypes as IEnumerable<QLKSan.Models.Entities.LoaiPhong>;
+    var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
+    var roomTypes = ViewBag.RoomTypes as IEnumerable<QLKSan.Models.DTOs.RoomTypeDto>;
 }
 
 <div class="page-header">
@@ -40,9 +40,14 @@
                 {
                     foreach (var room in rooms)
                     {
-                        var statusClass = room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "badge-available"
-                                        : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "badge-occupied"
-                                        : "badge-cleaning";
+                        var statusClass = room.TrangThai switch
+                        {
+                            QLKSan.Enums.RoomStatus.Available => "badge-available",
+                            QLKSan.Enums.RoomStatus.Occupied => "badge-occupied",
+                            QLKSan.Enums.RoomStatus.Booked => "badge-booked",
+                            QLKSan.Enums.RoomStatus.Maintenance => "badge-maintenance",
+                            _ => "badge-cleaning"
+                        };
                         <tr>
                             <td><strong>@room.MaPhong</strong></td>
                             <td>@room.SoPhong</td>

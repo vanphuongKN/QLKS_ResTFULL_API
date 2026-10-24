@@ -7,12 +7,13 @@ namespace QLKSan.Business
     public interface ICustomerService
     {
         Task<KhachHang> GetCustomerByAccountIdAsync(string maDangNhap);
-        Task<KhachHang> GetCustomerByUsernameAsync(string username);
         Task<IEnumerable<PhieuDatPhong>> GetBookingsByCustomerAsync(string maKhachHang);
-        Task<IEnumerable<Phong>> GetAvailableRoomsForBookingAsync();
-        Task<string?> CreateOnlineBookingAsync(string maKhachHang, string maPhong, int soNguoi, System.DateTime checkIn, System.DateTime checkOut, string? maKhuyenMai = null);
-        Task<KhuyenMai?> GetPromotionAsync(string code);
-        Task<bool> SubmitReviewAsync(string maKhachHang, string maPhong, int soSao, string noiDung, bool anDanh);
+        // Trả về mã phiếu đặt phòng vừa tạo; ném BusinessException nếu phòng không hợp lệ
+        Task<string> CreateOnlineBookingAsync(string maKhachHang, string maPhong, int soNguoi, System.DateTime checkIn, System.DateTime checkOut, string? maKhuyenMai = null);
+
+        // Trả về khuyến mãi nếu đang có hiệu lực; ném NotFoundException/BusinessException nếu không
+        Task<KhuyenMai> GetActivePromotionAsync(string code);
+        Task<DanhGia> SubmitReviewAsync(string maKhachHang, string maPhong, int soSao, string noiDung, bool anDanh);
         Task<IEnumerable<DanhGia>> GetReviewsByCustomerAsync(string maKhachHang);
     }
 }

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - LuxeRegistry</title>
+    <title>@ViewData["Title"] - LUXE RESERVE</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,49 +15,67 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-brand">
-                <h4>LuxeRegistry</h4>
+                <h4>LUXE RESERVE</h4>
             </div>
             <div class="sidebar-hotel">
-                <p class="hotel-name">The Grand Reserve</p>
                 <p class="hotel-sub">Cổng thông tin nhân viên</p>
             </div>
+            @{
+                var role = User.GetRole();
+                var ctrl = ViewContext.RouteData.Values["Controller"]?.ToString();
+                var act = ViewContext.RouteData.Values["Action"]?.ToString();
+                bool laAdmin = role == "Admin", laLeTan = role == "Receptionist", laBuongPhong = role == "Housekeeping", laKeToan = role == "Accountant";
+                string Active(string c, string a = null) => ctrl == c && (a == null || act == a) ? "active" : "";
+            }
             <nav class="sidebar-nav">
-                @if (Context.Request.Cookies["UserRole"] == "Admin")
+                @if (laAdmin)
                 {
-                    <a href="@Url.Action("Index", "Admin")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Admin" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
-                        <i class="fas fa-th-large"></i> Bảng điều khiển
-                    </a>
+                    <a href="@Url.Action("Index", "Admin")" class="nav-item @Active("Admin", "Index")"><i class="fas fa-th-large"></i> Bảng điều khiển</a>
+                    <a href="@Url.Action("Pricing", "Admin")" class="nav-item @Active("Admin", "Pricing")"><i class="fas fa-calendar-alt"></i> Bảng giá</a>
                 }
-                <a href="@Url.Action("Index", "Reception")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Reception" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
-                    <i class="fas fa-concierge-bell"></i> Lễ tân
-                </a>
-                <a href="@Url.Action("Customers", "Reception")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Reception" && ViewContext.RouteData.Values["Action"].ToString() == "Customers" ? "active" : "")">
-                    <i class="fas fa-users"></i> Khách hàng
-                </a>
-                <a href="@Url.Action("Status", "Room")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Room" ? "active" : "")">
-                    <i class="fas fa-th"></i> Phòng nghỉ
-                </a>
-                <a href="@Url.Action("Index", "Service")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Service" ? "active" : "")">
-                    <i class="fas fa-bell-concierge"></i> Dịch vụ
-                </a>
-                <a href="@Url.Action("Tasks", "Housekeeping")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Housekeeping" ? "active" : "")">
-                    <i class="fas fa-broom"></i> Buồng phòng
-                </a>
+                @if (laAdmin || laLeTan)
+                {
+                    <a href="@Url.Action("Index", "Reception")" class="nav-item @Active("Reception", "Index")"><i class="fas fa-concierge-bell"></i> Lễ tân</a>
+                    <a href="@Url.Action("Customers", "Reception")" class="nav-item @Active("Reception", "Customers")"><i class="fas fa-users"></i> Khách hàng</a>
+                }
+                @if (laAdmin || laLeTan || laKeToan)
+                {
+                    <a href="@Url.Action("Status", "Room")" class="nav-item @(ctrl == "Room" && act is "Status" or "Details" ? "active" : "")"><i class="fas fa-th"></i> Phòng nghỉ</a>
+                    <a href="@Url.Action("Timeline", "Room")" class="nav-item @Active("Room", "Timeline")"><i class="fas fa-stream"></i> Lịch phòng</a>
+                    <a href="@Url.Action("Guests", "Room")" class="nav-item @Active("Room", "Guests")"><i class="fas fa-id-card"></i> Sổ lưu trú</a>
+                }
+                @if (laAdmin || laLeTan)
+                {
+                    <a href="@Url.Action("Index", "Service")" class="nav-item @Active("Service")"><i class="fas fa-mug-hot"></i> Dịch vụ</a>
+                    <a href="@Url.Action("Tasks", "Housekeeping")" class="nav-item @Active("Housekeeping", "Tasks")"><i class="fas fa-broom"></i> Buồng phòng</a>
+                }
+                @if (laBuongPhong)
+                {
+                    <a href="@Url.Action("MyTasks", "Housekeeping")" class="nav-item @Active("Housekeeping", "MyTasks")"><i class="fas fa-clipboard-check"></i> Việc của tôi</a>
+                }
+                @if (laAdmin || laKeToan)
+                {
+                    <a href="@Url.Action("Invoices", "Accounting")" class="nav-item @(ctrl == "Accounting" && act != "Reports" ? "active" : "")"><i class="fas fa-file-invoice-dollar"></i> Hoá đơn</a>
+                    <a href="@Url.Action("Reports", "Accounting")" class="nav-item @Active("Accounting", "Reports")"><i class="fas fa-chart-line"></i> Báo cáo</a>
+                }
             </nav>
             <div class="sidebar-logout">
                 <a href="@Url.Action("Logout", "Auth")"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
             </div>
         </div>
+        <div class="sidebar-backdrop" onclick="document.body.classList.remove('sidebar-open')"></div>
 
         <!-- Page Content -->
         <div id="page-content-wrapper">
             <!-- Top Bar -->
             <div class="topbar">
-                <div style="width:100px"></div>
+                <button type="button" class="sidebar-toggle" aria-label="Mở menu" onclick="document.body.classList.toggle('sidebar-open')"><i class="fas fa-bars"></i></button>
+                <span class="topbar-brand">LUXE RESERVE</span>
+                <div class="d-none d-lg-block"></div>
 
                 <div class="topbar-actions">
                     @{
-                        var userRole = Context.Request.Cookies["UserRole"];
+                        var userRole = User.GetRole();
                         var displayRole = "";
                         var roleInitials = "AD";
                         if (userRole == "Admin")
@@ -69,6 +87,16 @@
                         {
                             displayRole = "Lễ tân";
                             roleInitials = "LT";
+                        }
+                        else if (userRole == "Housekeeping")
+                        {
+                            displayRole = "Buồng phòng";
+                            roleInitials = "BP";
+                        }
+                        else if (userRole == "Accountant")
+                        {
+                            displayRole = "Kế toán";
+                            roleInitials = "KT";
                         }
                         else
                         {
@@ -96,6 +124,16 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Bảng rộng tự cuộn ngang trong khung của nó thay vì kéo giãn cả trang
+        document.querySelectorAll('.page-content table').forEach(function (t) {
+            if (t.closest('.table-responsive')) return;
+            var w = document.createElement('div');
+            w.className = 'table-responsive';
+            t.parentNode.insertBefore(w, t);
+            w.appendChild(t);
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,18 +1,22 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QLKSan.Business;
+using QLKSan.ApiClients;
+using QLKSan.Infrastructure;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
 {
+    [Authorize(Roles = WebRoles.Cashier)]
     public class CheckoutController : Controller
     {
-        private readonly ICheckoutService _checkoutService;
-        private readonly IReceptionService _receptionService;
+        private readonly IRoomApiClient _roomApi;
+        private readonly IInvoiceApiClient _invoiceApi;
 
-        public CheckoutController(ICheckoutService checkoutService, IReceptionService receptionService)
+        public CheckoutController(IRoomApiClient roomApi, IInvoiceApiClient invoiceApi)
         {
-            _checkoutService = checkoutService;
-            _receptionService = receptionService;
+            _roomApi = roomApi;
+            _invoiceApi = invoiceApi;
         }
 
         [HttpGet]
@@ -23,7 +27,7 @@ namespace QLKSan.Controllers
                 return View();
             }
 
-            var booking = await _checkoutService.GetBookingDetailsByRoomAsync(maPhong);
+            var booking = await _roomApi.GetCurrentStayAsync(maPhong);
             if (booking == null)
             {
                 TempData["ErrorMessage"] = "Không tìm thấy phòng hoặc phòng chưa check-in.";
@@ -35,88 +39,49 @@ namespace QLKSan.Controllers
             return View();
         }
 
+        // Mã nhân viên lập hoá đơn được API lấy từ JWT của người đang đăng nhập
         [HttpPost]
         public async Task<IActionResult> GenerateInvoice(string maDatPhong, string? maKhuyenMai, string maPhong)
         {
-            // Get real employee ID from cookie
-            string maNhanVienLap = "NV01";
-            var username = Request.Cookies["Username"];
-            if (!string.IsNullOrEmpty(username))
-            {
-                var account = await _receptionService.GetAccountByUsernameAsync(username);
-                if (account != null && account.NhanVien != null)
-                {
-                    maNhanVienLap = account.NhanVien.MaNhanVien;
-                }
-            }
-
             try
             {
-                var invoice = await _checkoutService.GenerateInvoiceAsync(maDatPhong, maNhanVienLap, maKhuyenMai);
-                
-                if (invoice != null)
-                {
-                    TempData["SuccessMessage"] = "Đã tạo hóa đơn thành công!";
-                    return RedirectToAction("Process", new { maPhong = maPhong });
-                }
-
-                TempData["ErrorMessage"] = "Lỗi khi tạo hóa đơn. Không tìm thấy đơn đặt phòng.";
-                return RedirectToAction("Process", new { maPhong = maPhong });
+                await _invoiceApi.GenerateAsync(new GenerateInvoiceRequest { MaDatPhong = maDatPhong, MaKhuyenMai = maKhuyenMai });
+                TempData["SuccessMessage"] = "Đã tạo hóa đơn thành công!";
             }
-            catch (System.Exception ex)
+            catch (ApiException ex)
             {
-                var innerMsg = ex.InnerException?.Message ?? ex.Message;
-                TempData["ErrorMessage"] = $"Lỗi khi tạo hóa đơn: {innerMsg}";
-                return RedirectToAction("Process", new { maPhong = maPhong });
+                TempData["ErrorMessage"] = $"Lỗi khi tạo hóa đơn: {ex.UserMessage}";
             }
+            return RedirectToAction("Process", new { maPhong = maPhong });
         }
 
         [HttpPost]
         public async Task<IActionResult> ApplyPromotion(string maDatPhong, string? maKhuyenMai, string maPhong)
         {
-            string maNhanVienLap = "NV01";
-            var username = Request.Cookies["Username"];
-            if (!string.IsNullOrEmpty(username))
-            {
-                var account = await _receptionService.GetAccountByUsernameAsync(username);
-                if (account != null && account.NhanVien != null)
-                {
-                    maNhanVienLap = account.NhanVien.MaNhanVien;
-                }
-            }
-
             try
             {
-                var invoice = await _checkoutService.GenerateInvoiceAsync(maDatPhong, maNhanVienLap, maKhuyenMai);
-                if (invoice != null)
-                {
-                    TempData["SuccessMessage"] = "Đã cập nhật mã khuyến mãi thành công!";
-                }
-                else
-                {
-                    TempData["ErrorMessage"] = "Lỗi khi cập nhật mã khuyến mãi.";
-                }
+                await _invoiceApi.GenerateAsync(new GenerateInvoiceRequest { MaDatPhong = maDatPhong, MaKhuyenMai = maKhuyenMai });
+                TempData["SuccessMessage"] = "Đã cập nhật mã khuyến mãi thành công!";
             }
-            catch (System.Exception ex)
+            catch (ApiException ex)
             {
-                var innerMsg = ex.InnerException?.Message ?? ex.Message;
-                TempData["ErrorMessage"] = $"Lỗi: {innerMsg}";
+                TempData["ErrorMessage"] = $"Lỗi: {ex.UserMessage}";
             }
-
             return RedirectToAction("Process", new { maPhong = maPhong });
         }
 
         [HttpPost]
         public async Task<IActionResult> Pay(string maHoaDon, string phuongThuc)
         {
-            bool success = await _checkoutService.ProcessPaymentAsync(maHoaDon, phuongThuc);
-            if (success)
+            try
             {
+                await _invoiceApi.PayAsync(maHoaDon, new PaymentRequest { PhuongThuc = phuongThuc });
                 TempData["SuccessMessage"] = "Thanh toán và trả phòng thành công!";
+                TempData["PrintInvoiceId"] = maHoaDon;
             }
-            else
+            catch (ApiException ex)
             {
-                TempData["ErrorMessage"] = "Thanh toán thất bại. Vui lòng thử lại.";
+                TempData["ErrorMessage"] = "Thanh toán thất bại. " + ex.UserMessage;
             }
 
             return RedirectToAction("Index", "Reception");

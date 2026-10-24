@@ -1,12 +1,12 @@
 @{
     ViewData["Title"] = "Quản lý Dịch vụ";
-    var services = ViewBag.Services as IEnumerable<QLKSan.Models.Entities.DichVu>;
-    var activeStays = ViewBag.ActiveStays as IEnumerable<QLKSan.Models.Entities.PhieuDatPhong>;
+    var services = ViewBag.Services as IEnumerable<QLKSan.Models.DTOs.ServiceDto>;
+    var activeStays = ViewBag.ActiveStays as IEnumerable<QLKSan.Models.DTOs.BookingDto>;
 }
 
 <div class="page-header">
     <div>
-        <p class="page-label">Lễ tân & Concierge</p>
+        <p class="page-label">Lễ tân</p>
         <h2>Quản lý Dịch vụ</h2>
     </div>
 </div>
@@ -85,7 +85,6 @@
                     <strong class="text-gold fs-4" id="newServiceFeeDisplay">0 ₫</strong>
                 </div>
 
-                <p class="text-center text-muted small mb-0 mt-3" style="font-style:italic;font-size:0.7rem">Đã được xác minh điện tử bởi bàn Concierge</p>
             </div>
         </form>
     </div>
@@ -176,12 +175,7 @@
             </div>
             
             <div class="p-3 border-top d-flex justify-content-between align-items-center text-muted small">
-                <span>Hiển thị @(services?.Count() ?? 0) dịch vụ cao cấp</span>
-                <div class="d-flex gap-2">
-                    <span style="cursor:pointer">&lt; Trước</span>
-                    <span class="text-gold fw-bold">1</span>
-                    <span style="cursor:pointer">Tiếp &gt;</span>
-                </div>
+                <span>@(services?.Count() ?? 0) dịch vụ</span>
             </div>
         </div>
 
@@ -189,36 +183,38 @@
         <h6 class="fw-bold mb-3" style="letter-spacing:1px;color:#555">LỊCH SỬ SỬ DỤNG DỊCH VỤ GẦN ĐÂY</h6>
         <div class="row g-3">
             @{
-                var allRecentServices = new List<QLKSan.Models.Entities.SuDungDichVu>();
+                var allRecentServices = new List<(QLKSan.Models.DTOs.ServiceUsageDto Usage, string RoomNum)>();
                 if (activeStays != null)
                 {
                     foreach (var stay in activeStays)
                     {
                         if (stay.SuDungDichVus != null)
                         {
-                            allRecentServices.AddRange(stay.SuDungDichVus);
+                            var stayRoomNum = stay.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong ?? "N/A";
+                            allRecentServices.AddRange(stay.SuDungDichVus.Select(s => (s, stayRoomNum)));
                         }
                     }
                 }
-                var topRecent = allRecentServices.OrderByDescending(s => s.NgaySuDung).Take(2).ToList();
+                var topRecent = allRecentServices.OrderByDescending(s => s.Usage.NgaySuDung).Take(2).ToList();
             }
 
             @if (topRecent.Any())
             {
-                foreach (var sddv in topRecent)
+                foreach (var recent in topRecent)
                 {
-                    var roomNum = sddv.PhieuDatPhong?.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong ?? "N/A";
+                    var sddv = recent.Usage;
+                    var roomNum = recent.RoomNum;
                     <div class="col-md-6">
                         <div class="card p-3 h-100 shadow-sm border-0" style="border-left:3px solid #C5A059!important">
                             <small class="text-gold mb-1" style="font-size:0.65rem;letter-spacing:1px">PHÒNG @roomNum</small>
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <strong class="d-block text-navy mb-1" style="font-size:0.95rem">@(sddv.DichVu?.TenDichVu ?? "Dịch vụ")</strong>
+                                    <strong class="d-block text-navy mb-1" style="font-size:0.95rem">@(sddv.TenDichVu ?? "Dịch vụ")</strong>
                                     <small class="text-muted" style="font-size:0.7rem">
-                                        Thêm @((int)(DateTime.Now - sddv.NgaySuDung).TotalMinutes) phút trước bởi Concierge
+                                        @sddv.SoLuong @sddv.DonViTinh · @sddv.NgaySuDung.ToString("HH:mm dd/MM/yyyy")
                                     </small>
                                 </div>
-                                <strong class="text-navy">@sddv.GiaThucTe.ToString("N0") ₫</strong>
+                                <strong class="text-navy nowrap">@sddv.ThanhTien.ToString("N0") ₫</strong>
                             </div>
                         </div>
                     </div>
@@ -338,7 +334,7 @@
         }
 
         function formatCurrency(amount) {
-            return amount.toLocaleString('vi-VN') + " ₫";
+            return amount.toLocaleString('en-US') + " ₫";
         }
 
         function checkFormValidity() {

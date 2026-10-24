@@ -9,7 +9,11 @@ namespace QLKSan.Enums
         [Display(Name = "Nhân viên lễ tân")]
         Receptionist,
         [Display(Name = "Admin")]
-        Admin
+        Admin,
+        [Display(Name = "Nhân viên buồng phòng")]
+        Housekeeping,
+        [Display(Name = "Kế toán")]
+        Accountant
     }
 
     public enum EmployeeStatus
@@ -90,5 +94,29 @@ namespace QLKSan.Enums
         Available,
         [Display(Name = "Đã hết")]
         Unavailable
+    }
+
+    // Công việc buồng phòng (bảng PhanCongDonPhong)
+    public enum HousekeepingTaskStatus
+    {
+        [Display(Name = "Chờ giao")]
+        Unassigned,
+        [Display(Name = "Đã giao")]
+        Assigned,
+        [Display(Name = "Đang dọn")]
+        InProgress,
+        [Display(Name = "Hoàn thành")]
+        Completed,
+        [Display(Name = "Sự cố")]
+        Issue
+    }
+
+    // Loại giao dịch trong bảng ThanhToan
+    public enum PaymentType
+    {
+        [Display(Name = "Thu")]
+        Payment,
+        [Display(Name = "Hoàn")]
+        Refund
     }
 }

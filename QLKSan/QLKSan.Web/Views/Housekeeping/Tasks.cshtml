@@ -1,242 +1,152 @@
+@using QLKSan.Enums
+@using QLKSan.Models.DTOs
 @{
     ViewData["Title"] = "Buồng phòng";
-    var cleaningRooms = ViewBag.CleaningRooms as IEnumerable<QLKSan.Models.Entities.Phong>;
-    int countCleaning = ViewBag.CountCleaning ?? 0;
+    var cleaningRooms = ViewBag.CleaningRooms as IEnumerable<RoomDto> ?? Enumerable.Empty<RoomDto>();
+    var tasks = ViewBag.Tasks as IEnumerable<HousekeepingTaskDto> ?? Enumerable.Empty<HousekeepingTaskDto>();
+    var hkStaff = ViewBag.HousekeepingStaff as IEnumerable<StaffDto> ?? Enumerable.Empty<StaffDto>();
     int countAvailable = ViewBag.CountAvailable ?? 0;
-    int countOccupied = ViewBag.CountOccupied ?? 0;
-    
-    // 1. VIP Counts
-    int vipCount = ViewBag.VipCount ?? 3;
-    
-    // 2. Attention Room (VIP/Suite cleaning)
-    var attentionRoom = ViewBag.AttentionRoom as QLKSan.Models.Entities.Phong;
+
+    int Dem(HousekeepingTaskStatus s) => tasks.Count(t => t.TrangThai == s);
+    string BadgeClass(HousekeepingTaskStatus s) => s switch
+    {
+        HousekeepingTaskStatus.Unassigned => "badge-pending",
+        HousekeepingTaskStatus.Assigned => "badge-booked",
+        HousekeepingTaskStatus.InProgress => "badge-cleaning",
+        HousekeepingTaskStatus.Issue => "badge-occupied",
+        _ => "badge-available"
+    };
+    var stats = new[]
+    {
+        (Label: "Chưa giao", Value: Dem(HousekeepingTaskStatus.Unassigned), Icon: "fa-inbox", Css: "text-warning"),
+        (Label: "Đã giao", Value: Dem(HousekeepingTaskStatus.Assigned), Icon: "fa-user-check", Css: "text-primary"),
+        (Label: "Đang dọn", Value: Dem(HousekeepingTaskStatus.InProgress), Icon: "fa-broom", Css: "text-gold"),
+        (Label: "Báo sự cố", Value: Dem(HousekeepingTaskStatus.Issue), Icon: "fa-exclamation-triangle", Css: "text-danger"),
+    };
 }
 
-<style>
-    /* Styling variables and custom overrides */
-    .text-navy {
-        color: #0A192F !important;
-    }
-    .text-gold {
-        color: #C5A059 !important;
-    }
-    .bg-navy {
-        background-color: #0A192F !important;
-    }
-    .bg-gold {
-        background-color: #C5A059 !important;
-    }
-    .btn-outline-gold {
-        color: #C5A059;
-        border-color: #C5A059;
-        background: transparent;
-        transition: all 0.2s ease-in-out;
-    }
-    .btn-outline-gold:hover {
-        background-color: #C5A059;
-        color: #ffffff;
-        border-color: #C5A059;
-    }
-    .animate-spin-slow {
-        animation: spin 8s linear infinite;
-    }
-    @@keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    .hover-shadow:hover {
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
-        transform: translateY(-2px);
-    }
-    .transition-all {
-        transition: all 0.3s ease;
-    }
-    
-    /* Toggle switch customization */
-    .custom-switch-gold:checked {
-        background-color: #C5A059 !important;
-        border-color: #C5A059 !important;
-    }
-    
-    /* Custom status badges */
-    .badge-work-in-progress {
-        background-color: #f1f5f9;
-        color: #475569;
-        border: 1px solid #cbd5e1;
-        font-weight: 700;
-        font-size: 0.7rem;
-        letter-spacing: 0.5px;
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
-    .badge-work-rest {
-        background-color: #f8fafc;
-        color: #94a3b8;
-        border: 1px solid #e2e8f0;
-        font-weight: 700;
-        font-size: 0.7rem;
-        letter-spacing: 0.5px;
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
-</style>
-
-<!-- Title block -->
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+<div class="page-header">
     <div>
-        <h2 class="text-navy fw-bold" style="font-family: 'Playfair Display', serif; font-size: 2.2rem;">Danh sách công việc vệ sinh</h2>
-    </div>
-    <div class="d-flex align-items-center gap-2 p-2 bg-white border rounded shadow-sm" style="font-size: 0.85rem; font-weight: 600; color: #1e293b;">
-        <i class="fas fa-sync-alt text-gold animate-spin-slow"></i>
-        <div style="line-height:1.2;">
-            <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px;">ĐỒNG BỘ CUỐI</span>
-            <span class="text-navy fw-bold" style="font-size:0.85rem;">@DateTime.Now.ToString("hh:mm tt").ToUpper()</span>
-        </div>
+        <p class="page-label">Buồng phòng</p>
+        <h2>Công việc dọn phòng</h2>
+        <p class="page-desc">Việc dọn phòng được tạo tự động khi khách trả phòng. Hiện có @countAvailable phòng trống sẵn sàng đón khách.</p>
     </div>
 </div>
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success mt-2">@TempData["SuccessMessage"]</div>
+    <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger mt-2">@TempData["ErrorMessage"]</div>
+    <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
 }
 
-<!-- Four Stat Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-        <div class="card p-3 border rounded shadow-sm d-flex flex-row align-items-center justify-content-between bg-white" style="border-left: 4px solid #c5a059 !important;">
-            <div>
-                <span class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">Chờ dọn dẹp</span>
-                <span class="fs-4 fw-bold text-navy">@countCleaning.ToString("D2")</span> <small class="text-muted small">PHÒNG</small>
+    @foreach (var s in stats)
+    {
+        <div class="col-6 col-lg-3">
+            <div class="card p-3 h-100 d-flex flex-row align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted text-uppercase fw-semibold d-block" style="font-size:.7rem;letter-spacing:.5px">@s.Label</span>
+                    <span class="fs-4 fw-bold text-navy">@s.Value</span> <small class="text-muted">việc</small>
+                </div>
+                <i class="fas @s.Icon @s.Css fs-4"></i>
             </div>
-            <i class="fas fa-broom text-gold fs-3"></i>
         </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card p-3 border rounded shadow-sm d-flex flex-row align-items-center justify-content-between bg-white">
-            <div>
-                <span class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">Đang dọn</span>
-                <span class="fs-4 fw-bold text-navy">@(countCleaning > 0 ? (countCleaning > 1 ? "02" : "01") : "00")</span> <small class="text-muted small">PHÒNG</small>
-            </div>
-            <i class="fas fa-sync-alt text-muted fs-3"></i>
+    }
+</div>
+
+<!-- Phân công dọn phòng -->
+<div class="card mb-4">
+    <div class="card-body p-0">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="text-navy fw-bold mb-0"><i class="fas fa-clipboard-list text-gold me-2"></i>Phân công dọn phòng (@tasks.Count())</h5>
+            <small class="text-muted">Giao việc cho nhân viên buồng phòng; nhân viên tự cập nhật khi bắt đầu / dọn xong</small>
         </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card p-3 border rounded shadow-sm d-flex flex-row align-items-center justify-content-between bg-white">
-            <div>
-                <span class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">Trống</span>
-                <span class="fs-4 fw-bold text-navy">@countAvailable.ToString("D2")</span> <small class="text-muted small">TỔNG HÔM NAY</small>
-            </div>
-            <i class="fas fa-check-circle text-muted fs-3"></i>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card p-3 border rounded shadow-sm d-flex flex-row align-items-center justify-content-between bg-white" style="border: 1px solid #fce8e6 !important; background: #fffdf9;">
-            <div>
-                <span class="text-uppercase fw-bold d-block text-danger" style="font-size: 0.75rem; letter-spacing: 0.5px;">Ưu tiên</span>
-                <span class="fs-4 fw-bold text-danger">@(countCleaning > 0 ? vipCount.ToString("D2") : "00")</span> <small class="text-muted small">KHÁCH VIP</small>
-            </div>
-            <i class="fas fa-exclamation-triangle text-danger fs-3"></i>
-        </div>
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Phòng</th>
+                    <th>Công việc</th>
+                    <th>Trạng thái</th>
+                    <th>Nhân viên</th>
+                    <th style="min-width:280px">Giao việc</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (tasks.Any())
+                {
+                    foreach (var t in tasks)
+                    {
+                        var coTheGiao = t.TrangThai == HousekeepingTaskStatus.Unassigned || t.TrangThai == HousekeepingTaskStatus.Assigned;
+                        <tr>
+                            <td class="nowrap"><strong>Phòng @t.SoPhong</strong><br /><small class="text-muted">@t.TenLoaiPhong</small></td>
+                            <td>@t.LoaiCongViec<br /><small class="text-muted">Tạo lúc @t.ThoiGianTao.ToString("dd/MM HH:mm")</small></td>
+                            <td>
+                                <span class="badge-status @BadgeClass(t.TrangThai)">@t.TrangThai.GetDisplayName()</span>
+                                @if (!string.IsNullOrEmpty(t.GhiChu))
+                                {
+                                    <br /><small class="text-danger">@t.GhiChu</small>
+                                }
+                            </td>
+                            <td>@(t.TenNhanVien ?? "—")</td>
+                            <td>
+                                @if (coTheGiao)
+                                {
+                                    <form asp-action="Assign" method="post" class="d-flex gap-2">
+                                        <input type="hidden" name="maPhanCong" value="@t.MaPhanCong" />
+                                        <select name="maNhanVien" class="form-select form-select-sm" required>
+                                            <option value="">-- Chọn nhân viên --</option>
+                                            @foreach (var nv in hkStaff)
+                                            {
+                                                <option value="@nv.MaNhanVien" selected="@(nv.MaNhanVien == t.MaNhanVien)">@nv.TenNhanVien</option>
+                                            }
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-gold text-nowrap">@(t.MaNhanVien == null ? "Giao" : "Giao lại")</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">@(t.TrangThai == HousekeepingTaskStatus.InProgress ? "Nhân viên đang dọn" : "Chờ xử lý sự cố (đổi trạng thái phòng khi sửa xong)")</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="text-center text-muted p-4">Không có công việc dọn phòng nào đang chờ.</td></tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
-<!-- "CẦN CHÚ Ý NGAY" Highlighted Card (Real Attention Room) -->
-@if (attentionRoom != null)
-{
-    var attentionRoomNumber = attentionRoom.SoPhong;
-    var attentionRoomType = attentionRoom.LoaiPhong?.TenLoai?.ToUpper() ?? "PREMIUM";
-    var attentionCustomerName = "Khách vừa checkout";
-    var attentionNote = "Làm sạch tiêu chuẩn, bổ sung nước uống và vật phẩm trong phòng.";
-    
-    var lastBooking = attentionRoom.ChiTietDatPhongs?
-        .Select(c => c.PhieuDatPhong)
-        .OrderByDescending(p => p.NgayCheckOutDuKien)
-        .FirstOrDefault();
-        
-    if (lastBooking != null)
-    {
-        attentionCustomerName = $"{lastBooking.KhachHang?.Ho} {lastBooking.KhachHang?.Ten}";
-        attentionNote = $"Yêu cầu làm sạch kỹ lưỡng chuẩn bị đón lượt khách tiếp theo nhận phòng.";
-    }
-    
-    <div class="card mb-4 border-0 shadow-sm overflow-hidden" style="border-left: 5px solid #C5A059 !important; background: #ffffff;">
-        <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge bg-danger text-uppercase fw-bold px-2 py-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">CẦN CHÚ Ý NGAY</span>
-                    <h5 class="text-navy fw-bold mb-0" style="font-size: 1.1rem;">SUITE @attentionRoomNumber - @attentionRoomType</h5>
-                </div>
-                <h6 class="text-muted mb-2" style="font-size: 0.9rem;">Trả phòng: <span class="text-navy fw-bold">@attentionCustomerName</span></h6>
-                <p class="text-muted fst-italic mb-0" style="font-size: 0.85rem; color: #475569;">"@attentionNote"</p>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">ĐANG DỌN</span>
-                <div class="form-check form-switch m-0">
-                    <form asp-action="MarkClean" method="post" id="attentionRoomForm">
-                        <input type="hidden" name="maPhong" value="@attentionRoom.MaPhong" />
-                        <input class="form-check-input custom-switch-gold" type="checkbox" role="switch" onchange="document.getElementById('attentionRoomForm').submit();" style="width: 2.8em; height: 1.5em; cursor: pointer;">
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- Task Cards Grid -->
-<div class="row g-4 mb-5">
-    @if (cleaningRooms != null && cleaningRooms.Any())
+<!-- Phòng đang chờ dọn: lễ tân xác nhận nhanh khi đã kiểm tra phòng -->
+<h5 class="text-navy fw-bold mb-3"><i class="fas fa-door-closed text-gold me-2"></i>Phòng chờ dọn (@cleaningRooms.Count())</h5>
+<div class="row g-3 mb-5">
+    @if (cleaningRooms.Any())
     {
         foreach (var room in cleaningRooms)
         {
-            var lastBooking = room.ChiTietDatPhongs?
-                .Select(c => c.PhieuDatPhong)
-                .OrderByDescending(p => p.NgayCheckOutDuKien)
-                .FirstOrDefault();
-                
-            var lastCustomer = lastBooking != null ? $"{lastBooking.KhachHang?.Ho} {lastBooking.KhachHang?.Ten}" : "";
-            var checkOutTime = lastBooking != null ? lastBooking.NgayCheckOutDuKien.ToString("HH:mm") : "12:00";
-            
-            var row1 = !string.IsNullOrEmpty(lastCustomer) ? $"Khách {lastCustomer} đã trả phòng lúc {checkOutTime}" : "Dọn dẹp theo lịch trình sau khi khách trả phòng";
-            var row2 = lastBooking != null ? "Yêu cầu kiểm tra kỹ mini-bar và vật phẩm" : "Dịch vụ dọn phòng tiêu chuẩn, thay ga gối đệm mới";
-            
-            <div class="col-md-6">
-                <div class="card p-4 border rounded shadow-sm bg-white hover-shadow transition-all" style="min-height: 200px;">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="d-flex gap-3 align-items-center">
-                            <div class="d-flex align-items-center justify-content-center fw-bold text-navy" style="width: 50px; height: 50px; background: #f1f5f9; border-radius: 6px; font-size: 1.15rem; border: 1px solid #e2e8f0;">
-                                @room.SoPhong
-                            </div>
-                            <div>
-                                <h6 class="text-navy fw-bold mb-0" style="font-size: 0.95rem; letter-spacing: 0.5px;">@(room.LoaiPhong?.TenLoai?.ToUpper() ?? "STANDARD ROOM")</h6>
-                                <span class="text-danger fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">CHỜ DỌN DẸP</span>
-                            </div>
-                        </div>
-                        <div class="text-muted" style="font-size: 0.9rem;">
-                            <i class="fas fa-wifi me-1" title="Wifi"></i>
-                            <i class="fas fa-snowflake" title="Điều hòa"></i>
+            var lastBooking = room.LanDatGanNhat;
+            var lastCustomer = lastBooking?.KhachHang?.HoTen;
+            <div class="col-md-6 col-xl-4">
+                <div class="card p-3 h-100">
+                    <div class="d-flex gap-3 align-items-center mb-3">
+                        <div class="d-flex align-items-center justify-content-center fw-bold text-navy flex-shrink-0" style="width:50px;height:50px;background:#f1f5f9;border-radius:8px;font-size:1.1rem;border:1px solid #e2e8f0">@room.SoPhong</div>
+                        <div class="min-w-0">
+                            <div class="fw-bold text-navy">@(room.LoaiPhong?.TenLoai ?? "—")</div>
+                            <span class="badge-status badge-cleaning">Chờ dọn</span>
                         </div>
                     </div>
-                    
-                    <div class="mb-4">
-                        <p class="text-muted small mb-1" style="font-size: 0.82rem;">
-                            <i class="fas fa-history me-2 text-gold"></i>
-                            @row1
-                        </p>
-                        <p class="text-muted small mb-0" style="font-size: 0.82rem;">
-                            <i class="fas fa-info-circle me-2 text-gold"></i>
-                            @row2
-                        </p>
-                    </div>
-
-                    <form asp-action="MarkClean" method="post">
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-user me-2 text-gold"></i>@(string.IsNullOrWhiteSpace(lastCustomer) ? "Dọn theo lịch" : "Khách vừa trả: " + lastCustomer)
+                    </p>
+                    <form asp-action="MarkClean" method="post" class="mt-auto">
                         <input type="hidden" name="maPhong" value="@room.MaPhong" />
-                        <button type="submit" class="btn btn-outline-gold w-100 py-2 fw-bold" style="font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;">
-                            CẬP NHẬT TRẠNG THÁI <strong class="text-gold">TRỐNG</strong>
-                        </button>
+                        <button type="submit" class="btn btn-outline-gold btn-sm w-100 py-2">Xác nhận đã dọn xong</button>
                     </form>
                 </div>
             </div>
@@ -245,12 +155,11 @@
     else
     {
         <div class="col-12">
-            <div class="card p-5 text-center border-0 shadow-sm bg-white" style="border-radius: 8px;">
-                <i class="fas fa-check-circle text-success mb-3" style="font-size: 3.5rem;"></i>
-                <h5 class="text-navy fw-bold">Không có phòng nào cần dọn dẹp!</h5>
-                <p class="text-muted mb-0">Tất cả các phòng trong hệ thống đều đã sạch sẽ và sẵn sàng đón khách.</p>
+            <div class="card p-4 text-center">
+                <i class="fas fa-check-circle text-success mb-2" style="font-size:2.5rem"></i>
+                <h6 class="text-navy fw-bold mb-1">Không có phòng nào cần dọn</h6>
+                <p class="text-muted small mb-0">Tất cả phòng đã sạch và sẵn sàng đón khách.</p>
             </div>
         </div>
     }
 </div>
-

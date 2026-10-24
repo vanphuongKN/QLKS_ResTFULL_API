@@ -53,6 +53,37 @@ namespace QLKSan.Models.Entities
         public ICollection<DanhGia> DanhGias { get; set; }
     }
 
+    // Quy tắc điều chỉnh giá theo mùa / đêm trong tuần / dịp lễ
+    public class QuyTacGia
+    {
+        [Key]
+        [StringLength(10)]
+        public string MaQuyTac { get; set; }
+
+        [StringLength(100)]
+        public string TenQuyTac { get; set; }
+
+        // null = mọi loại phòng
+        [StringLength(10)]
+        [ForeignKey("LoaiPhong")]
+        public string? MaLoai { get; set; }
+
+        public DateTime? TuNgay { get; set; }
+        public DateTime? DenNgay { get; set; }
+
+        // Danh sách đêm trong tuần, dạng "5,6" (0 = Chủ nhật ... 6 = Thứ bảy); null = mọi đêm
+        [StringLength(20)]
+        public string? CacThu { get; set; }
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal PhanTramDieuChinh { get; set; }
+
+        public int UuTien { get; set; } = 1;
+        public bool KichHoat { get; set; } = true;
+
+        public LoaiPhong? LoaiPhong { get; set; }
+    }
+
     public class TienIch
     {
         [Key]

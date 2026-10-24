@@ -1,8 +1,8 @@
-@model QLKSan.ViewModels.BookRoomViewModel
+@model QLKSan.Models.Requests.BookRoomRequest
 @{
     Layout = "_CustomerLayout";
     ViewData["Title"] = "Đặt phòng trực tuyến";
-    var availableRooms = ViewBag.AvailableRooms as IEnumerable<QLKSan.Models.Entities.Phong>;
+    var availableRooms = ViewBag.AvailableRooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
 }
 <div class="lr-section-label">Dịch vụ lưu trú</div>
 <h2 class="lr-section-title" style="font-size:2rem">Đặt phòng trực tuyến</h2>
@@ -36,11 +36,11 @@
                             foreach (var room in availableRooms)
                             {
                                 <option value="@room.MaPhong"
-                                        data-gia="@(room.LoaiPhong?.GiaThueNgay ?? 0)"
+                                        data-gia="@(room.GiaTrungBinhDem ?? room.LoaiPhong?.GiaThueNgay ?? 0)"
                                         data-loai="@(room.LoaiPhong?.TenLoai ?? "Standard")"
                                         data-so="@room.SoPhong"
                                         data-maxnguoi="@(room.LoaiPhong?.SoNguoiToiDa ?? 2)">
-                                    Phòng @room.SoPhong — @(room.LoaiPhong?.TenLoai ?? "Standard") — @((room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫/đêm
+                                    Phòng @room.SoPhong — @(room.LoaiPhong?.TenLoai ?? "Standard") — @((room.GiaTrungBinhDem ?? room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫/đêm
                                 </option>
                             }
                         }
@@ -76,6 +76,9 @@
                     <input type="date" asp-for="CheckOut" id="CheckOut" class="form-control" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" onchange="calcTotal()">
                     <span asp-validation-for="CheckOut" class="text-danger small"></span>
                 </div>
+                <button type="button" class="btn w-100 mb-4" style="border:1px solid #0A192F;color:#0A192F;font-weight:600" onclick="checkAvailability()">
+                    <i class="fas fa-search me-2"></i>Kiểm tra phòng trống theo ngày
+                </button>
 
                 <div class="mb-4">
                     <label asp-for="MaKhuyenMai" class="form-label fw-semibold">Mã khuyến mãi</label>
@@ -105,7 +108,7 @@
 
     <!-- Available Rooms Grid -->
     <div class="col-lg-7">
-        <h5 class="fw-bold mb-3">Phòng đang trống (@(availableRooms?.Count() ?? 0) phòng)</h5>
+        <h5 class="fw-bold mb-3">Phòng trống từ @(Model?.CheckIn.ToString("dd/MM/yyyy")) đến @(Model?.CheckOut.ToString("dd/MM/yyyy")) (@(availableRooms?.Count() ?? 0) phòng)</h5>
         <div class="row g-3">
             @if (availableRooms != null && availableRooms.Any())
             {
@@ -147,8 +150,10 @@
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                                <span class="text-gold fw-bold">@((room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫</span>
-                                <span class="text-muted small">/đêm</span>
+                                <span class="text-gold fw-bold">@((room.GiaTrungBinhDem ?? room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫</span>
+                                <span class="text-muted small">
+                                    /đêm@(room.GiaTrungBinhDem != null && room.GiaTrungBinhDem != room.LoaiPhong?.GiaThueNgay ? ((Model.CheckOut - Model.CheckIn).Days > 1 ? " (trung bình)" : " (giá cuối tuần/lễ)") : "")
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -177,7 +182,7 @@
             var opt = sel.options[sel.selectedIndex];
             if (opt.value) {
                 document.getElementById('infoLoai').textContent = opt.getAttribute('data-loai');
-                document.getElementById('infoGia').textContent = parseInt(opt.getAttribute('data-gia')).toLocaleString('vi-VN') + ' ₫/đêm';
+                document.getElementById('infoGia').textContent = parseInt(opt.getAttribute('data-gia')).toLocaleString('en-US') + ' ₫/đêm';
                 
                 var maxNguoi = opt.getAttribute('data-maxnguoi');
                 var soNguoiInput = document.getElementById('soNguoi');
@@ -199,6 +204,16 @@
         }
 
         var appliedPromo = null;
+
+        // Tải lại danh sách phòng trống theo ngày nhận/trả và số khách đã chọn
+        function checkAvailability() {
+            var ci = document.getElementById('CheckIn').value;
+            var co = document.getElementById('CheckOut').value;
+            var guests = document.getElementById('soNguoi').value;
+            if (!ci || !co) { alert('Vui lòng chọn ngày nhận và trả phòng.'); return; }
+            var url = '@Url.Action("BookRoom", "Customer")' + '?checkIn=' + ci + '&checkOut=' + co + (guests ? '&soNguoi=' + guests : '');
+            window.location.href = url;
+        }
 
         function applyPromo() {
             var code = document.getElementById('maKhuyenMai').value.trim();
@@ -238,6 +253,8 @@
                 });
         }
 
+        // Lấy giá từng đêm từ API (giá cuối tuần / lễ có thể khác giá niêm yết) rồi tính tổng
+        var quoteSeq = 0;
         function calcTotal() {
             var sel = document.getElementById('roomSelect');
             var ci = document.getElementById('CheckIn').value;
@@ -245,8 +262,19 @@
             if (!sel.value || !ci || !co) return;
             var nights = Math.round((new Date(co) - new Date(ci)) / (1000 * 60 * 60 * 24));
             if (nights <= 0) return;
+            var seq = ++quoteSeq;
+            fetch('@Url.Action("Quote", "Customer")?maPhong=' + encodeURIComponent(sel.value) + '&checkIn=' + ci + '&checkOut=' + co)
+                .then(res => res.json())
+                .then(q => { if (seq === quoteSeq) renderTotal(q.success ? q : null, nights, sel); })
+                .catch(() => { if (seq === quoteSeq) renderTotal(null, nights, sel); });
+        }
+
+        function renderTotal(quote, nights, sel) {
             var gia = parseInt(sel.options[sel.selectedIndex].getAttribute('data-gia'));
-            var subtotal = nights * gia;
+            var subtotal = quote ? quote.tongTien : nights * gia;
+            if (quote) {
+                document.getElementById('infoGia').textContent = quote.giaTrungBinh.toLocaleString('en-US') + ' ₫/đêm' + (quote.cacDem.some(d => d.quyTac) ? (quote.soDem > 1 ? ' (trung bình)' : ' (giá cuối tuần/lễ)') : '');
+            }
 
             var discount = 0;
             if (appliedPromo) {
@@ -262,20 +290,30 @@
 
             var html = '<div class="d-flex justify-content-between align-items-center mb-1">' +
                        '  <span class="text-muted">Tiền phòng (' + nights + ' đêm):</span>' +
-                       '  <span class="fw-semibold">' + subtotal.toLocaleString('vi-VN') + ' ₫</span>' +
+                       '  <span class="fw-semibold">' + subtotal.toLocaleString('en-US') + ' ₫</span>' +
                        '</div>';
+
+            // Liệt kê các đêm được điều chỉnh giá
+            if (quote) {
+                quote.cacDem.filter(d => d.quyTac).forEach(function (d) {
+                    html += '<div class="d-flex justify-content-between small text-muted">' +
+                            '  <span>· Đêm ' + d.dem + ' (' + d.quyTac + ')</span>' +
+                            '  <span>' + d.gia.toLocaleString('en-US') + ' ₫</span>' +
+                            '</div>';
+                });
+            }
 
             if (discount > 0) {
                 html += '<div class="d-flex justify-content-between align-items-center mb-1 text-success">' +
                         '  <span>Giảm giá khuyến mãi:</span>' +
-                        '  <span class="fw-semibold">-' + discount.toLocaleString('vi-VN') + ' ₫</span>' +
+                        '  <span class="fw-semibold">-' + discount.toLocaleString('en-US') + ' ₫</span>' +
                         '</div>';
             }
 
             html += '<hr class="my-2">' +
                     '<div class="d-flex justify-content-between align-items-center">' +
                     '  <span class="text-muted fw-bold">Tổng tiền ước tính:</span>' +
-                    '  <span id="totalPrice" class="fw-bold text-gold fs-5">' + finalTotal.toLocaleString('vi-VN') + ' ₫</span>' +
+                    '  <span id="totalPrice" class="fw-bold text-gold fs-5">' + finalTotal.toLocaleString('en-US') + ' ₫</span>' +
                     '</div>';
 
             document.getElementById('totalBoxContent').innerHTML = html;

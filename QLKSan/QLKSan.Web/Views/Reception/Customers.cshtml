@@ -1,4 +1,4 @@
-@model IEnumerable<QLKSan.Models.Entities.KhachHang>
+@model IEnumerable<QLKSan.Models.DTOs.CustomerDto>
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Hồ sơ Khách hàng";
@@ -6,7 +6,7 @@
 
 <div class="page-header">
     <div>
-        <p class="page-label">Lễ tân & Concierge</p>
+        <p class="page-label">Lễ tân</p>
         <h2>Hồ sơ Khách hàng</h2>
     </div>
     <div class="d-flex gap-2">
@@ -25,7 +25,7 @@
 
 <div class="card p-0 mb-4">
     <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
-        <h6 class="fw-bold mb-0" style="letter-spacing:1px;color:#2A3B4C">DANH BẠ KHÁCH HÀNG LUXE RESERVE</h6>
+        <h6 class="fw-bold mb-0" style="letter-spacing:1px;color:#2A3B4C">DANH SÁCH KHÁCH HÀNG</h6>
         <span class="badge bg-light text-muted border py-2 px-3" style="font-size:0.75rem">Tổng số: @(Model?.Count() ?? 0) khách hàng</span>
     </div>
     
@@ -48,7 +48,7 @@
                     foreach (var k in Model)
                     {
                         var phone = k.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "Chưa cập nhật";
-                        var bookingCount = k.PhieuDatPhongs?.Count() ?? 0;
+                        var bookingCount = k.SoLanDatPhong;
                         
                         <tr>
                             <td class="ps-4 py-3">
@@ -61,11 +61,11 @@
                                     </div>
                                     <div>
                                         <strong class="d-block text-navy" style="font-size:0.95rem">@k.Ho @k.Ten</strong>
-                                        <small class="text-muted" style="font-size:0.65rem">Thành viên Luxe Reserve</small>
+                                        <small class="text-muted" style="font-size:0.7rem">@k.DiemTichLuy điểm tích luỹ</small>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 text-navy font-monospace" style="font-size:0.85rem">
+                            <td class="py-3 text-navy" style="font-size:0.85rem">
                                 @k.CCCD_Passport
                             </td>
                             <td class="py-3 text-muted" style="font-size:0.85rem">
@@ -116,7 +116,7 @@
         <div class="modal-content border-0 shadow-lg" style="border-radius:12px">
             <div class="modal-header text-white" style="background: #0A192F; border-top-left-radius: 12px; border-top-right-radius: 12px;">
                 <h5 class="modal-title fw-bold" id="customerDetailsModalLabel">
-                    <i class="fas fa-user-circle me-2 text-gold"></i> CHI TIẾT HỒ SƠ KHÁCH HÀNG LUXE RESERVE
+                    <i class="fas fa-user-circle me-2 text-gold"></i> HỒ SƠ KHÁCH HÀNG
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
             </div>

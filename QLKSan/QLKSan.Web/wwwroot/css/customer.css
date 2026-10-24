@@ -630,3 +630,119 @@ body {
     height: 120px;
 }
 .login-hotel-img img { width: 100%; height: 100%; object-fit: cover; }
+.login-back-home {
+    margin-top: 24px;
+    color: var(--lr-text-muted);
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+.login-back-home:hover { color: var(--lr-black); }
+.login-brand a h2 { color: var(--lr-black); letter-spacing: 4px; }
+
+/* ---- NAVBAR: phần bên phải, nút menu điện thoại ---- */
+.lr-nav-collapse {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    margin-left: 48px;
+    gap: 24px;
+}
+.lr-nav-toggle {
+    display: none;
+    background: none;
+    border: 1px solid var(--lr-border);
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    color: var(--lr-black);
+    font-size: 1.05rem;
+}
+.lr-user-link {
+    color: var(--lr-gold);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-decoration: none;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.lr-user-link:hover { color: var(--lr-black); }
+.lr-logout-link {
+    color: #c62828;
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.lr-logout-text { display: none; }
+.lr-btn-outline-sm, .lr-btn-gold-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    border: 1px solid var(--lr-gold);
+    transition: all 0.2s;
+}
+.lr-btn-outline-sm { color: var(--lr-gold); background: transparent; }
+.lr-btn-outline-sm:hover { background: var(--lr-gold); color: var(--lr-white); }
+.lr-btn-gold-sm { color: var(--lr-white); background: var(--lr-gold); }
+.lr-btn-gold-sm:hover { background: #b08d4b; color: var(--lr-white); }
+.lr-navbar .lr-nav-links a { white-space: nowrap; }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 991.98px) {
+    .lr-navbar { padding: 14px 20px; flex-wrap: wrap; }
+    .lr-nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+    .lr-nav-collapse {
+        display: none;
+        flex-basis: 100%;
+        margin: 12px 0 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        border-top: 1px solid var(--lr-border);
+        padding-top: 12px;
+    }
+    .lr-navbar.open .lr-nav-collapse { display: flex; }
+    .lr-navbar .lr-nav-links { flex-direction: column; gap: 0; }
+    .lr-navbar .lr-nav-links a { display: block; padding: 10px 0; border-bottom: none; }
+    .lr-navbar .lr-nav-links a.active { border-bottom: none; color: var(--lr-gold); }
+    .lr-navbar .lr-nav-right { flex-wrap: wrap; gap: 12px; padding-bottom: 4px; }
+    .lr-logout-text { display: inline; }
+
+    .profile-hero, .profile-grid, .feedback-hero { grid-template-columns: 1fr; gap: 24px; }
+    .profile-hero-left { padding: 8px 0; }
+    .profile-bottom-grid { grid-template-columns: 1fr 1fr; }
+    .stay-featured { grid-template-columns: 1fr; }
+    .lr-section-title { font-size: 2rem; }
+}
+
+@media (max-width: 575.98px) {
+    .lr-content { padding: 24px 20px; }
+    .lr-section-title { font-size: 1.6rem; }
+    .profile-hero-left .profile-name { font-size: 2.2rem; }
+    .profile-bottom-grid, .stay-grid { grid-template-columns: 1fr; }
+    .stay-list-item { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .lr-card, .lr-card-dark { padding: 20px; }
+    .feedback-hero-img { height: 200px; }
+    .lr-footer { padding: 32px 16px; }
+    .lr-footer .footer-links { flex-wrap: wrap; gap: 12px 20px; }
+    .login-card { padding: 28px 20px; }
+    .btn-submit-feedback, .btn-cancel-feedback { padding: 14px 24px; }
+}
+
+/* Nhãn trạng thái dùng chung với trang nhân viên */
+.badge-status { padding: 3px 9px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid; white-space: nowrap; display: inline-block; }
+.badge-available { background: rgba(46,125,50,0.08); color: #2E7D32; border-color: #2E7D32; }

@@ -1,7 +1,7 @@
-@model QLKSan.Models.Entities.KhuyenMai
+@model QLKSan.Models.Requests.PromotionRequest
 @{
     ViewData["Title"] = "Quản lý Khuyến mãi";
-    var promos = ViewBag.Promotions as IEnumerable<QLKSan.Models.Entities.KhuyenMai>;
+    var promos = ViewBag.Promotions as IEnumerable<QLKSan.Models.DTOs.PromotionDto>;
 }
 
 <div class="page-header">
@@ -22,18 +22,21 @@
     {
         foreach (var promo in promos)
         {
-            var isActive = promo.NgayBatDau <= DateTime.Now && promo.NgayKetThuc >= DateTime.Now;
+            // So theo ngày: chưa tới ngày bắt đầu là "Sắp diễn ra", không phải "Hết hạn"
+            var homNay = DateTime.Today;
+            var (nhan, css) = promo.NgayKetThuc.Date < homNay ? ("Hết hạn", "badge-muted")
+                : promo.NgayBatDau.Date > homNay ? ("Sắp diễn ra", "badge-booked")
+                : ("Đang hoạt động", "badge-available");
+            var laPhanTram = promo.LoaiGiam != null && promo.LoaiGiam.Contains("trăm");
             <div class="col-md-4">
                 <div class="card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="promo-name">@promo.MaKhuyenMai</span>
-                        <span class="promo-badge" style="@(isActive ? "background:rgba(46,125,50,0.1);color:#2E7D32" : "background:#f5f5f5;color:#999")">
-                            @(isActive ? "ĐANG HOẠT ĐỘNG" : "HẾT HẠN")
-                        </span>
+                        <span class="badge-status @css">@nhan</span>
                     </div>
                     <h6 class="fw-bold mb-1">@promo.TenKhuyenMai</h6>
                     <p class="text-muted small mb-1">Loại: @promo.LoaiGiam</p>
-                    <p class="text-gold fw-bold fs-5 mb-2">Giảm @promo.GiaTriGiam.ToString("N0")</p>
+                    <p class="text-gold fw-bold fs-5 mb-2">Giảm @(laPhanTram ? promo.GiaTriGiam.ToString("0.##") + "%" : promo.GiaTriGiam.ToString("N0") + " ₫")</p>
                     <small class="text-muted">
                         <i class="fas fa-calendar me-1"></i>
                         @promo.NgayBatDau.ToString("dd/MM/yyyy") – @promo.NgayKetThuc.ToString("dd/MM/yyyy")

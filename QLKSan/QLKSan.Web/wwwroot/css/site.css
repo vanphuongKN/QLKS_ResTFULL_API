@@ -716,3 +716,91 @@ body {
 }
 .divider { border-top: 1px solid var(--border-light); margin: 16px 0; }
 .cursor-pointer { cursor: pointer; }
+
+/* ============================================
+   THÀNH PHẦN DÙNG CHUNG
+   ============================================ */
+
+/* Nhãn trạng thái phòng / phiếu: cùng một bảng màu ở mọi trang, không gãy dòng */
+.badge-status { white-space: nowrap; display: inline-block; line-height: 1.3; }
+.badge-pending { background: rgba(245,127,23,0.08); color: var(--warning); border-color: var(--warning); }
+.badge-muted { background: #f3f4f6; color: #6b7280; border-color: #d1d5db; }
+.badge-maintenance { background: #f3f4f6; color: #4b5563; border-color: #9ca3af; }
+
+/* Nút đồng bộ với theme (thay cho nút xanh mặc định của Bootstrap) */
+.btn-primary, .btn-outline-primary { --bs-btn-border-radius: 6px; }
+.btn-primary { background: var(--navy); border-color: var(--navy); }
+.btn-primary:hover, .btn-primary:focus { background: var(--navy-light); border-color: var(--navy-light); }
+.btn-outline-primary { color: var(--navy); border-color: var(--navy); }
+.btn-outline-primary:hover, .btn-outline-primary:focus { background: var(--navy); border-color: var(--navy); color: var(--white); }
+a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
+.btn-gold, .btn-outline-gold, .btn-navy { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-sm.btn-gold, .btn-sm.btn-outline-gold { padding: 6px 14px; font-size: 0.75rem; }
+
+/* Bảng tự cuộn ngang thay vì đẩy cả trang rộng ra */
+.table-responsive { -webkit-overflow-scrolling: touch; }
+.nowrap { white-space: nowrap; }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+.sidebar-toggle {
+    display: none;
+    background: none;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    color: var(--navy);
+    font-size: 1.1rem;
+}
+.topbar-brand { display: none; font-family: 'Playfair Display', serif; font-weight: 700; color: var(--navy); }
+.sidebar-backdrop { display: none; }
+
+/* Nội dung chính được phép co lại (mặc định flex item không co nhỏ hơn nội dung) */
+#page-content-wrapper { min-width: 0; }
+.page-header { flex-wrap: wrap; gap: 12px 16px; }
+.page-header > div:first-child { min-width: 0; }
+.page-header .d-flex, .page-header form.d-flex { flex-wrap: wrap; }
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        width: 260px;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+    }
+    body.sidebar-open .sidebar { transform: translateX(0); }
+    body.sidebar-open .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(10,25,47,0.45);
+        z-index: 999;
+    }
+    body.sidebar-open { overflow: hidden; }
+    #page-content-wrapper { margin-left: 0; }
+    .sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; }
+    .topbar { padding: 10px 16px; gap: 12px; }
+    .topbar-brand { display: block; margin-right: auto; }
+    .page-content { padding: 20px 16px; }
+}
+
+@media (max-width: 767.98px) {
+    /* Bảng nhiều cột: giữ bề rộng đọc được và cuộn ngang trong khung, thay vì ép chữ gãy từng từ */
+    .table-responsive > table { min-width: 680px; }
+}
+
+@media (max-width: 575.98px) {
+    /* Ô tìm kiếm đặt cứng độ rộng trong view: cho co giãn theo màn hình */
+    form.d-flex { flex-wrap: wrap; }
+    form.d-flex > .form-control[style*="width"], form.d-flex > input[style*="width"] { width: auto !important; flex: 1 1 160px; min-width: 0; }
+    .page-header h2 { font-size: 1.45rem; }
+    .page-header > :last-child:not(:first-child) { width: 100%; }
+    .topbar .user-role-label { display: none; }
+    .hero-banner { padding: 20px; }
+    .hero-banner h2 { font-size: 1.35rem; }
+    .card.p-4 { padding: 1.1rem !important; }
+    .ledger-panel { padding: 18px; }
+    .modal-dialog { margin: 0.75rem; }
+}

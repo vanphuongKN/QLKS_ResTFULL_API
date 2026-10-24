@@ -28,6 +28,8 @@ namespace QLKSan.Data
         public DbSet<ThanhToan> ThanhToans { get; set; }
         public DbSet<LichSuGiaoDich> LichSuGiaoDichs { get; set; }
         public DbSet<DanhGia> DanhGias { get; set; }
+        public DbSet<PhanCongDonPhong> PhanCongDonPhongs { get; set; }
+        public DbSet<QuyTacGia> QuyTacGias { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -53,8 +55,16 @@ namespace QLKSan.Data
 
             // Value Converter cho Role (VaiTro) ánh xạ tới mã vai trò trong DB mới (VT01 = Admin, VT02 = Lễ tân, VT03 = Khách hàng)
             var roleConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.Role, string>(
-                v => v == QLKSan.Enums.Role.Admin ? "Quản lý" : v == QLKSan.Enums.Role.Receptionist ? "Lễ tân" : "Khách hàng",
-                v => v == "Quản lý" ? QLKSan.Enums.Role.Admin : v == "Lễ tân" ? QLKSan.Enums.Role.Receptionist : QLKSan.Enums.Role.Customer
+                v => v == QLKSan.Enums.Role.Admin ? "Quản lý"
+                   : v == QLKSan.Enums.Role.Receptionist ? "Lễ tân"
+                   : v == QLKSan.Enums.Role.Housekeeping ? "Buồng phòng"
+                   : v == QLKSan.Enums.Role.Accountant ? "Kế toán"
+                   : "Khách hàng",
+                v => v == "Quản lý" ? QLKSan.Enums.Role.Admin
+                   : v == "Lễ tân" ? QLKSan.Enums.Role.Receptionist
+                   : v == "Buồng phòng" ? QLKSan.Enums.Role.Housekeeping
+                   : v == "Kế toán" ? QLKSan.Enums.Role.Accountant
+                   : QLKSan.Enums.Role.Customer
             );
 
             modelBuilder.Entity<TaiKhoan>()
@@ -160,6 +170,28 @@ namespace QLKSan.Data
                 .Property(d => d.TrangThai)
                 .HasConversion(serviceStatusConverter);
 
+            // PaymentType converter (ThanhToan.LoaiGiaoDich)
+            modelBuilder.Entity<ThanhToan>()
+                .Property(t => t.LoaiGiaoDich)
+                .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.PaymentType, string>(
+                    v => v == QLKSan.Enums.PaymentType.Refund ? "Hoàn" : "Thu",
+                    v => v == "Hoàn" ? QLKSan.Enums.PaymentType.Refund : QLKSan.Enums.PaymentType.Payment));
+
+            // HousekeepingTaskStatus converter (PhanCongDonPhong.TrangThai)
+            modelBuilder.Entity<PhanCongDonPhong>()
+                .Property(t => t.TrangThai)
+                .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.HousekeepingTaskStatus, string>(
+                    v => v == QLKSan.Enums.HousekeepingTaskStatus.Assigned ? "Đã giao"
+                       : v == QLKSan.Enums.HousekeepingTaskStatus.InProgress ? "Đang dọn"
+                       : v == QLKSan.Enums.HousekeepingTaskStatus.Completed ? "Hoàn thành"
+                       : v == QLKSan.Enums.HousekeepingTaskStatus.Issue ? "Sự cố"
+                       : "Chờ giao",
+                    v => v == "Đã giao" ? QLKSan.Enums.HousekeepingTaskStatus.Assigned
+                       : v == "Đang dọn" ? QLKSan.Enums.HousekeepingTaskStatus.InProgress
+                       : v == "Hoàn thành" ? QLKSan.Enums.HousekeepingTaskStatus.Completed
+                       : v == "Sự cố" ? QLKSan.Enums.HousekeepingTaskStatus.Issue
+                       : QLKSan.Enums.HousekeepingTaskStatus.Unassigned));
+
             // Configure Unique Constraints based on Database Schema
             modelBuilder.Entity<TaiKhoan>()
                 .HasIndex(t => t.TenDangNhap)
@@ -197,6 +229,11 @@ namespace QLKSan.Data
 
             modelBuilder.Entity<HoaDon>()
                 .Property(h => h.TongTienCanThanhToan)
+                .ValueGeneratedOnAddOrUpdate();
+
+            modelBuilder.Entity<HoaDon>()
+                .Property(h => h.SoTienConLai)
+                .HasColumnType("decimal(18,2)")
                 .ValueGeneratedOnAddOrUpdate();
 
             modelBuilder.Entity<SuDungDichVu>()

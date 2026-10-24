@@ -7,20 +7,7 @@
     <RootNamespace>QLKSan</RootNamespace>
   </PropertyGroup>
 
-  <!-- TẠM THỜI: Web vẫn truy cập DB trực tiếp cho tới khi từng module được chuyển sang gọi API (Giai đoạn 5).
-       Khi xong, xoá các package EF Core này cùng thư mục Business/, Data/, Models/Entities/. -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.8">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
-
+  <!-- Web không tham chiếu EF Core / QLKSan.API: chỉ dùng DTO trong QLKSan.Shared và gọi API qua HTTP -->
   <ItemGroup>
     <ProjectReference Include="..\QLKSan.Shared\QLKSan.Shared.csproj" />
   </ItemGroup>

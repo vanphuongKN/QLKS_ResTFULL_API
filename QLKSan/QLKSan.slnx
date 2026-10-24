@@ -2,4 +2,5 @@
   <Project Path="QLKSan.Shared/QLKSan.Shared.csproj" />
   <Project Path="QLKSan.API/QLKSan.API.csproj" />
   <Project Path="QLKSan.Web/QLKSan.Web.csproj" />
+  <Project Path="QLKSan.Tests/QLKSan.Tests.csproj" />
 </Solution>

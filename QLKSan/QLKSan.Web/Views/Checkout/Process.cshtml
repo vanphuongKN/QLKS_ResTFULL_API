@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Trả phòng khách hàng";
-    var booking = ViewBag.Booking as QLKSan.Models.Entities.PhieuDatPhong;
-    var invoice = ViewBag.Invoice as QLKSan.Models.Entities.HoaDon;
+    var booking = ViewBag.Booking as QLKSan.Models.DTOs.BookingDto;
+    var invoice = ViewBag.Invoice as QLKSan.Models.DTOs.InvoiceDto;
 }
 
 <div class="page-header">
@@ -68,9 +68,9 @@
                             foreach (var sv in booking.SuDungDichVus)
                             {
                                 <tr>
-                                    <td>@sv.DichVu.TenDichVu</td>
+                                    <td>@sv.TenDichVu</td>
                                     <td>@sv.SoLuong</td>
-                                    <td>@sv.ThanhTien.ToString("N0") VNĐ</td>
+                                    <td>@sv.ThanhTien.ToString("N0") ₫</td>
                                 </tr>
                             }
                         }
@@ -90,37 +90,59 @@
         {
             <!-- Daily Ledger with Invoice details -->
             <div class="ledger-panel mb-4">
-                <h5>Hóa Đơn Cuối (#@invoice.MaHoaDon)</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Hóa Đơn Cuối (#@invoice.MaHoaDon)</h5>
+                    <a href="@Url.Action("Print", "Invoice", new { id = invoice.MaHoaDon })" target="_blank" class="btn btn-sm btn-outline-secondary" title="In phiếu tạm tính"><i class="fas fa-print"></i></a>
+                </div>
                 
                 <div class="d-flex justify-content-between mb-2 mt-4">
-                    <span class="text-muted">Tiền phòng</span>
-                    <strong>@invoice.TongTienPhong.ToString("N0") VNĐ</strong>
+                    <span class="text-muted">Tiền phòng (@invoice.SoDem đêm thực tế)</span>
+                    <strong>@invoice.TongTienPhong.ToString("N0") ₫</strong>
                 </div>
+                @if (invoice.TienPhat > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2 text-danger">
+                        <span>Phụ thu trả phòng muộn (@invoice.PhanTramPhuThu%)</span>
+                        <strong>@invoice.TienPhat.ToString("N0") ₫</strong>
+                    </div>
+                }
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Tiền dịch vụ</span>
-                    <strong>@invoice.TongTienDichVu.ToString("N0") VNĐ</strong>
+                    <strong>@invoice.TongTienDichVu.ToString("N0") ₫</strong>
                 </div>
                 @if (invoice.GiamGiaKhuyenMai > 0)
                 {
                     <div class="d-flex justify-content-between mb-2 text-success">
                         <span class="text-muted text-success">Khuyến mãi @(string.IsNullOrEmpty(invoice.MaKhuyenMai) ? "" : $"({invoice.MaKhuyenMai})")</span>
-                        <strong class="text-success">-@invoice.GiamGiaKhuyenMai.ToString("N0") VNĐ</strong>
+                        <strong class="text-success">-@invoice.GiamGiaKhuyenMai.ToString("N0") ₫</strong>
                     </div>
                 }
                 <div class="d-flex justify-content-between mb-3">
                     <span class="text-muted">Thuế VAT (8%)</span>
-                    <strong>@invoice.ThueVAT.ToString("N0") VNĐ</strong>
+                    <strong>@invoice.ThueVAT.ToString("N0") ₫</strong>
                 </div>
-                @if (booking != null && booking.TienCoc > 0)
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tổng giá trị hoá đơn</span>
+                    <strong>@invoice.TongTienCanThanhToan.ToString("N0") ₫</strong>
+                </div>
+                @if (invoice.TienCoc > 0)
                 {
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted">Tiền đặt cọc đã trừ</span>
-                        <strong class="text-success">-@booking.TienCoc.ToString("N0") VNĐ</strong>
+                        <strong class="text-success">-@invoice.TienCoc.ToString("N0") ₫</strong>
                     </div>
                 }
                 <hr>
-                <div class="ledger-label">TỔNG CẦN THANH TOÁN</div>
-                <div class="ledger-total text-danger">@invoice.TongTienCanThanhToan.ToString("N0") VNĐ</div>
+                @if (invoice.SoTienConLai >= 0)
+                {
+                    <div class="ledger-label">CÒN PHẢI THANH TOÁN</div>
+                    <div class="ledger-total text-danger">@invoice.SoTienConLai.ToString("N0") ₫</div>
+                }
+                else
+                {
+                    <div class="ledger-label">TIỀN CỌC THỪA — HOÀN LẠI KHÁCH</div>
+                    <div class="ledger-total text-success">@((-invoice.SoTienConLai).ToString("N0")) ₫</div>
+                }
                 
                 @if (invoice.TrangThai == QLKSan.Enums.InvoiceStatus.Unpaid)
                 {
@@ -300,7 +322,7 @@
                     <input type="hidden" name="maPhong" value="@booking.ChiTietDatPhongs.FirstOrDefault()?.MaPhong" />
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-navy small">MÃ KHUYẾN MÃI (NẾU CÓ)</label>
-                        <input type="text" name="maKhuyenMai" class="form-control form-control-sm" placeholder="Nhập mã khuyến mãi..." value="" style="font-size:0.85rem; border-color:#eaddc4; height: 38px;" />
+                        <input type="text" name="maKhuyenMai" class="form-control form-control-sm" placeholder="Nhập mã khuyến mãi..." value="@booking.MaKhuyenMai" style="font-size:0.85rem; border-color:#eaddc4; height: 38px;" />
                     </div>
                     <button type="submit" class="btn btn-outline-navy w-100 py-3">CHỐT DỮ LIỆU & TẠO HÓA ĐƠN</button>
                 </form>

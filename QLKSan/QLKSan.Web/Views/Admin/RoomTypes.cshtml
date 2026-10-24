@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Quản lý Loại Phòng";
-    var roomTypes = ViewBag.RoomTypes as IEnumerable<QLKSan.Models.Entities.LoaiPhong>;
+    var roomTypes = ViewBag.RoomTypes as IEnumerable<QLKSan.Models.DTOs.RoomTypeDto>;
 }
 
 <div class="page-header">
@@ -45,8 +45,8 @@
                             <td><strong>@rt.MaLoai</strong></td>
                             <td class="text-gold fw-bold">@rt.TenLoai</td>
                             <td>@rt.SoNguoiToiDa</td>
-                            <td class="text-gold fw-bold">@QLKSan.Helpers.FormatHelper.ToVND(rt.GiaThueNgay)</td>
-                            <td>@QLKSan.Helpers.FormatHelper.ToVND(rt.GiaThueGio)</td>
+                            <td class="text-gold fw-bold">@FormatHelper.ToVND(rt.GiaThueNgay)</td>
+                            <td>@FormatHelper.ToVND(rt.GiaThueGio)</td>
                             <td>@rt.MoTa</td>
                             <td>
                                 <div class="d-flex gap-2">

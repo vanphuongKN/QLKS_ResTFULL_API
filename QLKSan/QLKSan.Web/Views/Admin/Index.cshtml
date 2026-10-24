@@ -5,7 +5,7 @@
     decimal maxRevenue = weeklyRevenue.Any() && weeklyRevenue.Max() > 0 ? weeklyRevenue.Max() : 1m;
     int totalBookings = ViewBag.Bookings ?? 0;
     int totalCustomers = ViewBag.Customers ?? 0;
-    var promotions = ViewBag.Promotions as IEnumerable<QLKSan.Models.Entities.KhuyenMai>;
+    var promotions = ViewBag.Promotions as IEnumerable<QLKSan.Models.DTOs.PromotionDto>;
     var yearlyRevenue = ViewBag.YearlyRevenue as List<QLKSan.Models.DTOs.MonthlyRevenueDto> ?? new List<QLKSan.Models.DTOs.MonthlyRevenueDto>();
 }
 
@@ -28,7 +28,8 @@
         <div class="card p-4">
             <div class="d-flex justify-content-between align-items-start mb-3">
                 <div>
-                    <h6 class="text-muted mb-1"><i class="fas fa-chart-bar me-2"></i>Tổng quan Doanh thu</h6>
+                    <h6 class="text-muted mb-1"><i class="fas fa-chart-bar me-2"></i>Tổng quan doanh thu</h6>
+                    <small class="text-muted">Biểu đồ: doanh thu từng ngày trong tuần này</small>
                 </div>
                 <div class="text-end">
                     <h3 class="fw-bold text-navy mb-0">@revenue.ToString("N0") ₫</h3>
@@ -42,7 +43,7 @@
                     for (int i = 0; i < 7; i++)
                     {
                         var rev = weeklyRevenue[i];
-                        int heightPx = (int)((rev / maxRevenue) * 150); // 150px max height
+                        int heightPx = (int)((rev / maxRevenue) * 130); // cột cao nhất 130px, chừa chỗ cho nhãn số tiền
                         if (rev > 0 && heightPx < 15) heightPx = 15; // minimum visible height if there's revenue
                         if (rev == 0) heightPx = 5; // tiny height for 0 revenue to show empty state
                         
@@ -53,7 +54,9 @@
                         
                         string bgColor = isToday ? "var(--gold)" : "#E8E8E8";
                         
+                        var nhanCot = rev >= 1_000_000 ? (rev / 1_000_000m).ToString("0.#") + "tr" : rev >= 1_000 ? (rev / 1_000m).ToString("0") + "k" : "";
                         <div class="d-flex flex-column align-items-center flex-fill position-relative" style="cursor: pointer;" title="Doanh thu: @rev.ToString("N0") ₫">
+                            <small class="text-muted mb-1" style="font-size:0.68rem;min-height:1em">@nhanCot</small>
                             <div style="background:@bgColor; width:100%; height:@(heightPx)px; border-radius:4px; transition: height 0.5s ease, background 0.3s ease;" 
                                  onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"></div>
                             <small class="text-muted mt-2 fw-bold" style="font-size:0.7rem; @(isToday ? "color: var(--navy) !important;" : "")">@days[i]</small>
@@ -71,11 +74,12 @@
             </div>
             @if (promotions != null && promotions.Any()) {
                 foreach (var promo in promotions.Take(3)) {
-                    var active = promo.NgayBatDau <= DateTime.Now && promo.NgayKetThuc >= DateTime.Now;
+                    var (nhanKm, cssKm) = promo.NgayKetThuc.Date < DateTime.Today ? ("Hết hạn", "badge-muted")
+                        : promo.NgayBatDau.Date > DateTime.Today ? ("Sắp diễn ra", "badge-booked") : ("Đang hoạt động", "badge-available");
                     <div class="promo-card">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="promo-name">@promo.MaKhuyenMai</span>
-                            <span class="promo-badge" style="@(active ? "background:rgba(46,125,50,0.1);color:#2E7D32" : "background:#f0f0f0;color:#999")">@(active ? "ĐANG HOẠT ĐỘNG" : "HẾT HẠN")</span>
+                            <span class="badge-status @cssKm">@nhanKm</span>
                         </div>
                         <p class="text-muted small mb-1">@promo.TenKhuyenMai</p>
                         <small class="text-muted"><i class="fas fa-calendar me-1"></i>Kết thúc @promo.NgayKetThuc.ToString("dd/MM")</small>

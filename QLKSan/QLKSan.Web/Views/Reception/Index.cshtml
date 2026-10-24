@@ -1,7 +1,25 @@
+<style>
+    .rc-card { border: 1px solid #eae8e2; border-radius: 12px; padding: 14px; height: 100%; display: flex; flex-direction: column; background: #fff; transition: box-shadow .2s; }
+    .rc-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.07); }
+    .rc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 10px; }
+    .rc-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rc-number { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--navy); line-height: 1.1; }
+    .rc-type { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-bottom: 4px; }
+    .rc-guest { font-size: .78rem; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rc-actions { margin-top: auto; padding-top: 12px; display: flex; gap: 6px; }
+    .rc-actions { flex-wrap: wrap; }
+    .rc-actions .btn { flex: 1 1 70px; font-size: .75rem; padding: 5px 6px; border-radius: 6px; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+    .rc-available .rc-icon { background: #e8f5e9; color: #2e7d32; }
+    .rc-occupied .rc-icon { background: #ffebee; color: #c62828; }
+    .rc-booked .rc-icon { background: #e3f2fd; color: #1565c0; }
+    .rc-cleaning .rc-icon { background: #fff8e1; color: #f57f17; }
+    .rc-maintenance .rc-icon { background: #f1f3f5; color: #6c757d; }
+    .badge-filter { cursor: pointer; }
+</style>
 @{
     ViewData["Title"] = "Dashboard Lễ Tân";
-    var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.Entities.Phong>;
-    var onlineBookings = ViewBag.OnlineBookings as IEnumerable<QLKSan.Models.Entities.PhieuDatPhong>;
+    var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
+    var onlineBookings = ViewBag.OnlineBookings as IEnumerable<QLKSan.Models.DTOs.BookingDto>;
 }
 
 <div class="page-header">
@@ -16,7 +34,13 @@
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div>
+    <div class="alert alert-success mb-3 d-flex justify-content-between align-items-center">
+        <span>@TempData["SuccessMessage"]</span>
+        @if (TempData["PrintInvoiceId"] is string printId)
+        {
+            <a href="@Url.Action("Print", "Invoice", new { id = printId })" target="_blank" class="btn btn-sm btn-success"><i class="fas fa-print me-1"></i>In hoá đơn @printId</a>
+        }
+    </div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
@@ -55,46 +79,36 @@
                                          : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "Bảo trì"
                                          : "Đang dọn";
 
-                        <div class="col-md-3 col-sm-4 col-6 room-card-wrapper" data-status="@room.TrangThai">
-                            <div class="card p-3 h-100 shadow-sm hover-shadow transition-all border d-flex flex-column" style="border-radius: 12px; border-color: #eae8e2 !important;">
-                                <!-- Top row: Room Type & Status Badge -->
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <small class="text-gold fw-bold text-uppercase text-start" style="font-size:0.65rem; letter-spacing:0.5px; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@(room.LoaiPhong?.TenLoai ?? "Standard")">
-                                        @(room.LoaiPhong?.TenLoai ?? "Standard")
-                                    </small>
-                                    <span class="badge-status @statusClass" style="font-size:0.6rem; padding: 2px 8px; border-radius:4px; font-weight:600; line-height: 1;">
-                                        @statusLabel
-                                    </span>
+                        <div class="col-xl-3 col-sm-4 col-6 room-card-wrapper" data-status="@room.TrangThai">
+                            <div class="rc-card rc-@room.TrangThai.ToString().ToLower()">
+                                <div class="rc-top">
+                                    <div class="rc-icon"><i class="fas @(room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "fa-door-open" : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "fa-bed" : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "fa-calendar-check" : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "fa-tools" : "fa-broom")"></i></div>
+                                    <span class="badge-status @statusClass">@statusLabel</span>
                                 </div>
+                                <div class="rc-number">@room.SoPhong</div>
+                                <div class="rc-type">@(room.LoaiPhong?.TenLoai ?? "—")</div>
+                                @if (room.TrangThai == QLKSan.Enums.RoomStatus.Occupied && room.DangLuuTru != null)
+                                {
+                                    <div class="rc-guest" title="@room.DangLuuTru.KhachHang?.HoTen"><i class="fas fa-user me-1"></i>@room.DangLuuTru.KhachHang?.HoTen</div>
+                                }
+                                else if (room.TrangThai == QLKSan.Enums.RoomStatus.Booked && room.DatPhongHienTai != null)
+                                {
+                                    <div class="rc-guest"><i class="fas fa-sign-in-alt me-1"></i>Đến @room.DatPhongHienTai.NgayCheckInDuKien.ToString("dd/MM")</div>
+                                }
 
-                                <!-- Middle: Room Number & Circle Icon -->
-                                <div class="my-2 text-center">
-                                    <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-2" 
-                                         style="width: 48px; height: 48px; background: @(room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "#e8f5e9" : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "#ffebee" : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "#e3f2fd" : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "#f1f3f5" : "#fff8e1"); color: @(room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "#2e7d32" : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "#c62828" : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "#1565c0" : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "#6c757d" : "#f57f17")">
-                                        <i class="fas @(room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "fa-door-open" : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "fa-door-closed" : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "fa-calendar-check" : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "fa-tools" : "fa-broom") fs-4"></i>
-                                    </div>
-                                    <h4 class="fw-bold mb-0 text-navy" style="font-family:'Playfair Display', serif; font-size:1.5rem">@room.SoPhong</h4>
-                                </div>
-                                
-                                <div class="mt-auto border-top pt-2">
+                                <div class="rc-actions">
                                     @if (room.TrangThai == QLKSan.Enums.RoomStatus.Occupied)
                                     {
-                                        <div class="d-flex justify-content-center gap-2">
-                                            <a href="@Url.Action("Index", "Service")?maPhong=@room.MaPhong" class="btn btn-sm btn-outline-navy flex-fill py-1" title="Thêm dịch vụ">
-                                                <i class="fas fa-concierge-bell"></i>
-                                            </a>
-                                            <a href="@Url.Action("Process", "Checkout")?maPhong=@room.MaPhong" class="btn btn-sm btn-gold flex-fill py-1" title="Trả phòng">
-                                                <i class="fas fa-file-invoice-dollar"></i>
-                                            </a>
-                                        </div>
+                                        <a href="@Url.Action("Index", "Service")?maPhong=@room.MaPhong" class="btn btn-sm btn-outline-navy">Dịch vụ</a>
+                                        <a href="@Url.Action("Process", "Checkout")?maPhong=@room.MaPhong" class="btn btn-sm btn-gold">Trả phòng</a>
                                     }
                                     else if (room.TrangThai == QLKSan.Enums.RoomStatus.Available)
                                     {
-                                        <a asp-action="WalkIn" class="btn btn-sm btn-outline-success w-100 py-1" style="border-radius: 6px; font-weight: 500;">Check-In</a>
+                                        <a href="@Url.Action("WalkIn", new { maPhong = room.MaPhong })" class="btn btn-sm btn-outline-success w-100">Nhận khách</a>
                                     }
-                                    else 
+                                    else
                                     {
-                                        <button class="btn btn-sm btn-light text-muted w-100 py-1" disabled style="border-radius: 6px;">Không khả dụng</button>
+                                        <a href="@Url.Action("Details", "Room", new { id = room.MaPhong })" class="btn btn-sm btn-light w-100 text-muted">Xem chi tiết</a>
                                     }
                                 </div>
                             </div>
@@ -121,7 +135,7 @@
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <strong class="text-navy">Phiếu #@booking.MaDatPhong</strong>
-                                    <span class="badge @(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "bg-warning text-dark" : "bg-primary text-white") ms-2" style="font-size:0.7rem">
+                                    <span class="badge-status @(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "badge-pending" : "badge-booked") ms-2">
                                         @(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "Chờ duyệt" : "Đã duyệt")
                                     </span>
                                 </div>
@@ -136,6 +150,10 @@
                                 <span><i class="fas fa-sign-out-alt me-1"></i>@booking.NgayCheckOutDuKien.ToString("dd/MM")</span>
                                 <span><i class="fas fa-door-open me-1"></i>Phòng: @(booking.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong ?? "Chưa rõ")</span>
                             </div>
+                            @if (!string.IsNullOrEmpty(booking.MaKhuyenMai))
+                            {
+                                <p class="small mb-3"><i class="fas fa-tag text-success me-1"></i>Mã khuyến mãi khách chọn: <strong class="text-success">@booking.MaKhuyenMai</strong></p>
+                            }
 
                             <div class="d-flex gap-2">
                                 @if (booking.TrangThai == QLKSan.Enums.BookingStatus.Pending)
@@ -151,6 +169,13 @@
                                     <input type="hidden" name="id" value="@booking.MaDatPhong" />
                                     <button type="submit" class="btn btn-sm btn-gold w-100">
                                         <i class="fas fa-key me-1"></i>Nhận phòng
+                                    </button>
+                                </form>
+                                <form asp-action="CancelBooking" method="post" class="flex-fill" onsubmit="return confirmCancelBooking(this)">
+                                    <input type="hidden" name="id" value="@booking.MaDatPhong" />
+                                    <input type="hidden" name="lyDo" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                        <i class="fas fa-times me-1"></i>@(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "Từ chối" : "Huỷ")
                                     </button>
                                 </form>
                             </div>
@@ -170,7 +195,7 @@
 </div>
 
 @{
-    var bookings = ViewBag.Bookings as IEnumerable<QLKSan.Models.Entities.PhieuDatPhong>;
+    var bookings = ViewBag.Bookings as IEnumerable<QLKSan.Models.DTOs.BookingDto>;
 }
 
 <div class="row mt-4">
@@ -218,7 +243,7 @@
                                 var detail = p.ChiTietDatPhongs?.FirstOrDefault();
                                 var room = detail?.Phong;
                                 var customer = p.KhachHang;
-                                var phone = customer?.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "N/A";
+                                var phone = customer?.SDT ?? "N/A";
                                 
                                 // Badge styling based on booking state
                                 var badgeClass = "badge-status badge-available"; // default
@@ -226,12 +251,12 @@
                                 
                                 if (p.TrangThai == QLKSan.Enums.BookingStatus.Pending)
                                 {
-                                    badgeClass = "bg-warning text-dark border-0";
+                                    badgeClass = "badge-status badge-pending";
                                     statusLabel = "Chờ duyệt";
                                 }
                                 else if (p.TrangThai == QLKSan.Enums.BookingStatus.Approved)
                                 {
-                                    badgeClass = "bg-info text-white border-0";
+                                    badgeClass = "badge-status badge-booked";
                                     statusLabel = "Đã duyệt";
                                 }
                                 else if (p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn)
@@ -246,7 +271,7 @@
                                 }
                                 else if (p.TrangThai == QLKSan.Enums.BookingStatus.Cancelled)
                                 {
-                                    badgeClass = "bg-danger text-white border-0";
+                                    badgeClass = "badge-status badge-muted";
                                     statusLabel = "Đã hủy";
                                 }
 
@@ -287,7 +312,7 @@
                                             <span class="text-muted">Check-Out:</span> @p.NgayCheckOutDuKien.ToString("dd/MM/yyyy")
                                         </div>
                                     </td>
-                                    <td class="py-3 font-monospace fw-bold text-navy" style="font-size:0.85rem">
+                                    <td class="py-3 fw-bold text-navy" style="font-size:0.85rem">
                                         @p.TienCoc.ToString("N0") ₫
                                     </td>
                                     <td class="py-3">
@@ -350,3 +375,14 @@
         }
     </script>
 }
+
+<script>
+    // Lễ tân phải nhập lý do khi từ chối/huỷ phiếu đặt phòng
+    function confirmCancelBooking(form) {
+        var lyDo = prompt('Nhập lý do từ chối/huỷ phiếu đặt phòng:', '');
+        if (lyDo === null) return false;
+        if (!lyDo.trim()) { alert('Vui lòng nhập lý do.'); return false; }
+        form.querySelector('input[name=lyDo]').value = lyDo;
+        return true;
+    }
+</script>

@@ -1,34 +1,36 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QLKSan.Business;
+using QLKSan.ApiClients;
+using QLKSan.Infrastructure;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
 {
-    public class ServiceOrderItem
-    {
-        public string MaDichVu { get; set; }
-        public int SoLuong { get; set; }
-    }
-
+    [Authorize(Roles = WebRoles.FrontDesk)]
     public class ServiceController : Controller
     {
-        private readonly IServiceManager _serviceManager;
+        private readonly IServiceApiClient _serviceApi;
+        private readonly IBookingApiClient _bookingApi;
 
-        public ServiceController(IServiceManager serviceManager)
+        public ServiceController(IServiceApiClient serviceApi, IBookingApiClient bookingApi)
         {
-            _serviceManager = serviceManager;
+            _serviceApi = serviceApi;
+            _bookingApi = bookingApi;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index(string? maPhong = null, string? roomNumber = null)
         {
-            ViewBag.Services = await _serviceManager.GetAllServicesAsync();
-            var activeStays = await _serviceManager.GetActiveStaysAsync();
+            ViewBag.Services = await _serviceApi.GetAllAsync();
+            var activeStays = await _bookingApi.GetActiveAsync();
             ViewBag.ActiveStays = activeStays;
 
             if (string.IsNullOrEmpty(maPhong) && !string.IsNullOrEmpty(roomNumber))
             {
-                var matchingStay = activeStays.FirstOrDefault(stay => 
+                var matchingStay = activeStays.FirstOrDefault(stay =>
                     stay.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong == roomNumber);
                 if (matchingStay != null)
                 {
@@ -43,36 +45,31 @@ namespace QLKSan.Controllers
         [HttpPost]
         public async Task<IActionResult> OrderService(string maPhong, List<ServiceOrderItem> services)
         {
-            if (string.IsNullOrEmpty(maPhong) || services == null || services.Count == 0)
+            var items = services?.Where(item => !string.IsNullOrEmpty(item.MaDichVu) && item.SoLuong > 0).ToList();
+            if (string.IsNullOrEmpty(maPhong) || items == null || items.Count == 0)
             {
                 TempData["ErrorMessage"] = "Dữ liệu không hợp lệ. Vui lòng chọn ít nhất 1 dịch vụ.";
                 return RedirectToAction("Index");
             }
 
-            string maDatPhong = await _serviceManager.GetActiveBookingIdByRoomAsync(maPhong);
+            // Phiếu đang lưu trú của phòng (danh sách đã sắp xếp theo ngày check-in mới nhất)
+            var activeStays = await _bookingApi.GetActiveAsync();
+            var maDatPhong = activeStays
+                .FirstOrDefault(stay => stay.ChiTietDatPhongs.Any(c => c.MaPhong == maPhong))?.MaDatPhong;
             if (string.IsNullOrEmpty(maDatPhong))
             {
                 TempData["ErrorMessage"] = "Không tìm thấy thông tin lưu trú hợp lệ cho phòng này.";
                 return RedirectToAction("Index");
             }
 
-            bool anySuccess = false;
-            foreach (var item in services)
+            try
             {
-                if (!string.IsNullOrEmpty(item.MaDichVu) && item.SoLuong > 0)
-                {
-                    bool ok = await _serviceManager.OrderServiceAsync(maDatPhong, item.MaDichVu, item.SoLuong);
-                    if (ok) anySuccess = true;
-                }
-            }
-
-            if (anySuccess)
-            {
+                await _bookingApi.OrderServicesAsync(maDatPhong, new OrderServiceRequest { Services = items });
                 TempData["SuccessMessage"] = "Đã thêm các dịch vụ thành công!";
             }
-            else
+            catch (ApiException ex)
             {
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi thêm dịch vụ.";
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi thêm dịch vụ. " + ex.UserMessage;
             }
 
             return RedirectToAction("Index");

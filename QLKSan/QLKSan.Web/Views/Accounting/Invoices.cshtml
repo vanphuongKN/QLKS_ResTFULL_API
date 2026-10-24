@@ -1,0 +1,101 @@
+@using QLKSan.Enums
+@model IEnumerable<QLKSan.Models.DTOs.InvoiceListItemDto>
+@{
+    ViewData["Title"] = "Hoá đơn";
+    DateTime? tuNgay = ViewBag.TuNgay;
+    DateTime? denNgay = ViewBag.DenNgay;
+    InvoiceStatus? trangThai = ViewBag.TrangThai;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Kế toán</p>
+        <h2>Danh sách hoá đơn</h2>
+    </div>
+</div>
+
+<form method="get" class="card p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">Từ ngày</label>
+            <input type="date" name="tuNgay" value="@tuNgay?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">Đến ngày</label>
+            <input type="date" name="denNgay" value="@denNgay?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold">Trạng thái</label>
+            <select name="trangThai" class="form-select form-select-sm">
+                <option value="">Tất cả</option>
+                <option value="@InvoiceStatus.Paid" selected="@(trangThai == InvoiceStatus.Paid)">Đã thanh toán</option>
+                <option value="@InvoiceStatus.Unpaid" selected="@(trangThai == InvoiceStatus.Unpaid)">Chưa thanh toán</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Tìm kiếm</label>
+            <input type="text" name="search" value="@ViewBag.Search" class="form-control form-control-sm" placeholder="Mã hoá đơn, mã phiếu, tên khách..." />
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-gold btn-sm flex-fill"><i class="fas fa-filter me-1"></i>Lọc</button>
+            <a href="@Url.Action("Invoices")" class="btn btn-outline-secondary btn-sm">Xoá lọc</a>
+        </div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Mã HĐ</th>
+                    <th>Khách hàng</th>
+                    <th>Phòng</th>
+                    <th>Ngày lập</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th class="text-end">Tiền cọc</th>
+                    <th class="text-end">Đã thu</th>
+                    <th class="text-end">Đã hoàn</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var h in Model)
+                    {
+                        <tr>
+                            <td><strong>@h.MaHoaDon</strong><br /><small class="text-muted">@h.MaDatPhong</small></td>
+                            <td>@h.HoTenKhachHang</td>
+                            <td>@h.SoPhong</td>
+                            <td><small>@h.NgayLapHoaDon.ToString("dd/MM/yyyy HH:mm")</small><br /><small class="text-muted">@h.TenNhanVienLap</small></td>
+                            <td class="text-end fw-bold">@h.TongTienCanThanhToan.ToString("N0")</td>
+                            <td class="text-end">@(h.TienCoc > 0 ? h.TienCoc.ToString("N0") : "—")</td>
+                            <td class="text-end">@h.DaThu.ToString("N0")<br /><small class="text-muted">@h.PhuongThuc</small></td>
+                            <td class="text-end @(h.DaHoan > 0 ? "text-danger" : "")">@(h.DaHoan > 0 ? "-" + h.DaHoan.ToString("N0") : "—")</td>
+                            <td>
+                                <span class="badge @(h.TrangThai == InvoiceStatus.Paid ? "bg-success" : h.TrangThai == InvoiceStatus.Unpaid ? "bg-warning text-dark" : "bg-secondary")">
+                                    @h.TrangThai.GetDisplayName()
+                                </span>
+                            </td>
+                            <td><a href="@Url.Action("Invoice", new { id = h.MaHoaDon })" class="btn btn-sm btn-outline-primary">Chi tiết</a></td>
+                        </tr>
+                    }
+                    <tr class="bg-light fw-bold">
+                        <td colspan="4" class="text-end">Tổng (@Model.Count() hoá đơn)</td>
+                        <td class="text-end">@Model.Sum(h => h.TongTienCanThanhToan).ToString("N0")</td>
+                        <td class="text-end">@Model.Sum(h => h.TienCoc).ToString("N0")</td>
+                        <td class="text-end">@Model.Sum(h => h.DaThu).ToString("N0")</td>
+                        <td class="text-end text-danger">@(Model.Sum(h => h.DaHoan) > 0 ? "-" + Model.Sum(h => h.DaHoan).ToString("N0") : "—")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                }
+                else
+                {
+                    <tr><td colspan="10" class="text-center text-muted p-5">Không có hoá đơn phù hợp.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,4 +1,4 @@
-@model QLKSan.Models.Entities.KhachHang
+@model QLKSan.Models.DTOs.CustomerDetailDto
 @{
     var contact = Model.LienHeDiaChis?.FirstOrDefault();
     var phone = contact?.SDT ?? "Chưa cập nhật";
@@ -111,14 +111,14 @@
                 <i class="fas fa-passport" title="CCCD / Passport"></i>
                 <div>
                     <span class="d-block text-muted" style="font-size: 0.7rem">CCCD / PASSPORT</span>
-                    <strong class="text-dark font-monospace" style="font-size: 0.9rem">@Model.CCCD_Passport</strong>
+                    <strong class="text-dark" style="font-size: 0.9rem">@Model.CCCD_Passport</strong>
                 </div>
             </div>
             <div class="d-flex align-items-center">
                 <i class="fas fa-phone" title="Điện thoại"></i>
                 <div>
                     <span class="d-block text-muted" style="font-size: 0.7rem">ĐIỆN THOẠI</span>
-                    <strong class="text-dark font-monospace" style="font-size: 0.9rem">@phone</strong>
+                    <strong class="text-dark" style="font-size: 0.9rem">@phone</strong>
                 </div>
             </div>
             <div class="d-flex align-items-center">
@@ -138,7 +138,7 @@
             <div class="d-flex align-items-center">
                 <i class="fas fa-map-marker-alt" title="Địa chỉ"></i>
                 <div>
-                    <span class="d-block text-muted" style="font-size: 0.7rem">ĐIỆN THOẠI & ĐỊA CHỈ</span>
+                    <span class="d-block text-muted" style="font-size: 0.7rem">ĐỊA CHỈ</span>
                     <strong class="text-dark" style="font-size: 0.85rem">@address, @country</strong>
                 </div>
             </div>
@@ -173,12 +173,12 @@
                     
                     if (b.TrangThai == QLKSan.Enums.BookingStatus.Pending)
                     {
-                        statusBadgeClass = "bg-warning text-dark border-0";
+                        statusBadgeClass = "badge-status badge-pending";
                         statusLabel = "Chờ duyệt";
                     }
                     else if (b.TrangThai == QLKSan.Enums.BookingStatus.Approved)
                     {
-                        statusBadgeClass = "bg-info text-white border-0";
+                        statusBadgeClass = "badge-status badge-booked";
                         statusLabel = "Đã duyệt";
                     }
                     else if (b.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn)
@@ -193,7 +193,7 @@
                     }
                     else if (b.TrangThai == QLKSan.Enums.BookingStatus.Cancelled)
                     {
-                        statusBadgeClass = "bg-danger text-white border-0";
+                        statusBadgeClass = "badge-status badge-muted";
                         statusLabel = "Đã hủy";
                     }
 

@@ -2,87 +2,167 @@ using Microsoft.EntityFrameworkCore;
 
 namespace QLKSan.Data
 {
+    // Cập nhật schema CSDL khi API khởi động. Mỗi bước kiểm tra trước nên chạy lại nhiều lần không lỗi (idempotent).
+    // Các bước chạy RIÊNG RẼ: một bước lỗi không làm các bước sau bị bỏ qua.
     public static class DatabaseSchemaFixer
     {
-        // Dynamic Database Schema Fixes (e.g. drop duplicate unique constraints on nullable columns)
+        private static readonly (string Ten, string Sql)[] Steps =
+        {
+            ("1. Bỏ UNIQUE trên KhachHang.MaDangNhap (cột cho phép NULL)", DropUniqueConstraintSql("KhachHang", "MaDangNhap")),
+            ("2. Bỏ UNIQUE trên KhachHang.CCCD_Passport", DropUniqueConstraintSql("KhachHang", "CCCD_Passport")),
+            ("3. Bỏ UNIQUE trên NhanVien.MaDangNhap (cột cho phép NULL)", DropUniqueConstraintSql("NhanVien", "MaDangNhap")),
+
+            ("4. Thêm cột PhieuDatPhong.MaKhuyenMai", @"
+                IF COL_LENGTH('PhieuDatPhong', 'MaKhuyenMai') IS NULL
+                    ALTER TABLE PhieuDatPhong ADD MaKhuyenMai VARCHAR(10) NULL;"),
+
+            // Cột có ràng buộc UNIQUE nên phải bỏ ràng buộc → đổi kiểu → tạo lại, trong một transaction
+            ("5a. TaiKhoan.TenDangNhap VARCHAR → NVARCHAR (hỗ trợ tiếng Việt)", @"
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                           WHERE TABLE_NAME = 'TaiKhoan' AND COLUMN_NAME = 'TenDangNhap' AND DATA_TYPE = 'varchar')
+                BEGIN
+                    SET XACT_ABORT ON;
+                    BEGIN TRANSACTION;
+                    DECLARE @ConstraintName NVARCHAR(200), @Sql NVARCHAR(MAX);
+                    SELECT @ConstraintName = tc.CONSTRAINT_NAME
+                    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+                    JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
+                    WHERE tc.TABLE_NAME = 'TaiKhoan' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'TenDangNhap';
+                    IF @ConstraintName IS NOT NULL
+                    BEGIN
+                        SET @Sql = 'ALTER TABLE TaiKhoan DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
+                        EXEC sp_executesql @Sql;
+                    END
+                    ALTER TABLE TaiKhoan ALTER COLUMN TenDangNhap NVARCHAR(50) NOT NULL;
+                    ALTER TABLE TaiKhoan ADD CONSTRAINT UQ_TaiKhoan_TenDangNhap UNIQUE (TenDangNhap);
+                    COMMIT TRANSACTION;
+                END"),
+
+            ("5b. TaiKhoan.MatKhau VARCHAR → NVARCHAR", @"
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                           WHERE TABLE_NAME = 'TaiKhoan' AND COLUMN_NAME = 'MatKhau' AND DATA_TYPE = 'varchar')
+                    ALTER TABLE TaiKhoan ALTER COLUMN MatKhau NVARCHAR(255) NOT NULL;"),
+
+            // Mức 1.1: tiền cọc trên hoá đơn + số tiền còn phải thu sau khi trừ cọc.
+            // Cột tính toán không được tham chiếu cột tính toán khác nên SoTienConLai viết lại đầy đủ công thức.
+            ("6a. Thêm cột HoaDon.TienCoc", @"
+                IF COL_LENGTH('HoaDon', 'TienCoc') IS NULL
+                    ALTER TABLE HoaDon ADD TienCoc DECIMAL(18,0) NOT NULL CONSTRAINT DF_HoaDon_TienCoc DEFAULT 0;"),
+            ("6b. Thêm cột tính toán HoaDon.SoTienConLai", @"
+                IF COL_LENGTH('HoaDon', 'SoTienConLai') IS NULL
+                    EXEC('ALTER TABLE HoaDon ADD SoTienConLai AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai) * 1.08 - TienCoc)');"),
+
+            // Mức 1.6: khuyến mãi còn hiệu lực trọn ngày kết thúc — so sánh theo NGÀY thay vì thời điểm có giờ
+            ("7. Sửa cột tính toán KhuyenMai.TrangThai", @"
+                IF EXISTS (SELECT 1 FROM sys.computed_columns
+                           WHERE object_id = OBJECT_ID('KhuyenMai') AND name = 'TrangThai' AND definition NOT LIKE '%CONVERT(%date%')
+                BEGIN
+                    ALTER TABLE KhuyenMai DROP COLUMN TrangThai;
+                    EXEC('ALTER TABLE KhuyenMai ADD TrangThai AS (CASE WHEN CAST(GETDATE() AS DATE) BETWEEN NgayBatDau AND NgayKetThuc THEN 1 ELSE 0 END)');
+                END"),
+
+            // Mức 1.2: 'Đã đặt' không còn lưu trong Phong.TrangThai — được suy ra từ phiếu đặt theo khoảng ngày
+            ("8. Chuyển phòng 'Đã đặt' về 'Trống'", @"
+                UPDATE Phong SET TrangThai = N'Trống' WHERE TrangThai = N'Đã đặt';"),
+
+            // Mức 2.4: công việc buồng phòng
+            ("9. Tạo bảng PhanCongDonPhong", @"
+                IF OBJECT_ID('PhanCongDonPhong') IS NULL
+                CREATE TABLE PhanCongDonPhong (
+                    MaPhanCong VARCHAR(10) PRIMARY KEY,
+                    MaPhong VARCHAR(10) NOT NULL,
+                    MaNhanVien VARCHAR(10) NULL,
+                    MaDatPhong VARCHAR(10) NULL,
+                    LoaiCongViec NVARCHAR(50) NOT NULL DEFAULT N'Dọn sau trả phòng',
+                    TrangThai NVARCHAR(50) NOT NULL DEFAULT N'Chờ giao',
+                    ThoiGianTao DATETIME NOT NULL DEFAULT GETDATE(),
+                    ThoiGianGiao DATETIME NULL,
+                    ThoiGianBatDau DATETIME NULL,
+                    ThoiGianHoanThanh DATETIME NULL,
+                    GhiChu NVARCHAR(500) NULL,
+                    CONSTRAINT FK_PCDP_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
+                    CONSTRAINT FK_PCDP_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien),
+                    CONSTRAINT FK_PCDP_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong)
+                );"),
+
+            // Mức 2.5: phân biệt giao dịch thu/hoàn và nhân viên thực hiện
+            ("10a. Thêm cột ThanhToan.LoaiGiaoDich", @"
+                IF COL_LENGTH('ThanhToan', 'LoaiGiaoDich') IS NULL
+                    ALTER TABLE ThanhToan ADD LoaiGiaoDich NVARCHAR(20) NOT NULL CONSTRAINT DF_ThanhToan_LoaiGiaoDich DEFAULT N'Thu';"),
+            ("10b. Thêm cột ThanhToan.MaNhanVien", @"
+                IF COL_LENGTH('ThanhToan', 'MaNhanVien') IS NULL
+                BEGIN
+                    ALTER TABLE ThanhToan ADD MaNhanVien VARCHAR(10) NULL CONSTRAINT FK_ThanhToan_NhanVien REFERENCES NhanVien(MaNhanVien);
+                    -- Giao dịch cũ: coi người lập hoá đơn là người thu tiền
+                    EXEC('UPDATE t SET MaNhanVien = h.MaNhanVienLap FROM ThanhToan t JOIN HoaDon h ON h.MaHoaDon = t.MaHoaDon WHERE t.MaNhanVien IS NULL');
+                END"),
+
+            // Phòng đang "Chờ dọn dẹp" từ trước khi có bảng công việc: tạo việc "Chờ giao" để hiện trong bảng phân công
+            ("11. Tạo công việc cho phòng đang chờ dọn", @"
+                INSERT INTO PhanCongDonPhong (MaPhanCong, MaPhong, LoaiCongViec, TrangThai, ThoiGianTao)
+                SELECT 'PC' + RIGHT('0000' + CAST(
+                           ISNULL((SELECT MAX(CAST(SUBSTRING(MaPhanCong, 3, 10) AS INT)) FROM PhanCongDonPhong
+                                   WHERE MaPhanCong LIKE 'PC%' AND SUBSTRING(MaPhanCong, 3, 10) NOT LIKE '%[^0-9]%'), 0)
+                           + ROW_NUMBER() OVER (ORDER BY p.MaPhong) AS VARCHAR(10)), 4),
+                       p.MaPhong, N'Dọn sau trả phòng', N'Chờ giao', GETDATE()
+                FROM Phong p
+                WHERE p.TrangThai = N'Chờ dọn dẹp'
+                  AND NOT EXISTS (SELECT 1 FROM PhanCongDonPhong t
+                                  WHERE t.MaPhong = p.MaPhong AND t.TrangThai IN (N'Chờ giao', N'Đã giao', N'Đang dọn'));"),
+
+            // Mức 3.1: giá theo mùa / cuối tuần / lễ
+            ("12. Tạo bảng QuyTacGia", @"
+                IF OBJECT_ID('QuyTacGia') IS NULL
+                CREATE TABLE QuyTacGia (
+                    MaQuyTac VARCHAR(10) PRIMARY KEY,
+                    TenQuyTac NVARCHAR(100) NOT NULL,
+                    MaLoai VARCHAR(10) NULL,
+                    TuNgay DATE NULL,
+                    DenNgay DATE NULL,
+                    CacThu VARCHAR(20) NULL,
+                    PhanTramDieuChinh DECIMAL(5,2) NOT NULL,
+                    UuTien INT NOT NULL DEFAULT 1,
+                    KichHoat BIT NOT NULL DEFAULT 1,
+                    CONSTRAINT FK_QuyTacGia_LoaiPhong FOREIGN KEY (MaLoai) REFERENCES LoaiPhong(MaLoai),
+                    CONSTRAINT CK_QuyTacGia_PhanTram CHECK (PhanTramDieuChinh BETWEEN -90 AND 300)
+                );"),
+            ("13. Thêm cột HoaDon.SoDem", @"
+                IF COL_LENGTH('HoaDon', 'SoDem') IS NULL
+                BEGIN
+                    ALTER TABLE HoaDon ADD SoDem INT NOT NULL CONSTRAINT DF_HoaDon_SoDem DEFAULT 0;
+                    -- Hoá đơn cũ tính 1 giá cho mọi đêm nên suy ra được số đêm
+                    EXEC('UPDATE h SET SoDem = ROUND(h.TongTienPhong / c.GiaThueThucTe, 0)
+                          FROM HoaDon h CROSS APPLY (SELECT TOP 1 GiaThueThucTe FROM ChiTietDatPhong WHERE MaDatPhong = h.MaDatPhong AND GiaThueThucTe > 0) c');
+                END")
+        };
+
+        private static string DropUniqueConstraintSql(string table, string column) => $@"
+            DECLARE @ConstraintName NVARCHAR(200), @Sql NVARCHAR(MAX);
+            SELECT @ConstraintName = tc.CONSTRAINT_NAME
+            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+            JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
+            WHERE tc.TABLE_NAME = '{table}' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = '{column}';
+            IF @ConstraintName IS NOT NULL
+            BEGIN
+                SET @Sql = 'ALTER TABLE {table} DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
+                EXEC sp_executesql @Sql;
+            END";
+
         public static void ApplySchemaFixes(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();
-            try
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            foreach (var (ten, sql) in Steps)
             {
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                using var command = context.Database.GetDbConnection().CreateCommand();
-                context.Database.OpenConnection();
-                command.CommandText = @"
-                    DECLARE @ConstraintName NVARCHAR(200);
-                    DECLARE @Sql NVARCHAR(MAX);
-
-                    -- 1. KhachHang.MaDangNhap
-                    SELECT @ConstraintName = tc.CONSTRAINT_NAME
-                    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                    JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                    WHERE tc.TABLE_NAME = 'KhachHang' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'MaDangNhap';
-                    IF @ConstraintName IS NOT NULL
-                    BEGIN
-                        SET @Sql = 'ALTER TABLE KhachHang DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
-                        EXEC sp_executesql @Sql;
-                    END
-
-                    -- 2. KhachHang.CCCD_Passport
-                    SET @ConstraintName = NULL;
-                    SELECT @ConstraintName = tc.CONSTRAINT_NAME
-                    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                    JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                    WHERE tc.TABLE_NAME = 'KhachHang' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'CCCD_Passport';
-                    IF @ConstraintName IS NOT NULL
-                    BEGIN
-                        SET @Sql = 'ALTER TABLE KhachHang DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
-                        EXEC sp_executesql @Sql;
-                    END
-
-                    -- 3. NhanVien.MaDangNhap
-                    SET @ConstraintName = NULL;
-                    SELECT @ConstraintName = tc.CONSTRAINT_NAME
-                    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                    JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                    WHERE tc.TABLE_NAME = 'NhanVien' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'MaDangNhap';
-                    IF @ConstraintName IS NOT NULL
-                    BEGIN
-                        SET @Sql = 'ALTER TABLE NhanVien DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
-                        EXEC sp_executesql @Sql;
-                    END
-
-                    -- 4. PhieuDatPhong.MaKhuyenMai Column
-                    IF NOT EXISTS (
-                        SELECT * FROM INFORMATION_SCHEMA.COLUMNS
-                        WHERE TABLE_NAME = 'PhieuDatPhong' AND COLUMN_NAME = 'MaKhuyenMai'
-                    )
-                    BEGIN
-                        ALTER TABLE PhieuDatPhong ADD MaKhuyenMai VARCHAR(10) NULL;
-                    END
-
-                    -- 5. Fix Unicode: Convert VARCHAR to NVARCHAR for columns that may store Vietnamese text
-                    IF EXISTS (
-                        SELECT * FROM INFORMATION_SCHEMA.COLUMNS
-                        WHERE TABLE_NAME = 'TaiKhoan' AND COLUMN_NAME = 'TenDangNhap' AND DATA_TYPE = 'varchar'
-                    )
-                    BEGIN
-                        ALTER TABLE TaiKhoan ALTER COLUMN TenDangNhap NVARCHAR(50) NOT NULL;
-                    END
-
-                    IF EXISTS (
-                        SELECT * FROM INFORMATION_SCHEMA.COLUMNS
-                        WHERE TABLE_NAME = 'TaiKhoan' AND COLUMN_NAME = 'MatKhau' AND DATA_TYPE = 'varchar'
-                    )
-                    BEGIN
-                        ALTER TABLE TaiKhoan ALTER COLUMN MatKhau NVARCHAR(255) NOT NULL;
-                    END
-                ";
-                command.ExecuteNonQuery();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error running db schema fix: {ex.Message}");
+                try
+                {
+                    context.Database.ExecuteSqlRaw(sql);
+                }
+                catch (Exception ex)
+                {
+                    app.Logger.LogError(ex, "Cập nhật schema thất bại ở bước '{Buoc}': {Message}", ten, ex.Message);
+                }
             }
         }
     }

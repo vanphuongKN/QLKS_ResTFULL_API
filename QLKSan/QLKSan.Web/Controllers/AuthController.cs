@@ -1,65 +1,62 @@
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using QLKSan.Data;
-using QLKSan.Models.Entities;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using QLKSan.ApiClients;
 using QLKSan.Enums;
-using System.Linq;
+using QLKSan.Infrastructure;
+using QLKSan.Models.DTOs;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
 {
+    // Đăng nhập/đăng ký thông qua QLKSan.API, lưu JWT trong cookie đăng nhập của Web
     public class AuthController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAuthApiClient _authApi;
 
-        public AuthController(ApplicationDbContext context)
+        public AuthController(IAuthApiClient authApi)
         {
-            _context = context;
+            _authApi = authApi;
         }
 
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string returnUrl = null)
         {
+            if (User.IsLoggedIn()) return RedirectToHome(User.GetRole());
+
+            ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login(string username, string password, string returnUrl = null)
         {
+            ViewBag.ReturnUrl = returnUrl;
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
                 ViewBag.Error = "Vui lòng nhập tên đăng nhập và mật khẩu.";
                 return View();
             }
 
-            var account = await _context.TaiKhoans.FirstOrDefaultAsync(t => t.TenDangNhap == username && t.MatKhau == password);
-            
-            if (account != null)
+            try
             {
-                Response.Cookies.Append("UserRole", account.VaiTro.ToString());
-                Response.Cookies.Append("Username", account.TenDangNhap);
+                var login = await _authApi.LoginAsync(new LoginRequest { TenDangNhap = username, MatKhau = password });
+                await SignInAsync(login);
 
-                if (account.VaiTro == Enums.Role.Customer)
-                {
-                    return RedirectToAction("MyStays", "Customer");
-                }
-                else if (account.VaiTro == Enums.Role.Receptionist)
-                {
-                    return RedirectToAction("Index", "Reception");
-                }
-                else if (account.VaiTro == Enums.Role.Admin)
-                {
-                    return RedirectToAction("Index", "Admin");
-                }
-                else
-                {
-                    return RedirectToAction("Index", "Admin");
-                }
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return LocalRedirect(returnUrl);
+                return RedirectToHome(login.VaiTro.ToString());
             }
-
-            ViewBag.Error = "Thông tin đăng nhập không chính xác. Vui lòng thử lại.";
-            return View();
+            catch (ApiException ex)
+            {
+                ViewBag.Error = ex.UserMessage;
+                return View();
+            }
         }
 
         [HttpGet]
@@ -69,7 +66,7 @@ namespace QLKSan.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register(string ho, string ten, string sdt, string cccd, 
+        public async Task<IActionResult> Register(string ho, string ten, string sdt, string cccd,
             DateTime ngaySinh, string email, string diaChi, string username, string password, string confirmPassword)
         {
             // Lưu lại dữ liệu đã nhập để hiển thị lại khi có lỗi
@@ -82,150 +79,83 @@ namespace QLKSan.Controllers
             ViewBag.DiaChi = diaChi;
             ViewBag.Username = username;
 
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(ho) || string.IsNullOrWhiteSpace(ten) || 
-                string.IsNullOrWhiteSpace(sdt) || string.IsNullOrWhiteSpace(cccd) ||
-                string.IsNullOrWhiteSpace(diaChi) ||
-                string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            var request = new RegisterRequest
             {
-                ViewBag.Error = "Vui lòng điền đầy đủ các thông tin bắt buộc.";
-                return View();
-            }
+                Ho = ho?.Trim(),
+                Ten = ten?.Trim(),
+                SDT = sdt?.Trim(),
+                CCCD_Passport = cccd?.Trim(),
+                NgaySinh = ngaySinh,
+                Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
+                DiaChi = diaChi?.Trim(),
+                TenDangNhap = username?.Trim(),
+                MatKhau = password,
+                XacNhanMatKhau = confirmPassword
+            };
 
-            // Validate SDT length & format
-            var sdtTrim = sdt.Trim();
-            var phoneRegex = new System.Text.RegularExpressions.Regex(@"^(0[3|5|7|8|9])+([0-9]{8})\b");
-            if (!phoneRegex.IsMatch(sdtTrim))
-            {
-                ViewBag.Error = "Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08, 09).";
-                return View();
-            }
-
-            // Validate CCCD/Passport length
-            var cccdTrim = cccd.Trim();
-            var cccdRegex = new System.Text.RegularExpressions.Regex(@"^[0-9]{9,12}$");
-            if (!cccdRegex.IsMatch(cccdTrim))
-            {
-                ViewBag.Error = "CCCD/Passport phải bao gồm 9 đến 12 chữ số.";
-                return View();
-            }
-
-            // Validate ngày sinh không được ở tương lai
-            if (ngaySinh.Date > DateTime.Today)
-            {
-                ViewBag.Error = "Ngày sinh không được lớn hơn ngày hiện tại.";
-                return View();
-            }
-
-            // Validate password match
-            if (password != confirmPassword)
-            {
-                ViewBag.Error = "Mật khẩu xác nhận không khớp.";
-                return View();
-            }
-
-            // Validate password length
-            if (password.Length < 6)
-            {
-                ViewBag.Error = "Mật khẩu phải có ít nhất 6 ký tự.";
-                return View();
-            }
-
-            // Check unique username
-            if (await _context.TaiKhoans.AnyAsync(t => t.TenDangNhap == username))
-            {
-                ViewBag.Error = "Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.";
-                return View();
-            }
-
-            // Check unique CCCD/Passport
-            if (await _context.KhachHangs.AnyAsync(k => k.CCCD_Passport == cccd))
-            {
-                ViewBag.Error = "Số CCCD/Passport đã được đăng ký. Vui lòng kiểm tra lại.";
-                return View();
-            }
-
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var rnd = new Random();
-
-                // 1. Tạo TaiKhoan
-                string maDangNhap = "TK" + rnd.Next(10000, 99999).ToString();
-                while (await _context.TaiKhoans.AnyAsync(t => t.MaDangNhap == maDangNhap))
-                {
-                    maDangNhap = "TK" + rnd.Next(10000, 99999).ToString();
-                }
-
-                var taiKhoan = new TaiKhoan
-                {
-                    MaDangNhap = maDangNhap,
-                    TenDangNhap = username,
-                    MatKhau = password,
-                    VaiTro = Role.Customer
-                };
-                _context.TaiKhoans.Add(taiKhoan);
-
-                // 2. Tạo KhachHang
-                string maKH = "KH" + rnd.Next(100, 999).ToString();
-                while (await _context.KhachHangs.AnyAsync(k => k.MaKhachHang == maKH))
-                {
-                    maKH = "KH" + rnd.Next(1000, 9999).ToString();
-                }
-
-                var khachHang = new KhachHang
-                {
-                    MaKhachHang = maKH,
-                    MaDangNhap = maDangNhap,
-                    Ho = ho,
-                    Ten = ten,
-                    NgaySinh = ngaySinh,
-                    CCCD_Passport = cccd,
-                    DiemTichLuy = 0
-                };
-                _context.KhachHangs.Add(khachHang);
-
-                // 3. Tạo LienHe_DiaChi
-                string maLH = "LH" + rnd.Next(100, 999).ToString();
-                while (await _context.LienHeDiaChis.AnyAsync(l => l.MaLienHe == maLH))
-                {
-                    maLH = "LH" + rnd.Next(1000, 9999).ToString();
-                }
-
-                var lienHe = new LienHeDiaChi
-                {
-                    MaLienHe = maLH,
-                    MaKhachHang = maKH,
-                    SDT = sdt,
-                    Email = email ?? "",
-                    DiaChi = diaChi
-                };
-                _context.LienHeDiaChis.Add(lienHe);
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
                 // Tự động đăng nhập sau khi đăng ký thành công
-                Response.Cookies.Append("UserRole", Role.Customer.ToString());
-                Response.Cookies.Append("Username", username);
-
+                var login = await _authApi.RegisterAsync(request);
+                await SignInAsync(login);
                 return RedirectToAction("MyStays", "Customer");
             }
-            catch (Exception ex)
+            catch (ApiException ex)
             {
-                await transaction.RollbackAsync();
-                var innerMsg = ex.InnerException?.Message ?? ex.Message;
-                ViewBag.Error = $"Đã xảy ra lỗi khi đăng ký: {innerMsg}";
+                ViewBag.Error = ex.UserMessage;
                 return View();
             }
         }
 
         [HttpGet]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            Response.Cookies.Delete("UserRole");
-            Response.Cookies.Delete("Username");
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            ViewBag.Error = "Tài khoản của bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản khác.";
+            return View("Login");
+        }
+
+        private async Task SignInAsync(LoginResponse login)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, login.TenDangNhap),
+                new Claim(ClaimTypes.Role, login.VaiTro.ToString()),
+                new Claim(WebClaimTypes.MaDangNhap, login.MaDangNhap),
+                new Claim(WebClaimTypes.HoTen, login.HoTen ?? login.TenDangNhap),
+                new Claim(WebClaimTypes.AccessToken, login.AccessToken)
+            };
+            if (!string.IsNullOrEmpty(login.MaNhanVien)) claims.Add(new Claim(WebClaimTypes.MaNhanVien, login.MaNhanVien));
+            if (!string.IsNullOrEmpty(login.MaKhachHang)) claims.Add(new Claim(WebClaimTypes.MaKhachHang, login.MaKhachHang));
+
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+
+            // Cookie hết hạn cùng lúc với JWT
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+                new AuthenticationProperties { ExpiresUtc = login.ExpiresAt, IsPersistent = false });
+        }
+
+        // Về trang làm việc mặc định của vai trò đang đăng nhập (nút "Trang nhân viên" ở giao diện khách)
+        [Authorize]
+        [HttpGet]
+        public IActionResult Portal() => RedirectToHome(User.GetRole());
+
+        private IActionResult RedirectToHome(string role)
+        {
+            return role switch
+            {
+                nameof(Role.Customer) => RedirectToAction("MyStays", "Customer"),
+                nameof(Role.Receptionist) => RedirectToAction("Index", "Reception"),
+                nameof(Role.Housekeeping) => RedirectToAction("MyTasks", "Housekeeping"),
+                nameof(Role.Accountant) => RedirectToAction("Reports", "Accounting"),
+                _ => RedirectToAction("Index", "Admin")
+            };
         }
     }
 }

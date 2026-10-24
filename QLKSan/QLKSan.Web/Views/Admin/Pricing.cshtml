@@ -1,0 +1,150 @@
+@using QLKSan.Models.DTOs
+@{
+    ViewData["Title"] = "Bảng giá theo mùa";
+    var rules = ViewBag.Rules as IEnumerable<PricingRuleDto> ?? Enumerable.Empty<PricingRuleDto>();
+    var roomTypes = ViewBag.RoomTypes as IEnumerable<RoomTypeDto> ?? Enumerable.Empty<RoomTypeDto>();
+    string[] tenThu = { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Chiến lược giá</p>
+        <h2>Bảng giá theo mùa / cuối tuần / lễ</h2>
+        <p class="page-desc">Mỗi đêm áp dụng 1 quy tắc khớp có độ ưu tiên cao nhất. Giá đêm = giá niêm yết × (100% + điều chỉnh). Hoá đơn đã lập không bị ảnh hưởng.</p>
+    </div>
+    <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+        <i class="fas fa-plus me-2"></i>Thêm quy tắc
+    </button>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="row g-4 mb-4">
+    @foreach (var lp in roomTypes)
+    {
+        <div class="col-md-3">
+            <div class="card p-3 h-100">
+                <small class="text-muted">@lp.MaLoai</small>
+                <h6 class="fw-bold mb-1">@lp.TenLoai</h6>
+                <span class="text-gold fw-bold">@lp.GiaThueNgay.ToString("N0") ₫/đêm</span>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Mã</th><th>Tên quy tắc</th><th>Loại phòng</th><th>Thời gian</th><th>Đêm áp dụng</th>
+                    <th class="text-end">Điều chỉnh</th><th class="text-center">Ưu tiên</th><th>Trạng thái</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!rules.Any())
+                {
+                    <tr><td colspan="9" class="text-center text-muted p-4">Chưa có quy tắc giá — mọi đêm tính theo giá niêm yết.</td></tr>
+                }
+                @foreach (var r in rules)
+                {
+                    var hetHan = r.DenNgay != null && r.DenNgay.Value.Date < DateTime.Today;
+                    <tr class="@(r.KichHoat && !hetHan ? "" : "text-muted")">
+                        <td>@r.MaQuyTac</td>
+                        <td class="fw-semibold">@r.TenQuyTac</td>
+                        <td>@(r.TenLoai ?? "Tất cả")</td>
+                        <td>
+                            @if (r.TuNgay == null && r.DenNgay == null) { <span>Quanh năm</span> }
+                            else { <span>@(r.TuNgay?.ToString("dd/MM/yyyy") ?? "…") – @(r.DenNgay?.ToString("dd/MM/yyyy") ?? "…")</span> }
+                            @if (hetHan) { <br /><small class="text-danger">Đã hết hạn</small> }
+                        </td>
+                        <td>@(r.CacThu.Any() ? string.Join(", ", r.CacThu.Select(t => tenThu[t])) : "Mọi đêm")</td>
+                        <td class="text-end fw-bold @(r.PhanTramDieuChinh >= 0 ? "text-danger" : "text-success")">@(r.PhanTramDieuChinh > 0 ? "+" : "")@r.PhanTramDieuChinh.ToString("0.##")%</td>
+                        <td class="text-center">@r.UuTien</td>
+                        <td>
+                            <span class="badge @(r.KichHoat ? "bg-success" : "bg-secondary")">@(r.KichHoat ? "Đang bật" : "Đã tắt")</span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <form asp-action="SetPricingRuleStatus" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@r.MaQuyTac" />
+                                <input type="hidden" name="kichHoat" value="@(r.KichHoat ? "false" : "true")" />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">@(r.KichHoat ? "Tắt" : "Bật")</button>
+                            </form>
+                            <form asp-action="DeletePricingRule" method="post" class="d-inline" onsubmit="return confirm('Xoá quy tắc @r.MaQuyTac?')">
+                                <input type="hidden" name="id" value="@r.MaQuyTac" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-calendar-alt me-2"></i>Thêm quy tắc giá</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="AddPricingRule" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên quy tắc</label>
+                        <input name="TenQuyTac" class="form-control" maxlength="100" placeholder="VD: Tết Nguyên đán, Phụ thu cuối tuần" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại phòng</label>
+                        <select name="MaLoai" class="form-select">
+                            <option value="">Tất cả loại phòng</option>
+                            @foreach (var lp in roomTypes)
+                            {
+                                <option value="@lp.MaLoai">@lp.TenLoai</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Từ ngày</label>
+                            <input name="TuNgay" type="date" class="form-control">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Đến ngày</label>
+                            <input name="DenNgay" type="date" class="form-control">
+                        </div>
+                        <small class="text-muted mt-1">Để trống = áp dụng quanh năm.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold d-block">Đêm trong tuần</label>
+                        @for (var t = 1; t <= 7; t++)
+                        {
+                            var thu = t % 7;
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="CacThu" value="@thu" id="thu@(thu)">
+                                <label class="form-check-label" for="thu@(thu)">@tenThu[thu]</label>
+                            </div>
+                        }
+                        <div><small class="text-muted">Đêm thứ Sáu (T6) và thứ Bảy (T7) là đêm cuối tuần. Không chọn = mọi đêm.</small></div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Điều chỉnh (%)</label>
+                            <input name="PhanTramDieuChinh" type="number" class="form-control" min="-90" max="300" step="1" placeholder="+20 hoặc -15" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Độ ưu tiên</label>
+                            <input name="UuTien" type="number" class="form-control" min="1" max="100" value="1" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold">Lưu quy tắc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

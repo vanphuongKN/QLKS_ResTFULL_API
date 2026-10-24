@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using QLKSan.Models.Entities;
+using QLKSan.Enums;
 using QLKSan.Models.DTOs;
+using QLKSan.Models.Entities;
 
 namespace QLKSan.Business
 {
+    // Các thao tác thêm/sửa/xoá ném NotFoundException, BusinessException hoặc ConflictException khi thất bại
     public interface IAdminService
     {
         // Dashboard Stats
@@ -14,35 +16,43 @@ namespace QLKSan.Business
         Task<int> GetTotalBookingsAsync();
         Task<int> GetTotalCustomersAsync();
 
-        // Room CRUD
-        Task<IEnumerable<Phong>> GetAllRoomsAsync();
+        // Room Types
         Task<IEnumerable<LoaiPhong>> GetAllRoomTypesAsync();
+        Task<LoaiPhong> GetRoomTypeByIdAsync(string maLoai);
         Task<string> GenerateNextRoomTypeIdAsync();
-        Task<bool> AddRoomTypeAsync(LoaiPhong roomType);
-        Task<bool> UpdateRoomTypeAsync(LoaiPhong roomType);
-        Task<bool> DeleteRoomTypeAsync(string maLoai);
-        Task<bool> AddRoomAsync(Phong room);
-        Task<bool> UpdateRoomAsync(Phong room);
-        Task<bool> DeleteRoomAsync(string maPhong);
+        Task AddRoomTypeAsync(LoaiPhong roomType);
+        Task UpdateRoomTypeAsync(LoaiPhong roomType);
+        Task DeleteRoomTypeAsync(string maLoai);
 
-        // Service CRUD
+        // Rooms
+        Task<IEnumerable<Phong>> GetAllRoomsAsync();
+        Task AddRoomAsync(Phong room);
+        Task UpdateRoomAsync(Phong room);
+        Task DeleteRoomAsync(string maPhong);
+
+        // Services
         Task<IEnumerable<DichVu>> GetAllServicesAsync();
+        Task<DichVu> GetServiceByIdAsync(string maDichVu);
         Task<string> GenerateNextServiceIdAsync();
-        Task<bool> AddServiceAsync(DichVu service);
-        Task<bool> UpdateServiceAsync(DichVu service);
-        Task<bool> DeleteServiceAsync(string maDichVu);
-        Task<bool> ToggleServiceStatusAsync(string maDichVu);
+        Task AddServiceAsync(DichVu service);
+        Task UpdateServiceAsync(DichVu service);
+        Task DeleteServiceAsync(string maDichVu);
+        Task<DichVu> SetServiceStatusAsync(string maDichVu, Enums.ServiceStatus trangThai);
 
         // Staff
         Task<IEnumerable<NhanVien>> GetAllStaffAsync();
+        Task<NhanVien> GetStaffByIdAsync(string maNhanVien);
         Task<string> GenerateNextStaffIdAsync();
-        Task<bool> AddStaffAsync(NhanVien staff, string tenDangNhap, string matKhau);
-        Task<bool> UpdateStaffAsync(NhanVien staff);
-        Task<bool> DeleteStaffAsync(string maNhanVien);
+        Task AddStaffAsync(NhanVien staff, string tenDangNhap, string matKhau, Role vaiTro);
+
+        // vaiTro/trangThai null = giữ nguyên; maNhanVienThucHien: người đang thao tác (không được tự khoá/hạ quyền mình)
+        Task UpdateStaffAsync(NhanVien staff, Role? vaiTro, EmployeeStatus? trangThai, string maNhanVienThucHien);
+        Task ResetPasswordAsync(string maNhanVien, string matKhauMoi);
+        Task DeleteStaffAsync(string maNhanVien, string maNhanVienThucHien);
 
         // Promotions
         Task<IEnumerable<KhuyenMai>> GetAllPromotionsAsync();
-        Task<bool> AddPromotionAsync(KhuyenMai promo);
+        Task AddPromotionAsync(KhuyenMai promo);
 
         // Reviews
         Task<IEnumerable<DanhGia>> GetAllReviewsAsync();

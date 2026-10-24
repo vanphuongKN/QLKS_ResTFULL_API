@@ -17,6 +17,7 @@
 }
 
 <form method="post" action="@Url.Action("Register", "Auth")">
+    @Html.AntiForgeryToken()
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <div class="mb-3">
             <label class="form-label-upper">Họ</label>
@@ -89,14 +90,14 @@
             <label class="form-label-upper">Mật khẩu</label>
             <div class="input-icon">
                 <i class="fas fa-lock"></i>
-                <input type="password" name="password" placeholder="••••••••" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
+                <input type="password" name="password" placeholder="Tối thiểu 6 ký tự" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
             </div>
         </div>
         <div class="mb-4">
             <label class="form-label-upper">Xác nhận mật khẩu</label>
             <div class="input-icon">
                 <i class="fas fa-lock"></i>
-                <input type="password" name="confirmPassword" placeholder="••••••••" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
+                <input type="password" name="confirmPassword" placeholder="Nhập lại mật khẩu" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
             </div>
         </div>
     </div>
@@ -107,5 +108,4 @@
 <hr class="divider-line">
 <div class="login-footer">
     <a href="@Url.Action("Login", "Auth")"><i class="fas fa-arrow-left me-1"></i> Quay lại đăng nhập</a>
-    <span class="secure-badge"><i class="fas fa-circle" style="font-size:6px"></i> Hệ thống bảo mật</span>
 </div>

@@ -1,0 +1,80 @@
+@using QLKSan.Enums
+@using QLKSan.Models.DTOs
+@model List<GuestRegisterDto>
+@{
+    ViewData["Title"] = "Sổ khách lưu trú";
+    DateTime from = ViewBag.TuNgay;
+    DateTime to = ViewBag.DenNgay;
+    var nuocNgoai = Model.Count(g => !string.IsNullOrEmpty(g.QuocGia) && !g.QuocGia.Contains("Việt Nam"));
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Thông báo lưu trú</p>
+        <h2>Sổ khách lưu trú</h2>
+        <p class="page-desc">Khách có thời gian lưu trú trong khoảng @from.ToString("dd/MM/yyyy") – @to.ToString("dd/MM/yyyy"): dùng để khai báo tạm trú với công an khu vực.</p>
+    </div>
+    <a class="btn-gold text-decoration-none" href="@Url.Action("ExportGuests", new { tuNgay = from.ToString("yyyy-MM-dd"), denNgay = to.ToString("yyyy-MM-dd") })">
+        <i class="fas fa-file-excel me-2"></i>Xuất Excel
+    </a>
+</div>
+
+<form method="get" class="card p-3 mb-4">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Từ ngày</label>
+            <input type="date" name="tuNgay" value="@from.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Đến ngày</label>
+            <input type="date" name="denNgay" value="@to.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-2"><button class="btn btn-gold w-100">Xem</button></div>
+        <div class="col-md-4 text-md-end small text-muted">
+            <strong class="text-navy">@Model.Count</strong> lượt lưu trú ·
+            <strong class="text-navy">@Model.Sum(g => g.SoLuongKhach)</strong> khách ·
+            <strong class="text-navy">@nuocNgoai</strong> lượt khách nước ngoài
+        </div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>#</th><th>Họ tên</th><th>Ngày sinh</th><th>CCCD / Hộ chiếu</th><th>Quốc tịch</th><th>Địa chỉ / SĐT</th>
+                    <th>Phòng</th><th class="text-center">Số khách</th><th>Ngày đến</th><th>Ngày đi</th><th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="11" class="text-center text-muted p-4">Không có khách lưu trú trong khoảng ngày này.</td></tr>
+                }
+                @for (var i = 0; i < Model.Count; i++)
+                {
+                    var g = Model[i];
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td class="fw-semibold">@g.HoTen<br /><small class="text-muted">@g.MaDatPhong</small></td>
+                        <td>@g.NgaySinh?.ToString("dd/MM/yyyy")</td>
+                        <td>@g.CCCD_Passport</td>
+                        <td>@g.QuocGia</td>
+                        <td><small>@g.DiaChi<br />@g.SDT</small></td>
+                        <td class="fw-bold">@g.SoPhong</td>
+                        <td class="text-center">@g.SoLuongKhach</td>
+                        <td>@g.NgayDen.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            @if (g.NgayDi != null) { @g.NgayDi.Value.ToString("dd/MM/yyyy HH:mm") }
+                            else { <span class="text-muted">dự kiến @g.NgayDiDuKien.ToString("dd/MM/yyyy")</span> }
+                        </td>
+                        <td>
+                            <span class="badge @(g.TrangThai == BookingStatus.CheckedIn ? "bg-success" : "bg-secondary")">@g.TrangThai.GetDisplayName()</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

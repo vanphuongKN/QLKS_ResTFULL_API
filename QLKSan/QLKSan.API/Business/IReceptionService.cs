@@ -1,7 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QLKSan.Models.Entities;
-using QLKSan.ViewModels;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Business
 {
@@ -10,17 +11,25 @@ namespace QLKSan.Business
         // Dashboard
         Task<IEnumerable<Phong>> GetAllRoomsAsync();
         Task<IEnumerable<PhieuDatPhong>> GetOnlineBookingsAsync();
-        
-        // Online Booking Actions
-        Task<bool> ApproveOnlineBookingAsync(string maDatPhong);
-        Task<bool> CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien);
+
+        // Online Booking Actions (ném NotFoundException/BusinessException khi thất bại)
+        Task ApproveOnlineBookingAsync(string maDatPhong);
+        Task CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien);
+
+        // Huỷ/từ chối phiếu chưa nhận phòng. laKhachHang = true: áp dụng chính sách khách tự huỷ (trước ngày nhận phòng)
+        Task CancelBookingAsync(string maDatPhong, string lyDo, string nguoiHuy, bool laKhachHang);
 
         // Walk-in Check-in
-        Task<IEnumerable<Phong>> GetAvailableRoomsAsync();
         Task<KhachHang> GetCustomerByCccdAsync(string cccd);
-        Task<TaiKhoan> GetAccountByUsernameAsync(string username);
-        Task<string> ProcessCheckInAsync(CheckInViewModel model, string maNhanVien);
+
+        // Trả về mã phiếu đặt phòng vừa tạo
+        Task<string> ProcessCheckInAsync(CheckInRequest model, string maNhanVien);
+
         Task<IEnumerable<PhieuDatPhong>> GetAllBookingsAsync(string search = null);
+
+        // Các phiếu (chờ duyệt/đã duyệt/đang ở/đã trả) có thời gian lưu trú giao với [tuNgay, denNgay]
+        Task<List<Models.DTOs.TimelineBookingDto>> GetTimelineAsync(DateTime tuNgay, DateTime denNgay);
+        Task<PhieuDatPhong> GetBookingByIdAsync(string maDatPhong);
         Task<IEnumerable<KhachHang>> GetAllCustomersAsync(string search = null);
         Task<KhachHang> GetCustomerDetailsAsync(string id);
     }
