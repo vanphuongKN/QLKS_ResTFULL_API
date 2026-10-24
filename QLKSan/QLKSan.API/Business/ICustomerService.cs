@@ -16,7 +16,6 @@ namespace QLKSan.Business
         Task<string> CreateOnlineBookingAsync(string maKhachHang, Models.Requests.BookRoomRequest request);
 
         // Trả về khuyến mãi nếu đang có hiệu lực; ném NotFoundException/BusinessException nếu không
-        Task<KhuyenMai> GetActivePromotionAsync(string code);
         // Đánh giá 1 lần lưu trú đã trả phòng (maDatPhong); chỉ có maPhong thì gắn vào lần ở gần nhất của phòng chưa đánh giá
         Task<DanhGia> SubmitReviewAsync(string maKhachHang, string maDatPhong, string maPhong, int soSao, string noiDung, bool anDanh);
         Task<IEnumerable<DanhGia>> GetReviewsByCustomerAsync(string maKhachHang);

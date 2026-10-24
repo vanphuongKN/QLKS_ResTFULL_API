@@ -119,7 +119,10 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
-| GET | `/` | Admin | Tất cả đánh giá |
+| GET | `/?soSao&chuaPhanHoi&an` | Admin | Đánh giá (lọc theo số sao / chưa phản hồi / đang ẩn); quản trị thấy tên thật cả khi khách gửi ẩn danh |
+| PUT | `/{id}/reply` | Admin | Phản hồi công khai `{ "NoiDung" }` (ghi đè phản hồi cũ) |
+| DELETE | `/{id}/reply` | Admin | Gỡ phản hồi |
+| PATCH | `/{id}` | Admin | Ẩn / hiện trên trang khách `{ "An": true \| false }`; đánh giá ẩn vẫn tính vào điểm trung bình |
 | GET | `/featured?soLuong` | Công khai | Đánh giá từ 4 sao gần đây (ẩn danh tính) |
 | POST | `/` | Customer | Đánh giá kỳ nghỉ đã trả phòng `{ "MaDatPhong", "SoSao", "NoiDung", "AnDanh" }`. Mỗi kỳ nghỉ chỉ đánh giá một lần (lần thứ hai trả 409) |
 
@@ -131,9 +134,12 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/services/{id}` | AllStaff | Chi tiết |
 | POST / PUT / DELETE | `/api/services[/{id}]` | Admin | Quản lý dịch vụ |
 | PATCH | `/api/services/{id}` | Admin | `{ "TrangThai": "Available" \| "Unavailable" }` |
-| GET | `/api/promotions` | Admin | Danh sách khuyến mãi |
-| GET | `/api/promotions/{ma}` | Đăng nhập | Kiểm tra mã: 200 còn hiệu lực, 400 hết hạn, 404 không tồn tại |
-| POST | `/api/promotions` | Admin | Thêm khuyến mãi |
+| GET | `/api/promotions` | Admin | Danh sách khuyến mãi kèm điều kiện và số lượt đã dùng |
+| GET | `/api/promotions/{ma}` | Đăng nhập | Kiểm tra mã: 200 đang áp dụng, 400 hết hạn / đã tắt / hết lượt, 404 không tồn tại |
+| POST | `/api/promotions` | Admin | Thêm khuyến mãi; điều kiện tuỳ chọn `SoLuotToiDa`, `SoDemToiThieu`, `MaLoai` |
+| PUT | `/api/promotions/{ma}` | Admin | Sửa khuyến mãi |
+| PATCH | `/api/promotions/{ma}` | Admin | Bật / tắt `{ "KichHoat": true \| false }` |
+| DELETE | `/api/promotions/{ma}` | Admin | Xoá mã chưa dùng (đã dùng → 409, nên tắt) |
 | GET / POST | `/api/pricing-rules` | Admin | Quy tắc giá theo mùa, cuối tuần, lễ |
 | PATCH | `/api/pricing-rules/{id}` | Admin | `{ "KichHoat": true \| false }` |
 | DELETE | `/api/pricing-rules/{id}` | Admin | Xoá quy tắc |
@@ -148,7 +154,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | POST | `/api/housekeeping/tasks/{id}/assign` | FrontDesk | Giao việc |
 | POST | `/api/housekeeping/tasks/{id}/start` · `/complete` · `/issue` | Buồng phòng | Bắt đầu / dọn xong / báo sự cố |
 | POST | `/api/housekeeping/rooms/{maPhong}/clean` | FrontDesk | Xác nhận phòng đã dọn |
-| GET | `/api/dashboard` | Finance | Số liệu tổng quan |
+| GET | `/api/dashboard` | Finance | Bảng điều khiển: công suất / khách đến / khách đi hôm nay, doanh thu thuần – ADR – RevPAR 30 ngày so với kỳ trước, công suất đã đặt 14 ngày tới, việc cần xử lý, đánh giá mới |
 | GET | `/api/reports/revenue`, `/revenue/export` | Finance | Báo cáo doanh thu (JSON / Excel) |
 | GET | `/api/reports/occupancy` | Finance | Công suất phòng |
 | GET | `/api/reports/guests`, `/guests/export` | Cashier | Sổ khách lưu trú (JSON / Excel) |

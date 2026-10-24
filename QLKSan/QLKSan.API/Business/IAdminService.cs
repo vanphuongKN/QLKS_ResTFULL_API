@@ -42,12 +42,5 @@ namespace QLKSan.Business
         Task UpdateStaffAsync(NhanVien staff, Role? vaiTro, EmployeeStatus? trangThai, string maNhanVienThucHien);
         Task ResetPasswordAsync(string maNhanVien, string matKhauMoi);
         Task DeleteStaffAsync(string maNhanVien, string maNhanVienThucHien);
-
-        // Promotions
-        Task<IEnumerable<KhuyenMai>> GetAllPromotionsAsync();
-        Task AddPromotionAsync(KhuyenMai promo);
-
-        // Reviews
-        Task<IEnumerable<DanhGia>> GetAllReviewsAsync();
     }
 }

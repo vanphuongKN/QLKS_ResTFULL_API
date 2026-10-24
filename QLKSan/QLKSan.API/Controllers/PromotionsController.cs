@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QLKSan.Business;
 using QLKSan.Common;
-using QLKSan.Mappings;
 using QLKSan.Models.DTOs;
 using QLKSan.Models.Requests;
 
@@ -13,40 +12,60 @@ namespace QLKSan.Controllers
     [Authorize]
     public class PromotionsController : ControllerBase
     {
-        private readonly IAdminService _adminService;
-        private readonly ICustomerService _customerService;
+        private readonly IPromotionService _promotionService;
 
-        public PromotionsController(IAdminService adminService, ICustomerService customerService)
+        public PromotionsController(IPromotionService promotionService)
         {
-            _adminService = adminService;
-            _customerService = customerService;
+            _promotionService = promotionService;
         }
 
-        /// <summary>Danh sách tất cả khuyến mãi.</summary>
+        /// <summary>Danh sách khuyến mãi kèm điều kiện áp dụng và số lượt đã dùng.</summary>
         [HttpGet]
         [Authorize(Roles = AppRoles.Admin)]
         public async Task<ActionResult<IEnumerable<PromotionDto>>> GetAll()
         {
-            var promotions = await _adminService.GetAllPromotionsAsync();
-            return Ok(promotions.Select(k => k.ToDto()));
+            return Ok(await _promotionService.GetAllAsync());
         }
 
-        /// <summary>Kiểm tra mã khuyến mãi: 200 nếu đang có hiệu lực, 404 nếu không tồn tại, 400 nếu hết hạn.</summary>
+        /// <summary>Kiểm tra mã khuyến mãi: 200 nếu đang áp dụng, 404 nếu không tồn tại, 400 nếu hết hạn / đã tắt / hết lượt.</summary>
         [HttpGet("{maKhuyenMai}")]
         public async Task<ActionResult<PromotionDto>> GetActive(string maKhuyenMai)
         {
-            var promotion = await _customerService.GetActivePromotionAsync(maKhuyenMai);
-            return promotion.ToDto();
+            return await _promotionService.GetActiveAsync(maKhuyenMai);
         }
 
-        /// <summary>Thêm khuyến mãi.</summary>
+        /// <summary>Thêm khuyến mãi (mã viết hoa, không trùng).</summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Admin)]
         public async Task<ActionResult<PromotionDto>> Create(PromotionRequest request)
         {
-            var promotion = request.ToEntity();
-            await _adminService.AddPromotionAsync(promotion);
-            return Created($"/api/promotions/{promotion.MaKhuyenMai}", promotion.ToDto());
+            var promotion = await _promotionService.CreateAsync(request);
+            return Created($"/api/promotions/{promotion.MaKhuyenMai}", promotion);
+        }
+
+        /// <summary>Sửa khuyến mãi (mã trong đường dẫn; mã trong body bị bỏ qua).</summary>
+        [HttpPut("{maKhuyenMai}")]
+        [Authorize(Roles = AppRoles.Admin)]
+        public async Task<ActionResult<PromotionDto>> Update(string maKhuyenMai, PromotionRequest request)
+        {
+            return await _promotionService.UpdateAsync(maKhuyenMai, request);
+        }
+
+        /// <summary>Bật hoặc tắt mã: body { "KichHoat": true | false }.</summary>
+        [HttpPatch("{maKhuyenMai}")]
+        [Authorize(Roles = AppRoles.Admin)]
+        public async Task<ActionResult<PromotionDto>> SetStatus(string maKhuyenMai, UpdatePromotionStatusRequest request)
+        {
+            return await _promotionService.SetActiveAsync(maKhuyenMai, request.KichHoat!.Value);
+        }
+
+        /// <summary>Xoá mã chưa từng dùng (đã dùng → 409, nên tắt thay vì xoá).</summary>
+        [HttpDelete("{maKhuyenMai}")]
+        [Authorize(Roles = AppRoles.Admin)]
+        public async Task<IActionResult> Delete(string maKhuyenMai)
+        {
+            await _promotionService.DeleteAsync(maKhuyenMai);
+            return NoContent();
         }
     }
 }

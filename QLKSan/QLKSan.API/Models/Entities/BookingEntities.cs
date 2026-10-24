@@ -53,8 +53,20 @@ namespace QLKSan.Models.Entities
         [DateGreaterThan("NgayBatDau", ErrorMessage = "Ngày kết thúc phải sau ngày bắt đầu")]
         public DateTime NgayKetThuc { get; set; }
         
+        // Cột tính toán trong SQL theo ngày; KichHoat là công tắc quản trị (tắt thì không áp dụng dù còn hạn)
         public PromotionStatus TrangThai { get; set; }
 
+        public bool KichHoat { get; set; } = true;
+
+        // Điều kiện áp dụng (null = không giới hạn)
+        public int? SoLuotToiDa { get; set; }
+        public int? SoDemToiThieu { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("LoaiPhong")]
+        public string? MaLoai { get; set; }
+
+        public LoaiPhong LoaiPhong { get; set; }
         public ICollection<HoaDon> HoaDons { get; set; }
     }
 
@@ -352,9 +364,22 @@ namespace QLKSan.Models.Entities
         [ForeignKey("PhieuDatPhong")]
         public string? MaDatPhong { get; set; }
 
+        // Phản hồi công khai của khách sạn và cờ ẩn (đánh giá không phù hợp; vẫn tính vào điểm trung bình)
+        [StringLength(1000)]
+        public string? PhanHoi { get; set; }
+
+        public DateTime? NgayPhanHoi { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("NhanVienPhanHoi")]
+        public string? MaNhanVienPhanHoi { get; set; }
+
+        public bool An { get; set; } = false;
+
         public PhieuDatPhong PhieuDatPhong { get; set; }
 
         public KhachHang KhachHang { get; set; }
         public Phong Phong { get; set; }
+        public NhanVien NhanVienPhanHoi { get; set; }
     }
 }

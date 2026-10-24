@@ -17,12 +17,14 @@ namespace QLKSan.Business
         private readonly ApplicationDbContext _context;
         private readonly IRoomAvailabilityService _availability;
         private readonly HotelPolicy _policy;
+        private readonly IPromotionService _promotions;
 
-        public CustomerService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy)
+        public CustomerService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPromotionService promotions)
         {
             _context = context;
             _availability = availability;
             _policy = policy.Value;
+            _promotions = promotions;
         }
 
         public async Task<KhachHang> GetCustomerByAccountIdAsync(string maDangNhap)
@@ -76,15 +78,9 @@ namespace QLKSan.Business
             if (checkOut <= checkIn)
                 throw new BusinessException("Ngày trả phòng phải sau ngày nhận phòng.");
 
-            // Mã khuyến mãi phải còn hiệu lực lúc đặt; được lưu vào phiếu để áp dụng khi trả phòng
+            // Mã khuyến mãi phải hợp lệ cho kỳ nghỉ này lúc đặt (kiểm tra sau khi xếp phòng để biết hạng phòng);
+            // được lưu vào phiếu để áp dụng khi trả phòng
             var maKhuyenMai = string.IsNullOrWhiteSpace(request.MaKhuyenMai) ? null : request.MaKhuyenMai.Trim();
-            if (maKhuyenMai != null)
-            {
-                var promo = await _context.KhuyenMais.FindAsync(maKhuyenMai);
-                var today = DateTime.Today;
-                if (promo == null || promo.TrangThai != PromotionStatus.Active || promo.NgayBatDau > today || promo.NgayKetThuc < today)
-                    throw new BusinessException("Mã khuyến mãi không tồn tại, đã hết hạn hoặc chưa được kích hoạt.");
-            }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -92,6 +88,8 @@ namespace QLKSan.Business
                 var room = string.IsNullOrWhiteSpace(request.MaLoai)
                     ? await PickRoomAsync(request.MaPhong, checkIn, checkOut, soNguoi)
                     : await PickRoomOfTypeAsync(request.MaLoai, checkIn, checkOut, soNguoi);
+                if (maKhuyenMai != null)
+                    maKhuyenMai = (await _promotions.ValidateForStayAsync(maKhuyenMai, room.MaLoai, (checkOut - checkIn).Days)).MaKhuyenMai;
 
                 var booking = new PhieuDatPhong
                 {
@@ -222,18 +220,6 @@ namespace QLKSan.Business
             => await _context.DanhGias
                 .Include(d => d.Phong)
                 .Where(d => d.MaKhachHang == maKhachHang)
-                .ToListAsync();
-
-        public async Task<KhuyenMai> GetActivePromotionAsync(string code)
-        {
-            var promo = await _context.KhuyenMais.FindAsync(code?.Trim())
-                ?? throw new NotFoundException("Mã khuyến mãi không tồn tại.");
-
-            var today = DateTime.Today;
-            if (promo.TrangThai != PromotionStatus.Active || promo.NgayBatDau > today || promo.NgayKetThuc < today)
-                throw new BusinessException("Mã khuyến mãi đã hết hạn hoặc chưa được kích hoạt.");
-
-            return promo;
-        }
+                .ToListAsync();
     }
 }

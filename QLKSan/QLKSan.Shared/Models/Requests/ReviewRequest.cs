@@ -20,4 +20,19 @@ namespace QLKSan.Models.Requests
 
         public bool AnDanh { get; set; }
     }
+
+    // PUT /api/reviews/{id}/reply: phản hồi công khai của khách sạn
+    public class ReviewReplyRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập nội dung phản hồi.")]
+        [StringLength(1000, ErrorMessage = "Phản hồi tối đa 1000 ký tự.")]
+        public string NoiDung { get; set; }
+    }
+
+    // PATCH /api/reviews/{id}: ẩn / hiện đánh giá trên trang khách { "An": true | false }
+    public class UpdateReviewVisibilityRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn trạng thái hiển thị.")]
+        public bool? An { get; set; }
+    }
 }

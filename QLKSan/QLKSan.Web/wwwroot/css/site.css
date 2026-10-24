@@ -866,4 +866,32 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
     .bar-chart { gap: 3px; height: 180px; }
     .bar-val { font-size: 0.55rem; }
     .bar-label { font-size: 0.58rem; }
-}
+}
+
+/* ============================================
+   KHUYẾN MÃI / ĐÁNH GIÁ (quản trị)
+   ============================================ */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-chips button, .filter-chips a { border: 1px solid var(--border-light); background: var(--white); color: var(--text-dark); border-radius: 999px; padding: 6px 14px; font-size: 0.82rem; text-decoration: none; }
+.filter-chips span { color: var(--text-muted); margin-left: 4px; font-weight: 600; }
+.filter-chips .active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.filter-chips .active span { color: var(--gold); }
+.promo-admin { padding: 22px; display: flex; flex-direction: column; }
+.promo-admin.is-off { opacity: .7; }
+.promo-code { font-family: monospace; font-weight: 700; letter-spacing: 1px; color: var(--navy); background: var(--gold-light); padding: 2px 10px; border-radius: 4px; }
+.promo-value { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: var(--gold); margin: 6px 0 10px; }
+.promo-value small { font-family: 'Inter', sans-serif; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+.promo-conds { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+.promo-conds i { color: var(--gold); margin-right: 5px; }
+.promo-usage { border-top: 1px solid var(--border-light); padding-top: 10px; }
+.kpi-meter--light { background: var(--light-gray); }
+.star-dist { display: grid; grid-template-columns: 44px 1fr 32px; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-dark); text-decoration: none; padding: 2px 0; }
+.star-dist .fa-star { font-size: 0.7rem; }
+.star-dist-bar { height: 6px; background: var(--light-gray); border-radius: 3px; overflow: hidden; }
+.star-dist-bar span { display: block; height: 100%; background: var(--gold); }
+.star-dist.active, .star-dist:hover { color: var(--gold); font-weight: 600; }
+.review-admin { padding: 18px 22px; border-left: 3px solid transparent; }
+.review-admin.is-low { border-left-color: var(--warning); }
+.review-admin.is-hidden { background: #fafafa; }
+.review-admin .fa-star { font-size: 0.78rem; }
+.review-reply { background: var(--gold-light); border-radius: 6px; padding: 10px 14px; margin-bottom: 4px; }

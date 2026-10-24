@@ -17,13 +17,16 @@ namespace QLKSan.Business
         private readonly HotelPolicy _policy;
         private readonly LoyaltyPolicy _loyalty;
         private readonly IPricingService _pricing;
+        private readonly IPromotionService _promotions;
 
-        public CheckoutService(ApplicationDbContext context, IOptions<HotelPolicy> policy, IOptions<LoyaltyPolicy> loyalty, IPricingService pricing)
+        public CheckoutService(ApplicationDbContext context, IOptions<HotelPolicy> policy, IOptions<LoyaltyPolicy> loyalty, IPricingService pricing,
+            IPromotionService promotions)
         {
             _context = context;
             _policy = policy.Value;
             _loyalty = loyalty.Value;
             _pricing = pricing;
+            _promotions = promotions;
         }
 
         public async Task<PhieuDatPhong> GetBookingDetailsByRoomAsync(string maPhong)
@@ -103,11 +106,10 @@ namespace QLKSan.Business
                 return string.IsNullOrEmpty(booking.MaKhuyenMai) ? null : await _context.KhuyenMais.FindAsync(booking.MaKhuyenMai);
             }
 
-            var promo = await _context.KhuyenMais.FindAsync(code);
-            var today = DateTime.Today;
-            if (promo == null || promo.TrangThai != PromotionStatus.Active || promo.NgayBatDau > today || promo.NgayKetThuc < today)
-                throw new BusinessException("Mã khuyến mãi không tồn tại, đã hết hạn hoặc chưa được kích hoạt.");
-            return promo;
+            // Mã mới nhập tại quầy: kiểm tra đủ điều kiện (bật, còn hạn, hạng phòng, số đêm, số lượt) cho kỳ nghỉ này
+            var maLoai = booking.ChiTietDatPhongs.FirstOrDefault()?.Phong?.MaLoai;
+            var soDem = Math.Max(1, (booking.NgayCheckOutDuKien.Date - booking.NgayCheckInDuKien.Date).Days);
+            return await _promotions.ValidateForStayAsync(code, maLoai, soDem, booking.MaDatPhong);
         }
 
         private async Task ApplyBillingAsync(PhieuDatPhong booking, HoaDon hoaDon, KhuyenMai promo, DateTime thoiDiemTra)

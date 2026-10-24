@@ -1,72 +1,127 @@
+@using QLKSan.Models.DTOs
 @{
-    ViewData["Title"] = "Đánh giá khách hàng";
-    var reviews = ViewBag.Reviews as IEnumerable<QLKSan.Models.DTOs.ReviewDto>;
+    ViewData["Title"] = "Đánh giá";
+    var all = ViewBag.AllReviews as List<ReviewDto> ?? new List<ReviewDto>();
+    var reviews = ViewBag.Reviews as List<ReviewDto> ?? new List<ReviewDto>();
+    int? soSao = ViewBag.SoSao;
+    bool chuaPhanHoi = ViewBag.ChuaPhanHoi;
+    bool? an = ViewBag.An;
+    var diemTb = all.Any() ? all.Average(r => r.SoSao) : 0;
+    var daPhanHoi = all.Count(r => r.PhanHoi != null);
+    var chuaPh = all.Count - daPhanHoi;
+    bool LocMacDinh() => soSao == null && !chuaPhanHoi && an == null;
 }
 
 <div class="page-header">
     <div>
-        <p class="page-label">Trải nghiệm khách hàng</p>
-        <h2>Đánh giá & Nhận xét</h2>
+        <p class="page-label">Danh mục</p>
+        <h2>Đánh giá của khách</h2>
+        <p class="page-desc">Phản hồi hiển thị công khai dưới đánh giá trên trang hạng phòng. Đánh giá bị ẩn không hiện với khách nhưng vẫn tính vào điểm trung bình.</p>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-custom mb-0">
-            <thead>
-                <tr>
-                    <th>Khách hàng</th>
-                    <th>Phòng</th>
-                    <th>Đánh giá</th>
-                    <th>Nhận xét</th>
-                    <th>Ngày</th>
-                    <th>Ẩn danh</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (reviews != null && reviews.Any())
-                {
-                    foreach (var r in reviews)
-                    {
-                        <tr>
-                            <td>
-                                <strong>@(r.AnDanh ? "Ẩn danh" : (r.HoTenKhachHang ?? "N/A"))</strong>
-                            </td>
-                            <td>@(r.MaPhong ?? "N/A")</td>
-                            <td>
-                                @for (int i = 1; i <= 5; i++)
-                                {
-                                    <i class="fas fa-star @(i <= r.SoSao ? "text-gold" : "text-muted")" style="font-size:0.8rem"></i>
-                                }
-                                <small class="ms-1 text-muted">(@r.SoSao/5)</small>
-                            </td>
-                            <td style="max-width:250px">
-                                <small class="text-muted">@(r.NoiDung?.Length > 80 ? r.NoiDung.Substring(0, 80) + "..." : r.NoiDung)</small>
-                            </td>
-                            <td><small>@r.NgayDanhGia.ToString("dd/MM/yyyy")</small></td>
-                            <td>
-                                @if (r.AnDanh == true)
-                                {
-                                    <span class="badge bg-secondary">Ẩn danh</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-light text-dark">Công khai</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="6" class="text-center text-muted p-5">
-                            <i class="fas fa-star" style="font-size:2.5rem;opacity:0.2"></i>
-                            <p class="mt-2">Chưa có đánh giá nào từ khách hàng.</p>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="kpi-grid mb-4">
+    <div class="kpi-card kpi-card--dark">
+        <span class="kpi-label">Điểm trung bình</span>
+        <div class="kpi-value">@(all.Any() ? diemTb.ToString("0.0") : "—")<small style="font-size:1rem;color:rgba(255,255,255,.6)"> / 5</small></div>
+        <span class="kpi-sub">@all.Count đánh giá</span>
+    </div>
+    <div class="kpi-card" style="grid-column: span 2">
+        <span class="kpi-label">Phân bố số sao</span>
+        @for (var s = 5; s >= 1; s--)
+        {
+            var n = all.Count(r => r.SoSao == s);
+            <a class="star-dist @(soSao == s ? "active" : "")" asp-action="Reviews" asp-route-soSao="@s">
+                <span>@s <i class="fas fa-star text-gold"></i></span>
+                <span class="star-dist-bar"><span style="width:@(all.Count == 0 ? 0 : n * 100 / all.Count)%"></span></span>
+                <span>@n</span>
+            </a>
+        }
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Đã phản hồi</span>
+        <div class="kpi-value">@(all.Count == 0 ? "—" : (daPhanHoi * 100 / all.Count) + "%")</div>
+        <span class="kpi-sub">@chuaPh chưa phản hồi · @all.Count(r => r.An) đang ẩn</span>
     </div>
 </div>
+
+<div class="filter-chips mb-3">
+    <a asp-action="Reviews" class="@(LocMacDinh() ? "active" : "")">Tất cả <span>@all.Count</span></a>
+    <a asp-action="Reviews" asp-route-chuaPhanHoi="true" class="@(chuaPhanHoi ? "active" : "")">Chưa phản hồi <span>@chuaPh</span></a>
+    <a asp-action="Reviews" asp-route-soSao="" asp-route-an="true" class="@(an == true ? "active" : "")">Đang ẩn <span>@all.Count(r => r.An)</span></a>
+    @if (soSao != null)
+    {
+        <a asp-action="Reviews" asp-route-soSao="@soSao" class="active">@soSao sao <span>@reviews.Count</span></a>
+    }
+</div>
+
+@if (!reviews.Any())
+{
+    <div class="card p-5 text-center text-muted">
+        <i class="fas fa-star" style="font-size:2.5rem;opacity:0.2"></i>
+        <p class="mt-3 mb-0">Không có đánh giá phù hợp bộ lọc.</p>
+    </div>
+}
+
+@foreach (var r in reviews)
+{
+    <div class="card review-admin mb-3 @(r.An ? "is-hidden" : "") @(r.SoSao <= 3 ? "is-low" : "")">
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+            <div>
+                @for (var i = 1; i <= 5; i++) { <i class="fas fa-star @(i <= r.SoSao ? "text-gold" : "text-muted opacity-25")"></i> }
+                <strong class="ms-2">@r.HoTenKhachHang</strong>
+                @if (r.AnDanh) { <span class="badge bg-light text-dark border ms-1" title="Khách chọn ẩn danh: trang khách hiển thị 'Khách ẩn danh'">gửi ẩn danh</span> }
+                @if (r.An) { <span class="badge-status badge-muted ms-1">Đang ẩn</span> }
+            </div>
+            <small class="text-muted">
+                @r.NgayDanhGia.ToString("dd/MM/yyyy")
+                · @FormatHelper.TenHangPhong(r.TenLoaiPhong ?? "") (P@(r.SoPhong))
+                @if (r.MaDatPhong != null) { <span>· Phiếu @r.MaDatPhong</span> }
+                · <a asp-controller="Reception" asp-action="CustomerDetails" asp-route-id="@r.MaKhachHang" class="text-gold">Hồ sơ khách</a>
+            </small>
+        </div>
+        <p class="mt-2 mb-2">@(string.IsNullOrEmpty(r.NoiDung) ? "(Không có nhận xét)" : r.NoiDung)</p>
+
+        @if (r.PhanHoi != null)
+        {
+            <div class="review-reply">
+                <div class="d-flex justify-content-between">
+                    <strong class="small"><i class="fas fa-reply me-1 text-gold"></i>Phản hồi của khách sạn</strong>
+                    <small class="text-muted">@r.TenNhanVienPhanHoi · @r.NgayPhanHoi?.ToString("dd/MM/yyyy")</small>
+                </div>
+                <p class="mb-0 small">@r.PhanHoi</p>
+            </div>
+        }
+
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#rep-@r.MaDanhGia">
+                <i class="fas fa-reply me-1"></i>@(r.PhanHoi == null ? "Phản hồi" : "Sửa phản hồi")
+            </button>
+            @if (r.PhanHoi != null)
+            {
+                <form asp-action="DeleteReviewReply" method="post" onsubmit="return confirm('Gỡ phản hồi này?')">
+                    <input type="hidden" name="maDanhGia" value="@r.MaDanhGia" />
+                    <input type="hidden" name="soSao" value="@soSao" /><input type="hidden" name="chuaPhanHoi" value="@chuaPhanHoi.ToString().ToLower()" /><input type="hidden" name="an" value="@an?.ToString().ToLower()" />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Gỡ phản hồi</button>
+                </form>
+            }
+            <form asp-action="SetReviewVisibility" method="post" class="ms-auto">
+                <input type="hidden" name="maDanhGia" value="@r.MaDanhGia" />
+                <input type="hidden" name="hide" value="@((!r.An).ToString().ToLower())" />
+                <input type="hidden" name="soSao" value="@soSao" /><input type="hidden" name="chuaPhanHoi" value="@chuaPhanHoi.ToString().ToLower()" /><input type="hidden" name="an" value="@an?.ToString().ToLower()" />
+                <button type="submit" class="btn btn-sm @(r.An ? "btn-outline-success" : "btn-outline-danger")"><i class="fas @(r.An ? "fa-eye" : "fa-eye-slash") me-1"></i>@(r.An ? "Hiện lại" : "Ẩn khỏi trang khách")</button>
+            </form>
+        </div>
+        <div class="collapse mt-2" id="rep-@r.MaDanhGia">
+            <form asp-action="ReplyReview" method="post">
+                <input type="hidden" name="maDanhGia" value="@r.MaDanhGia" />
+                <input type="hidden" name="soSao" value="@soSao" /><input type="hidden" name="chuaPhanHoi" value="@chuaPhanHoi.ToString().ToLower()" /><input type="hidden" name="an" value="@an?.ToString().ToLower()" />
+                <textarea name="noiDung" class="form-control mb-2" rows="3" maxlength="1000" required placeholder="Cảm ơn quý khách đã chia sẻ…">@r.PhanHoi</textarea>
+                <button type="submit" class="btn-gold btn-sm">Gửi phản hồi</button>
+            </form>
+        </div>
+    </div>
+}

@@ -152,7 +152,7 @@ namespace QLKSan.Business
             // Khuyến mãi đang chạy kết thúc trong 7 ngày tới
             var han = today.AddDays(7);
             dto.KhuyenMaiSapHetHan = (await _context.KhuyenMais
-                    .Where(k => k.NgayBatDau <= today && k.NgayKetThuc >= today && k.NgayKetThuc <= han)
+                    .Where(k => k.KichHoat && k.NgayBatDau <= today && k.NgayKetThuc >= today && k.NgayKetThuc <= han)
                     .OrderBy(k => k.NgayKetThuc).ToListAsync())
                 .Select(k => k.ToDto()).ToList();
         }
@@ -163,6 +163,7 @@ namespace QLKSan.Business
             dto.DiemDanhGiaTrungBinh = dto.TongSoDanhGia == 0 ? null : Math.Round(await _context.DanhGias.AverageAsync(d => (double)d.SoSao), 1);
             dto.DanhGiaMoi = (await _context.DanhGias
                     .Include(d => d.KhachHang)
+                    .Include(d => d.NhanVienPhanHoi)
                     .Include(d => d.Phong).ThenInclude(p => p.LoaiPhong)
                     .OrderByDescending(d => d.NgayDanhGia).Take(5).ToListAsync())
                 .Select(d => d.ToDto()).ToList();

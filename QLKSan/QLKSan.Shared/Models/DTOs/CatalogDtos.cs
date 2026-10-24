@@ -25,6 +25,16 @@ namespace QLKSan.Models.DTOs
         public DateTime NgayBatDau { get; set; }
         public DateTime NgayKetThuc { get; set; }
         public PromotionStatus TrangThai { get; set; }
+
+        // Công tắc quản trị và điều kiện áp dụng (null = không giới hạn)
+        public bool KichHoat { get; set; }
+        public int? SoLuotToiDa { get; set; }
+        public int? SoDemToiThieu { get; set; }
+        public string MaLoai { get; set; }
+        public string TenLoai { get; set; }
+
+        // Số phiếu / hoá đơn đã dùng mã (không tính phiếu đã huỷ)
+        public int SoLuotDaDung { get; set; }
     }
 
     public class StaffDto
@@ -61,5 +71,13 @@ namespace QLKSan.Models.DTOs
 
         // Tên hiển thị công khai: "Khách ẩn danh" hoặc tên (không kèm họ) của khách
         public string TenHienThi { get; set; }
+
+        // Phản hồi công khai của khách sạn
+        public string PhanHoi { get; set; }
+        public DateTime? NgayPhanHoi { get; set; }
+        public string TenNhanVienPhanHoi { get; set; }
+
+        // Ẩn khỏi trang khách (chỉ quản trị thấy)
+        public bool An { get; set; }
     }
 }

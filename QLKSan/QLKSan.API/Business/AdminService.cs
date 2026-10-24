@@ -67,6 +67,8 @@ namespace QLKSan.Business
             // Prevent deletion if rooms are associated
             bool hasRooms = await _context.Phongs.AnyAsync(p => p.MaLoai == maLoai);
             if (hasRooms) throw new ConflictException("Không thể xóa (có phòng đang dùng loại này).");
+            if (await _context.KhuyenMais.AnyAsync(k => k.MaLoai == maLoai))
+                throw new ConflictException("Không thể xóa (có khuyến mãi chỉ áp dụng cho hạng phòng này).");
 
             _context.LoaiPhongs.Remove(roomType);
             await _context.SaveChangesAsync();
@@ -287,23 +289,5 @@ namespace QLKSan.Business
                 throw new ConflictException("Không thể xóa (nhân viên đã có lịch sử phiếu đặt, hoá đơn hoặc công việc). Hãy chuyển sang trạng thái 'Nghỉ việc'.");
             }
         }
-
-        // Promotions
-        public async Task<IEnumerable<KhuyenMai>> GetAllPromotionsAsync()
-            => await _context.KhuyenMais.ToListAsync();
-
-        public async Task AddPromotionAsync(KhuyenMai promo)
-        {
-            if (await _context.KhuyenMais.AnyAsync(k => k.MaKhuyenMai == promo.MaKhuyenMai))
-                throw new ConflictException($"Mã khuyến mãi '{promo.MaKhuyenMai}' đã tồn tại.");
-
-            _context.KhuyenMais.Add(promo);
-            await _context.SaveChangesAsync();
-        }
-
-        // Reviews
-        public async Task<IEnumerable<DanhGia>> GetAllReviewsAsync()
-            => await _context.DanhGias.Include(d => d.KhachHang).Include(d => d.Phong).ThenInclude(p => p.LoaiPhong)
-                .OrderByDescending(d => d.NgayDanhGia).ToListAsync();
     }
 }

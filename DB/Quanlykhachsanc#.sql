@@ -170,7 +170,12 @@ CREATE TABLE KhuyenMai (
     NgayBatDau DATE,
     NgayKetThuc DATE,
     -- 1 = đang áp dụng. So sánh theo NGÀY để còn hiệu lực trọn ngày kết thúc
-    TrangThai AS (CASE WHEN CAST(GETDATE() AS DATE) BETWEEN NgayBatDau AND NgayKetThuc THEN 1 ELSE 0 END)
+    TrangThai AS (CASE WHEN CAST(GETDATE() AS DATE) BETWEEN NgayBatDau AND NgayKetThuc THEN 1 ELSE 0 END),
+    KichHoat BIT NOT NULL DEFAULT 1,                -- quản trị tắt thì không áp dụng dù còn hạn
+    SoLuotToiDa INT NULL,                           -- điều kiện áp dụng (NULL = không giới hạn)
+    SoDemToiThieu INT NULL,
+    MaLoai VARCHAR(10) NULL,                        -- chỉ áp dụng cho hạng phòng này
+    CONSTRAINT FK_KhuyenMai_LoaiPhong FOREIGN KEY (MaLoai) REFERENCES LoaiPhong(MaLoai)
 );
 
 -- 5. NHÓM GIAO DỊCH
@@ -273,6 +278,11 @@ CREATE TABLE DanhGia (
     NgayDanhGia DATETIME DEFAULT GETDATE(),
     AnDanh BIT DEFAULT 0,
     MaDatPhong VARCHAR(10) NULL,                    -- lần lưu trú được đánh giá (mỗi phiếu 1 đánh giá)
+    PhanHoi NVARCHAR(1000) NULL,                    -- phản hồi công khai của khách sạn
+    NgayPhanHoi DATETIME NULL,
+    MaNhanVienPhanHoi VARCHAR(10) NULL,
+    An BIT NOT NULL DEFAULT 0,                      -- ẩn khỏi trang khách (vẫn tính vào điểm trung bình)
+    CONSTRAINT FK_DanhGia_NhanVien FOREIGN KEY (MaNhanVienPhanHoi) REFERENCES NhanVien(MaNhanVien),
     CONSTRAINT FK_DanhGia_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
     CONSTRAINT FK_DanhGia_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
     CONSTRAINT FK_DanhGia_PhieuDatPhong FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong)

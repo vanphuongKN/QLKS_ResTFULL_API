@@ -46,20 +46,12 @@ namespace QLKSan.Mappings
                 GiaTriGiam = entity.GiaTriGiam,
                 NgayBatDau = entity.NgayBatDau,
                 NgayKetThuc = entity.NgayKetThuc,
-                TrangThai = entity.TrangThai
-            };
-        }
-
-        public static KhuyenMai ToEntity(this PromotionRequest request)
-        {
-            return new KhuyenMai
-            {
-                MaKhuyenMai = request.MaKhuyenMai,
-                TenKhuyenMai = request.TenKhuyenMai,
-                LoaiGiam = request.LoaiGiam,
-                GiaTriGiam = request.GiaTriGiam,
-                NgayBatDau = request.NgayBatDau,
-                NgayKetThuc = request.NgayKetThuc
+                TrangThai = entity.TrangThai,
+                KichHoat = entity.KichHoat,
+                SoLuotToiDa = entity.SoLuotToiDa,
+                SoDemToiThieu = entity.SoDemToiThieu,
+                MaLoai = entity.MaLoai,
+                TenLoai = entity.LoaiPhong?.TenLoai
             };
         }
 
@@ -110,7 +102,11 @@ namespace QLKSan.Mappings
                 MaDatPhong = entity.MaDatPhong,
                 TenLoaiPhong = entity.Phong?.LoaiPhong?.TenLoai,
                 // Công khai: ẩn danh thì không lộ tên; còn lại chỉ hiện tên (không kèm họ)
-                TenHienThi = entity.AnDanh ? "Khách ẩn danh" : (entity.KhachHang?.Ten ?? "Khách lưu trú")
+                TenHienThi = entity.AnDanh ? "Khách ẩn danh" : (entity.KhachHang?.Ten ?? "Khách lưu trú"),
+                PhanHoi = entity.PhanHoi,
+                NgayPhanHoi = entity.NgayPhanHoi,
+                TenNhanVienPhanHoi = entity.NhanVienPhanHoi?.TenNhanVien,
+                An = entity.An
             };
         }
     }

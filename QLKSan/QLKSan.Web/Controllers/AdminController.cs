@@ -211,6 +211,7 @@ namespace QLKSan.Controllers
         public async Task<IActionResult> Promotions()
         {
             ViewBag.Promotions = await _promotionApi.GetAllAsync();
+            ViewBag.RoomTypes = await _roomTypeApi.GetAllAsync();
             return View();
         }
 
@@ -225,6 +226,27 @@ namespace QLKSan.Controllers
 
             return RunAsync(() => _promotionApi.CreateAsync(p), "Thêm khuyến mãi thành công!", "Promotions");
         }
+
+        [HttpPost]
+        public Task<IActionResult> EditPromotion(string maKhuyenMai, PromotionRequest p)
+        {
+            p.MaKhuyenMai = maKhuyenMai;
+            ModelState.Remove(nameof(PromotionRequest.MaKhuyenMai));
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return Task.FromResult<IActionResult>(RedirectToAction("Promotions"));
+            }
+            return RunAsync(() => _promotionApi.UpdateAsync(maKhuyenMai, p), $"Đã cập nhật khuyến mãi {maKhuyenMai}.", "Promotions");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SetPromotionStatus(string maKhuyenMai, bool kichHoat)
+            => RunAsync(() => _promotionApi.SetActiveAsync(maKhuyenMai, kichHoat), $"Đã {(kichHoat ? "bật" : "tắt")} mã {maKhuyenMai}.", "Promotions");
+
+        [HttpPost]
+        public Task<IActionResult> DeletePromotion(string maKhuyenMai)
+            => RunAsync(() => _promotionApi.DeleteAsync(maKhuyenMai), $"Đã xoá mã {maKhuyenMai}.", "Promotions");
 
         // ===== PRICING RULES (giá theo mùa / cuối tuần / lễ) =====
         [HttpGet]
@@ -257,10 +279,44 @@ namespace QLKSan.Controllers
 
         // ===== REVIEWS =====
         [HttpGet]
-        public async Task<IActionResult> Reviews()
+        public async Task<IActionResult> Reviews(int? soSao = null, bool chuaPhanHoi = false, bool? an = null)
         {
-            ViewBag.Reviews = await _reviewApi.GetAllAsync();
+            // Thống kê luôn tính trên toàn bộ đánh giá; danh sách theo bộ lọc
+            var all = await _reviewApi.GetAllAsync();
+            ViewBag.AllReviews = all;
+            ViewBag.Reviews = soSao == null && !chuaPhanHoi && an == null ? all : await _reviewApi.GetAllAsync(soSao, chuaPhanHoi, an);
+            ViewBag.SoSao = soSao;
+            ViewBag.ChuaPhanHoi = chuaPhanHoi;
+            ViewBag.An = an;
             return View();
         }
+
+        // Thao tác trên một đánh giá rồi quay lại đúng bộ lọc đang xem
+        private async Task<IActionResult> ReviewActionAsync(Func<Task> action, string successMessage, int? soSao, bool chuaPhanHoi, bool? an)
+        {
+            try
+            {
+                await action();
+                TempData["SuccessMessage"] = successMessage;
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Reviews), new { soSao, chuaPhanHoi = chuaPhanHoi ? true : (bool?)null, an });
+        }
+
+        [HttpPost]
+        public Task<IActionResult> ReplyReview(string maDanhGia, string noiDung, int? soSao, bool chuaPhanHoi, bool? an)
+            => ReviewActionAsync(() => _reviewApi.ReplyAsync(maDanhGia, noiDung), "Đã gửi phản hồi — phản hồi hiển thị công khai trên trang hạng phòng.", soSao, chuaPhanHoi, an);
+
+        [HttpPost]
+        public Task<IActionResult> DeleteReviewReply(string maDanhGia, int? soSao, bool chuaPhanHoi, bool? an)
+            => ReviewActionAsync(() => _reviewApi.DeleteReplyAsync(maDanhGia), "Đã gỡ phản hồi.", soSao, chuaPhanHoi, an);
+
+        [HttpPost]
+        public Task<IActionResult> SetReviewVisibility(string maDanhGia, bool hide, int? soSao, bool chuaPhanHoi, bool? an)
+            => ReviewActionAsync(() => _reviewApi.SetHiddenAsync(maDanhGia, hide),
+                hide ? "Đã ẩn đánh giá khỏi trang khách (vẫn tính vào điểm trung bình)." : "Đã hiện lại đánh giá.", soSao, chuaPhanHoi, an);
     }
 }

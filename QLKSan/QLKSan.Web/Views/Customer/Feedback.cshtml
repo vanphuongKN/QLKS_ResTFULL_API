@@ -108,6 +108,11 @@
                 </div>
                 <p>@(string.IsNullOrEmpty(r.NoiDung) ? "(Không có nhận xét)" : r.NoiDung)</p>
                 <small>@r.NgayDanhGia.ToString("dd/MM/yyyy")@(r.AnDanh ? " · ẩn danh" : "")</small>
+                @if (!string.IsNullOrEmpty(r.PhanHoi))
+                {
+                    <div class="rt-reply"><strong>Phản hồi từ khách sạn</strong><p>@r.PhanHoi</p></div>
+                }
+
             </div>
         }
     </div>

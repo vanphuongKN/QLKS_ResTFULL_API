@@ -28,6 +28,23 @@ namespace QLKSan.Models.Requests
         [DateGreaterThan("NgayBatDau", ErrorMessage = "Ngày kết thúc phải sau ngày bắt đầu")]
         public DateTime NgayKetThuc { get; set; }
 
+        // Điều kiện áp dụng, để trống = không giới hạn
+        [Range(1, 100000, ErrorMessage = "Số lượt tối đa phải từ 1 trở lên.")]
+        public int? SoLuotToiDa { get; set; }
+
+        [Range(1, 60, ErrorMessage = "Số đêm tối thiểu phải từ 1 đến 60.")]
+        public int? SoDemToiThieu { get; set; }
+
+        [StringLength(10)]
+        public string MaLoai { get; set; }
+
         // Không có TrangThai: cột này do CSDL tự tính theo ngày bắt đầu/kết thúc
+    }
+
+    // PATCH /api/promotions/{id}: bật / tắt mã { "KichHoat": true | false }
+    public class UpdatePromotionStatusRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn trạng thái.")]
+        public bool? KichHoat { get; set; }
     }
 }

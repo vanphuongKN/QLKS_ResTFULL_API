@@ -194,7 +194,23 @@ namespace QLKSan.Data
             // GĐ4: điểm đã đổi — hạng thành viên xét theo điểm trọn đời (số dư + đã đổi)
             ("20. Thêm KhachHang.DiemDaDoi", @"
                 IF COL_LENGTH('KhachHang', 'DiemDaDoi') IS NULL
-                    ALTER TABLE KhachHang ADD DiemDaDoi INT NOT NULL CONSTRAINT DF_KhachHang_DiemDaDoi DEFAULT 0;")
+                    ALTER TABLE KhachHang ADD DiemDaDoi INT NOT NULL CONSTRAINT DF_KhachHang_DiemDaDoi DEFAULT 0;"),
+
+            // A2: khuyến mãi bật/tắt + điều kiện áp dụng (số lượt tối đa, số đêm tối thiểu, hạng phòng)
+            ("21. Thêm KhuyenMai.KichHoat, SoLuotToiDa, SoDemToiThieu, MaLoai", @"
+                IF COL_LENGTH('KhuyenMai', 'KichHoat') IS NULL
+                    ALTER TABLE KhuyenMai ADD KichHoat BIT NOT NULL CONSTRAINT DF_KhuyenMai_KichHoat DEFAULT 1,
+                                              SoLuotToiDa INT NULL,
+                                              SoDemToiThieu INT NULL,
+                                              MaLoai VARCHAR(10) NULL CONSTRAINT FK_KhuyenMai_LoaiPhong FOREIGN KEY REFERENCES LoaiPhong(MaLoai);"),
+
+            // A2: phản hồi đánh giá + ẩn đánh giá
+            ("22. Thêm DanhGia.PhanHoi, NgayPhanHoi, MaNhanVienPhanHoi, An", @"
+                IF COL_LENGTH('DanhGia', 'PhanHoi') IS NULL
+                    ALTER TABLE DanhGia ADD PhanHoi NVARCHAR(1000) NULL,
+                                            NgayPhanHoi DATETIME NULL,
+                                            MaNhanVienPhanHoi VARCHAR(10) NULL CONSTRAINT FK_DanhGia_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                                            An BIT NOT NULL CONSTRAINT DF_DanhGia_An DEFAULT 0;")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

@@ -137,6 +137,10 @@ else
                         }
                         <p>@(string.IsNullOrEmpty(review.NoiDung) ? "(Không có nhận xét)" : review.NoiDung)</p>
                         <small>Đã gửi ngày @review.NgayDanhGia.ToString("dd/MM/yyyy")@(review.AnDanh ? " · ẩn danh" : "")</small>
+                        @if (!string.IsNullOrEmpty(review.PhanHoi))
+                        {
+                            <div class="rt-reply"><strong>Phản hồi từ khách sạn</strong><p>@review.PhanHoi</p></div>
+                        }
                     </div>
                 }
                 else

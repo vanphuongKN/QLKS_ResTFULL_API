@@ -84,6 +84,7 @@ namespace QLKSan.Business
                 .ToListAsync();
 
             var reviews = await GetReviewsAsync(maLoai);
+            var ratings = await RatingsAsync();
             var basic = loai.ToDto();
             var detail = new RoomTypeDetailDto
             {
@@ -102,11 +103,7 @@ namespace QLKSan.Business
                 TienIchs = tienIchs.Select(t => t.ToDto()).ToList(),
                 DanhGiaGanDay = reviews.Take(6).ToList()
             };
-            if (reviews.Count > 0)
-            {
-                detail.DiemDanhGia = Math.Round(reviews.Average(r => r.SoSao), 1);
-                detail.SoDanhGia = reviews.Count;
-            }
+            ApplyRating(detail, ratings);
             return detail;
         }
 
@@ -149,6 +146,7 @@ namespace QLKSan.Business
             => _context.DanhGias
                 .Include(d => d.KhachHang)
                 .Include(d => d.Phong).ThenInclude(p => p.LoaiPhong)
+                .Where(d => !d.An)
                 .OrderByDescending(d => d.NgayDanhGia);
 
         // Danh sách công khai: không trả mã / họ tên đầy đủ của khách

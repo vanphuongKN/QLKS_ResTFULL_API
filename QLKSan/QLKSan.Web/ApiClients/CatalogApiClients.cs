@@ -86,6 +86,9 @@ namespace QLKSan.ApiClients
     {
         Task<List<PromotionDto>> GetAllAsync();
         Task CreateAsync(PromotionRequest request);
+        Task UpdateAsync(string maKhuyenMai, PromotionRequest request);
+        Task SetActiveAsync(string maKhuyenMai, bool kichHoat);
+        Task DeleteAsync(string maKhuyenMai);
 
         // Ném ApiException (404: không tồn tại, 400: hết hạn) nếu mã không còn hiệu lực
         Task<PromotionDto> GetActiveAsync(string maKhuyenMai);
@@ -97,24 +100,43 @@ namespace QLKSan.ApiClients
 
         public Task<List<PromotionDto>> GetAllAsync() => HttpGetAsync<List<PromotionDto>>("api/promotions");
         public Task CreateAsync(PromotionRequest request) => HttpPostAsync("api/promotions", request);
+        public Task UpdateAsync(string maKhuyenMai, PromotionRequest request) => HttpPutAsync($"api/promotions/{Uri.EscapeDataString(maKhuyenMai)}", request);
+        public Task SetActiveAsync(string maKhuyenMai, bool kichHoat)
+            => HttpPatchAsync($"api/promotions/{Uri.EscapeDataString(maKhuyenMai)}", new UpdatePromotionStatusRequest { KichHoat = kichHoat });
+        public Task DeleteAsync(string maKhuyenMai) => HttpDeleteAsync($"api/promotions/{Uri.EscapeDataString(maKhuyenMai)}");
         public Task<PromotionDto> GetActiveAsync(string maKhuyenMai) => HttpGetAsync<PromotionDto>($"api/promotions/{Uri.EscapeDataString(maKhuyenMai)}");
     }
 
     // ===== /api/reviews =====
     public interface IReviewApiClient
     {
-        Task<List<ReviewDto>> GetAllAsync();
+        Task<List<ReviewDto>> GetAllAsync(int? soSao = null, bool? chuaPhanHoi = null, bool? an = null);
         Task<List<ReviewDto>> GetFeaturedAsync(int soLuong = 3);
         Task CreateAsync(ReviewRequest request);
+        Task ReplyAsync(string maDanhGia, string noiDung);
+        Task DeleteReplyAsync(string maDanhGia);
+        Task SetHiddenAsync(string maDanhGia, bool an);
     }
 
     public class ReviewApiClient : ApiClientBase, IReviewApiClient
     {
         public ReviewApiClient(HttpClient http) : base(http) { }
 
-        public Task<List<ReviewDto>> GetAllAsync() => HttpGetAsync<List<ReviewDto>>("api/reviews");
+        public Task<List<ReviewDto>> GetAllAsync(int? soSao = null, bool? chuaPhanHoi = null, bool? an = null)
+        {
+            var q = new List<string>();
+            if (soSao != null) q.Add($"soSao={soSao}");
+            if (chuaPhanHoi == true) q.Add("chuaPhanHoi=true");
+            if (an != null) q.Add($"an={an.Value.ToString().ToLowerInvariant()}");
+            return HttpGetAsync<List<ReviewDto>>("api/reviews" + (q.Count > 0 ? "?" + string.Join("&", q) : ""));
+        }
         public Task<List<ReviewDto>> GetFeaturedAsync(int soLuong = 3) => HttpGetAsync<List<ReviewDto>>($"api/reviews/featured?soLuong={soLuong}");
         public Task CreateAsync(ReviewRequest request) => HttpPostAsync("api/reviews", request);
+        public Task ReplyAsync(string maDanhGia, string noiDung)
+            => HttpPutAsync($"api/reviews/{Uri.EscapeDataString(maDanhGia)}/reply", new ReviewReplyRequest { NoiDung = noiDung });
+        public Task DeleteReplyAsync(string maDanhGia) => HttpDeleteAsync($"api/reviews/{Uri.EscapeDataString(maDanhGia)}/reply");
+        public Task SetHiddenAsync(string maDanhGia, bool an)
+            => HttpPatchAsync($"api/reviews/{Uri.EscapeDataString(maDanhGia)}", new UpdateReviewVisibilityRequest { An = an });
     }
 
     // ===== /api/pricing-rules =====

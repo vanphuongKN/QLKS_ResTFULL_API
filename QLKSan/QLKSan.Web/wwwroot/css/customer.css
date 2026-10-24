@@ -1143,3 +1143,8 @@ h1, h2, h3, .lr-display { font-family: var(--lr-serif); font-weight: 500; letter
     .lx-tiers { grid-template-columns: 1fr; }
     .lx-gallery { columns: 1; }
 }
+
+/* Phản hồi của khách sạn dưới đánh giá */
+.rt-reply { margin-top: 10px; padding: 12px 16px; background: var(--lr-sand); border-left: 2px solid var(--lr-gold); }
+.rt-reply strong { display: block; font-size: 0.7rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--lr-gold); margin-bottom: 4px; }
+.rt-reply p { margin: 0; font-size: 0.9rem; color: var(--lr-text); line-height: 1.7; }
