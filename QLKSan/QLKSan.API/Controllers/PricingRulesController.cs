@@ -30,6 +30,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Thêm quy tắc giá: điều chỉnh % theo khoảng ngày, đêm trong tuần, loại phòng; ưu tiên cao thắng.</summary>
         [HttpPost]
+        [Audit("Thêm quy tắc giá", "Bảng giá")]
         public async Task<ActionResult<PricingRuleDto>> Create(PricingRuleRequest request)
         {
             var rule = await _pricing.AddRuleAsync(request);
@@ -38,6 +39,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Bật hoặc tắt quy tắc giá: body { "KichHoat": true | false } (gọi lặp lại cho cùng kết quả).</summary>
         [HttpPatch("{maQuyTac}")]
+        [Audit("Bật/tắt quy tắc giá", "Bảng giá")]
         public async Task<ActionResult<PricingRuleDto>> UpdateStatus(string maQuyTac, UpdatePricingRuleStatusRequest request)
         {
             var rule = await _pricing.SetRuleActiveAsync(maQuyTac, request.KichHoat!.Value);
@@ -46,6 +48,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Xoá quy tắc giá (hoá đơn đã lập không bị ảnh hưởng).</summary>
         [HttpDelete("{maQuyTac}")]
+        [Audit("Xoá quy tắc giá", "Bảng giá")]
         public async Task<IActionResult> Delete(string maQuyTac)
         {
             await _pricing.DeleteRuleAsync(maQuyTac);

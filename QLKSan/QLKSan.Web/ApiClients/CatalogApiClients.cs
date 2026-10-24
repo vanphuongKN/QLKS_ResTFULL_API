@@ -171,4 +171,26 @@ namespace QLKSan.ApiClients
 
         public Task<DashboardDto> GetAsync() => HttpGetAsync<DashboardDto>("api/dashboard");
     }
+
+    // ===== /api/audit-logs =====
+    public interface IAuditLogApiClient
+    {
+        Task<AuditLogPageDto> SearchAsync(DateTime? tuNgay, DateTime? denNgay, string doiTuong, string nguoiDung, string tuKhoa, int trang);
+    }
+
+    public class AuditLogApiClient : ApiClientBase, IAuditLogApiClient
+    {
+        public AuditLogApiClient(HttpClient http) : base(http) { }
+
+        public Task<AuditLogPageDto> SearchAsync(DateTime? tuNgay, DateTime? denNgay, string doiTuong, string nguoiDung, string tuKhoa, int trang)
+        {
+            var q = new List<string> { $"trang={trang}" };
+            if (tuNgay != null) q.Add($"tuNgay={tuNgay:yyyy-MM-dd}");
+            if (denNgay != null) q.Add($"denNgay={denNgay:yyyy-MM-dd}");
+            if (!string.IsNullOrWhiteSpace(doiTuong)) q.Add("doiTuong=" + Uri.EscapeDataString(doiTuong));
+            if (!string.IsNullOrWhiteSpace(nguoiDung)) q.Add("nguoiDung=" + Uri.EscapeDataString(nguoiDung));
+            if (!string.IsNullOrWhiteSpace(tuKhoa)) q.Add("tuKhoa=" + Uri.EscapeDataString(tuKhoa));
+            return HttpGetAsync<AuditLogPageDto>("api/audit-logs?" + string.Join("&", q));
+        }
+    }
 }

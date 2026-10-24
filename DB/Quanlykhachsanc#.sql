@@ -38,7 +38,9 @@ CREATE TABLE TaiKhoan (
     MaDangNhap VARCHAR(10) PRIMARY KEY,
     TenDangNhap NVARCHAR(50) NOT NULL CONSTRAINT UQ_TaiKhoan_TenDangNhap UNIQUE,
     MatKhau NVARCHAR(255) NOT NULL,                 -- chuỗi BCrypt
-    VaiTro NVARCHAR(50) DEFAULT N'Khách hàng'       -- Quản lý | Lễ tân | Buồng phòng | Kế toán | Khách hàng
+    VaiTro NVARCHAR(50) DEFAULT N'Khách hàng',      -- Quản lý | Lễ tân | Buồng phòng | Kế toán | Khách hàng
+    SoLanSai INT NOT NULL DEFAULT 0,                -- đăng nhập sai liên tiếp
+    KhoaDen DATETIME NULL                           -- khoá tạm đến thời điểm này
 );
 
 CREATE TABLE NhanVien (
@@ -295,6 +297,21 @@ CREATE TABLE DanhGia (
 CREATE UNIQUE INDEX UX_DanhGia_MaDatPhong ON DanhGia(MaDatPhong) WHERE MaDatPhong IS NOT NULL;
 
 -- 7. NHÓM BUỒNG PHÒNG: công việc dọn phòng giao cho nhân viên buồng phòng
+-- Nhật ký thao tác của người dùng (ghi tự động bởi API)
+CREATE TABLE NhatKyThaoTac (
+    MaNhatKy BIGINT IDENTITY(1,1) PRIMARY KEY,
+    ThoiGian DATETIME NOT NULL DEFAULT GETDATE(),
+    MaDangNhap VARCHAR(10) NULL,
+    TenDangNhap NVARCHAR(50) NULL,
+    VaiTro NVARCHAR(20) NULL,
+    HanhDong NVARCHAR(100) NOT NULL,
+    DoiTuong NVARCHAR(50) NULL,
+    MaDoiTuong NVARCHAR(100) NULL,
+    ChiTiet NVARCHAR(1000) NULL,
+    DiaChiIP VARCHAR(50) NULL
+);
+CREATE INDEX IX_NhatKy_ThoiGian ON NhatKyThaoTac(ThoiGian DESC);
+
 -- Lịch sử điểm thưởng (tổng các dòng của một khách = số điểm hiện có)
 CREATE TABLE LichSuDiem (
     MaLichSu VARCHAR(12) PRIMARY KEY,

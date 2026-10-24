@@ -19,11 +19,13 @@ namespace QLKSan.Controllers
         private readonly IPromotionApiClient _promotionApi;
         private readonly IReviewApiClient _reviewApi;
         private readonly IPricingRuleApiClient _pricingApi;
+        private readonly IAuditLogApiClient _auditApi;
 
         public AdminController(IDashboardApiClient dashboardApi, IRoomTypeApiClient roomTypeApi, IRoomApiClient roomApi,
             IServiceApiClient serviceApi, IStaffApiClient staffApi, IPromotionApiClient promotionApi, IReviewApiClient reviewApi,
-            IPricingRuleApiClient pricingApi)
+            IPricingRuleApiClient pricingApi, IAuditLogApiClient auditApi)
         {
+            _auditApi = auditApi;
             _dashboardApi = dashboardApi;
             _roomTypeApi = roomTypeApi;
             _roomApi = roomApi;
@@ -276,6 +278,20 @@ namespace QLKSan.Controllers
         [HttpPost]
         public Task<IActionResult> DeletePricingRule(string id)
             => RunAsync(() => _pricingApi.DeleteAsync(id), $"Đã xoá quy tắc {id}.", "Pricing");
+
+        // ===== NHẬT KÝ THAO TÁC =====
+        [HttpGet]
+        public async Task<IActionResult> AuditLog(DateTime? tuNgay, DateTime? denNgay, string doiTuong, string nguoiDung, string tuKhoa, int trang = 1)
+        {
+            tuNgay ??= DateTime.Today.AddDays(-6);
+            denNgay ??= DateTime.Today;
+            ViewBag.TuNgay = tuNgay;
+            ViewBag.DenNgay = denNgay;
+            ViewBag.DoiTuong = doiTuong;
+            ViewBag.NguoiDung = nguoiDung;
+            ViewBag.TuKhoa = tuKhoa;
+            return View(await _auditApi.SearchAsync(tuNgay, denNgay, doiTuong, nguoiDung, tuKhoa, trang));
+        }
 
         // ===== REVIEWS =====
         [HttpGet]

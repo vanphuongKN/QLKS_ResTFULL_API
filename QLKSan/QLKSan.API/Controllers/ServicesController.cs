@@ -41,6 +41,7 @@ namespace QLKSan.Controllers
         /// <summary>Thêm dịch vụ (mã tự sinh DVxxx).</summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Thêm dịch vụ", "Dịch vụ")]
         public async Task<ActionResult<ServiceDto>> Create(ServiceRequest request)
         {
             var maDichVu = await _adminService.GenerateNextServiceIdAsync();
@@ -52,6 +53,7 @@ namespace QLKSan.Controllers
         /// <summary>Cập nhật dịch vụ.</summary>
         [HttpPut("{maDichVu}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Sửa dịch vụ", "Dịch vụ")]
         public async Task<IActionResult> Update(string maDichVu, ServiceRequest request)
         {
             await _adminService.UpdateServiceAsync(request.ToEntity(maDichVu));
@@ -61,6 +63,7 @@ namespace QLKSan.Controllers
         /// <summary>Xoá dịch vụ.</summary>
         [HttpDelete("{maDichVu}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Xoá dịch vụ", "Dịch vụ")]
         public async Task<IActionResult> Delete(string maDichVu)
         {
             await _adminService.DeleteServiceAsync(maDichVu);
@@ -70,6 +73,7 @@ namespace QLKSan.Controllers
         /// <summary>Đặt trạng thái dịch vụ: body { "TrangThai": "Available" | "Unavailable" }.</summary>
         [HttpPatch("{maDichVu}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Bật/tắt dịch vụ", "Dịch vụ")]
         public async Task<ActionResult<ServiceDto>> UpdateStatus(string maDichVu, UpdateServiceStatusRequest request)
         {
             var service = await _adminService.SetServiceStatusAsync(maDichVu, request.TrangThai!.Value);

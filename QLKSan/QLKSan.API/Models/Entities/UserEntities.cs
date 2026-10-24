@@ -23,6 +23,10 @@ namespace QLKSan.Models.Entities
         
         public Role VaiTro { get; set; } = Role.Customer;
 
+        // Chống dò mật khẩu: đếm lần sai liên tiếp, đủ ngưỡng thì khoá tạm đến KhoaDen
+        public int SoLanSai { get; set; } = 0;
+        public DateTime? KhoaDen { get; set; }
+
         public NhanVien NhanVien { get; set; }
         public KhachHang KhachHang { get; set; }
     }
@@ -170,5 +174,39 @@ namespace QLKSan.Models.Entities
 
         public KhachHang KhachHang { get; set; }
         public NhanVien NhanVien { get; set; }
+    }
+
+    // Nhật ký thao tác: ai làm gì, trên đối tượng nào, lúc nào (ghi tự động khi thao tác thành công)
+    public class NhatKyThaoTac
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long MaNhatKy { get; set; }
+
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        public string? MaDangNhap { get; set; }
+
+        [StringLength(50)]
+        public string? TenDangNhap { get; set; }
+
+        [StringLength(20)]
+        public string? VaiTro { get; set; }
+
+        [StringLength(100)]
+        public string HanhDong { get; set; }
+
+        [StringLength(50)]
+        public string? DoiTuong { get; set; }
+
+        [StringLength(100)]
+        public string? MaDoiTuong { get; set; }
+
+        [StringLength(1000)]
+        public string? ChiTiet { get; set; }
+
+        [StringLength(50)]
+        public string? DiaChiIP { get; set; }
     }
 }

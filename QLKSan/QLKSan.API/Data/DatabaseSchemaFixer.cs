@@ -240,6 +240,31 @@ namespace QLKSan.Data
                     SELECT 'LSD' + RIGHT('000000' + CAST(ROW_NUMBER() OVER (ORDER BY MaKhachHang) AS VARCHAR(6)), 6),
                            MaKhachHang, GETDATE(), DiemTichLuy, N'Số dư đầu kỳ', N'Điểm có trước khi ghi lịch sử điểm'
                     FROM KhachHang WHERE DiemTichLuy > 0;
+                END"),
+
+            // A4: khoá tạm tài khoản khi đăng nhập sai nhiều lần
+            ("25. Thêm TaiKhoan.SoLanSai, KhoaDen", @"
+                IF COL_LENGTH('TaiKhoan', 'SoLanSai') IS NULL
+                    ALTER TABLE TaiKhoan ADD SoLanSai INT NOT NULL CONSTRAINT DF_TaiKhoan_SoLanSai DEFAULT 0,
+                                             KhoaDen DATETIME NULL;"),
+
+            // A4: nhật ký thao tác
+            ("26. Tạo bảng NhatKyThaoTac", @"
+                IF OBJECT_ID('NhatKyThaoTac', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE NhatKyThaoTac (
+                        MaNhatKy BIGINT IDENTITY(1,1) PRIMARY KEY,
+                        ThoiGian DATETIME NOT NULL CONSTRAINT DF_NhatKy_ThoiGian DEFAULT GETDATE(),
+                        MaDangNhap VARCHAR(10) NULL,
+                        TenDangNhap NVARCHAR(50) NULL,
+                        VaiTro NVARCHAR(20) NULL,
+                        HanhDong NVARCHAR(100) NOT NULL,
+                        DoiTuong NVARCHAR(50) NULL,
+                        MaDoiTuong NVARCHAR(100) NULL,
+                        ChiTiet NVARCHAR(1000) NULL,
+                        DiaChiIP VARCHAR(50) NULL
+                    );
+                    CREATE INDEX IX_NhatKy_ThoiGian ON NhatKyThaoTac(ThoiGian DESC);
                 END")
         };
 

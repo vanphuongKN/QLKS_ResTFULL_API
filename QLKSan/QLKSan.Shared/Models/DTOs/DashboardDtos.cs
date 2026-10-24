@@ -90,4 +90,28 @@ namespace QLKSan.Models.DTOs
         // Công việc dọn phòng chưa hoàn thành (chờ giao / đã giao / đang dọn / sự cố)
         public List<HousekeepingTaskDto> CongViec { get; set; } = new List<HousekeepingTaskDto>();
     }
+
+    // GET /api/audit-logs: một trang nhật ký thao tác kèm danh sách giá trị để lọc
+    public class AuditLogPageDto
+    {
+        public int Trang { get; set; }
+        public int SoDong { get; set; }
+        public int TongSo { get; set; }
+        public List<string> DoiTuongs { get; set; } = new List<string>();
+        public List<string> NguoiDungs { get; set; } = new List<string>();
+        public List<AuditLogDto> Dong { get; set; } = new List<AuditLogDto>();
+    }
+
+    public class AuditLogDto
+    {
+        public long MaNhatKy { get; set; }
+        public DateTime ThoiGian { get; set; }
+        public string TenDangNhap { get; set; }
+        public string VaiTro { get; set; }
+        public string HanhDong { get; set; }
+        public string DoiTuong { get; set; }
+        public string MaDoiTuong { get; set; }
+        public string ChiTiet { get; set; }
+        public string DiaChiIP { get; set; }
+    }
 }

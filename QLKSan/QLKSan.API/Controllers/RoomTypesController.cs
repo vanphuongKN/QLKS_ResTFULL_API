@@ -59,6 +59,7 @@ namespace QLKSan.Controllers
         /// <summary>Thêm loại phòng (mã tự sinh LPxx).</summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Thêm loại phòng", "Loại phòng")]
         public async Task<ActionResult<RoomTypeDto>> Create(RoomTypeRequest request)
         {
             var maLoai = await _adminService.GenerateNextRoomTypeIdAsync();
@@ -70,6 +71,7 @@ namespace QLKSan.Controllers
         /// <summary>Cập nhật loại phòng.</summary>
         [HttpPut("{maLoai}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Sửa loại phòng", "Loại phòng")]
         public async Task<IActionResult> Update(string maLoai, RoomTypeRequest request)
         {
             await _adminService.UpdateRoomTypeAsync(request.ToEntity(maLoai));
@@ -84,6 +86,7 @@ namespace QLKSan.Controllers
         [Authorize(Roles = AppRoles.Admin)]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(RoomTypeImageService.DungLuongToiDa + 64 * 1024)]
+        [Audit("Tải ảnh loại phòng", "Loại phòng")]
         public async Task<ActionResult<RoomTypeImageDto>> UploadImage(string maLoai, IFormFile file)
         {
             if (file == null) throw new BusinessException("Vui lòng chọn ảnh cần tải lên.");
@@ -95,6 +98,7 @@ namespace QLKSan.Controllers
         /// <summary>Xoá một ảnh khỏi bộ ảnh của hạng phòng.</summary>
         [HttpDelete("{maLoai}/images/{maHinhAnh}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Xoá ảnh loại phòng", "Loại phòng")]
         public async Task<IActionResult> DeleteImage(string maLoai, string maHinhAnh)
         {
             await _imageService.DeleteAsync(maLoai, maHinhAnh);
@@ -104,6 +108,7 @@ namespace QLKSan.Controllers
         /// <summary>Xoá loại phòng (không xoá được nếu còn phòng thuộc loại này).</summary>
         [HttpDelete("{maLoai}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Xoá loại phòng", "Loại phòng")]
         public async Task<IActionResult> Delete(string maLoai)
         {
             await _adminService.DeleteRoomTypeAsync(maLoai);

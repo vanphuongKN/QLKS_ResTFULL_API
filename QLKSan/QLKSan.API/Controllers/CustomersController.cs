@@ -50,6 +50,7 @@ namespace QLKSan.Controllers
         /// <summary>Lễ tân / quản lý cập nhật hồ sơ khách: thông tin cá nhân, liên hệ, VIP, sở thích, ghi chú nội bộ, hạn chế đặt online.</summary>
         [HttpPut("{maKhachHang}")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Sửa hồ sơ khách", "Khách hàng")]
         public async Task<ActionResult<CustomerDto>> UpdateProfile(string maKhachHang, UpdateCustomerProfileRequest request)
         {
             var customer = await _profileService.UpdateProfileAsync(maKhachHang, request);
@@ -67,6 +68,7 @@ namespace QLKSan.Controllers
         /// <summary>Quản lý cộng / trừ điểm thủ công kèm lý do: body { "SoDiem": ±n, "LyDo": ... }.</summary>
         [HttpPost("{maKhachHang}/point-adjustments")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Điều chỉnh điểm", "Khách hàng")]
         public async Task<ActionResult<PointHistoryDto>> AdjustPoints(string maKhachHang, PointAdjustmentRequest request)
         {
             var row = await _profileService.AdjustPointsAsync(maKhachHang, request.SoDiem, request.LyDo, User.GetMaNhanVien());

@@ -37,6 +37,7 @@ namespace QLKSan.Controllers
         /// <summary>Thêm khuyến mãi (mã viết hoa, không trùng).</summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Thêm khuyến mãi", "Khuyến mãi")]
         public async Task<ActionResult<PromotionDto>> Create(PromotionRequest request)
         {
             var promotion = await _promotionService.CreateAsync(request);
@@ -46,6 +47,7 @@ namespace QLKSan.Controllers
         /// <summary>Sửa khuyến mãi (mã trong đường dẫn; mã trong body bị bỏ qua).</summary>
         [HttpPut("{maKhuyenMai}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Sửa khuyến mãi", "Khuyến mãi")]
         public async Task<ActionResult<PromotionDto>> Update(string maKhuyenMai, PromotionRequest request)
         {
             return await _promotionService.UpdateAsync(maKhuyenMai, request);
@@ -54,6 +56,7 @@ namespace QLKSan.Controllers
         /// <summary>Bật hoặc tắt mã: body { "KichHoat": true | false }.</summary>
         [HttpPatch("{maKhuyenMai}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Bật/tắt khuyến mãi", "Khuyến mãi")]
         public async Task<ActionResult<PromotionDto>> SetStatus(string maKhuyenMai, UpdatePromotionStatusRequest request)
         {
             return await _promotionService.SetActiveAsync(maKhuyenMai, request.KichHoat!.Value);
@@ -62,6 +65,7 @@ namespace QLKSan.Controllers
         /// <summary>Xoá mã chưa từng dùng (đã dùng → 409, nên tắt thay vì xoá).</summary>
         [HttpDelete("{maKhuyenMai}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Xoá khuyến mãi", "Khuyến mãi")]
         public async Task<IActionResult> Delete(string maKhuyenMai)
         {
             await _promotionService.DeleteAsync(maKhuyenMai);

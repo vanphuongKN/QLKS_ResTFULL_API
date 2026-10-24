@@ -84,6 +84,7 @@ namespace QLKSan.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Customer)]
+        [Audit("Đặt phòng online", "Phiếu đặt phòng")]
         public async Task<ActionResult<BookingDto>> Create(BookRoomRequest request)
         {
             var maDatPhong = await _customerService.CreateOnlineBookingAsync(User.GetMaKhachHang(), request);
@@ -95,6 +96,7 @@ namespace QLKSan.Controllers
         /// <summary>Lễ tân đổi phòng đã xếp cho phiếu chưa nhận phòng (phòng mới phải trống trong khoảng ngày và đủ sức chứa).</summary>
         [HttpPost("{maDatPhong}/change-room")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Đổi phòng", "Phiếu đặt phòng")]
         public async Task<ActionResult<BookingDto>> ChangeRoom(string maDatPhong, ChangeRoomRequest request)
         {
             await _receptionService.ChangeRoomAsync(maDatPhong, request.MaPhong);
@@ -105,6 +107,7 @@ namespace QLKSan.Controllers
         /// <summary>Lễ tân tạo đặt phòng và check-in ngay cho khách vãng lai.</summary>
         [HttpPost("walk-in")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Nhận khách vãng lai", "Phiếu đặt phòng")]
         public async Task<ActionResult<BookingDto>> WalkIn(CheckInRequest request)
         {
             var maDatPhong = await _receptionService.ProcessCheckInAsync(request, User.GetMaNhanVien());
@@ -116,6 +119,7 @@ namespace QLKSan.Controllers
         /// <summary>Duyệt phiếu đặt online đang chờ duyệt.</summary>
         [HttpPost("{maDatPhong}/approve")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Duyệt phiếu", "Phiếu đặt phòng")]
         public async Task<IActionResult> Approve(string maDatPhong)
         {
             await _receptionService.ApproveOnlineBookingAsync(maDatPhong);
@@ -127,6 +131,7 @@ namespace QLKSan.Controllers
         /// Lễ tân/Admin: từ chối phiếu chờ duyệt hoặc huỷ phiếu đã duyệt.
         /// </summary>
         [HttpPost("{maDatPhong}/cancel")]
+        [Audit("Huỷ phiếu", "Phiếu đặt phòng")]
         public async Task<IActionResult> Cancel(string maDatPhong, CancelBookingRequest request)
         {
             var laKhachHang = User.IsInRole(AppRoles.Customer);
@@ -149,6 +154,7 @@ namespace QLKSan.Controllers
         /// <summary>Check-in cho phiếu đặt online (chuyển phòng sang Đang ở).</summary>
         [HttpPost("{maDatPhong}/check-in")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Nhận phòng", "Phiếu đặt phòng")]
         public async Task<IActionResult> CheckIn(string maDatPhong)
         {
             await _receptionService.CheckInOnlineBookingAsync(maDatPhong, User.GetMaNhanVien());
@@ -158,6 +164,7 @@ namespace QLKSan.Controllers
         /// <summary>Gọi dịch vụ cho khách đang lưu trú; trả về phiếu đặt sau khi cập nhật.</summary>
         [HttpPost("{maDatPhong}/services")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Gọi dịch vụ", "Phiếu đặt phòng")]
         public async Task<ActionResult<BookingDto>> OrderServices(string maDatPhong, OrderServiceRequest request)
         {
             foreach (var item in request.Services)

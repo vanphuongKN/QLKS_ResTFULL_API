@@ -262,6 +262,9 @@ namespace QLKSan.Business
                 throw new BusinessException("Nhân viên này chưa có tài khoản đăng nhập.");
 
             staff.TaiKhoan.MatKhau = PasswordHasher.Hash(matKhauMoi);
+            // Đặt lại mật khẩu cũng mở khoá tài khoản đang bị khoá tạm
+            staff.TaiKhoan.SoLanSai = 0;
+            staff.TaiKhoan.KhoaDen = null;
             await _context.SaveChangesAsync();
         }
 

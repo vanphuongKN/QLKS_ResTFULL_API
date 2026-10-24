@@ -18,15 +18,51 @@ namespace QLKSan.Business
             _context = context;
         }
 
+        // Sai mật khẩu SoLanSaiToiDa lần liên tiếp thì khoá tạm PhutKhoa phút
+        public const int SoLanSaiToiDa = 5;
+        public const int PhutKhoa = 15;
+
         public async Task<TaiKhoan> LoginAsync(string tenDangNhap, string matKhau)
         {
             var account = await _context.TaiKhoans
                 .Include(t => t.NhanVien)
                 .Include(t => t.KhachHang)
                 .FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
+            if (account == null) return null;
 
-            if (account == null || !PasswordHasher.Verify(matKhau, account.MatKhau))
+            if (account.KhoaDen != null && account.KhoaDen > DateTime.Now)
+                throw new AccountLockedException(account.KhoaDen.Value);
+
+            if (!PasswordHasher.Verify(matKhau, account.MatKhau))
+            {
+                account.SoLanSai++;
+                if (account.SoLanSai >= SoLanSaiToiDa)
+                {
+                    account.KhoaDen = DateTime.Now.AddMinutes(PhutKhoa);
+                    account.SoLanSai = 0;
+                    _context.NhatKyThaoTacs.Add(new NhatKyThaoTac
+                    {
+                        MaDangNhap = account.MaDangNhap,
+                        TenDangNhap = account.TenDangNhap,
+                        VaiTro = account.VaiTro.ToString(),
+                        HanhDong = "Tạm khoá tài khoản",
+                        DoiTuong = "Tài khoản",
+                        MaDoiTuong = account.MaDangNhap,
+                        ChiTiet = $"Đăng nhập sai {SoLanSaiToiDa} lần liên tiếp, khoá đến {account.KhoaDen:HH:mm dd/MM/yyyy}"
+                    });
+                    await _context.SaveChangesAsync();
+                    throw new AccountLockedException(account.KhoaDen.Value);
+                }
+                await _context.SaveChangesAsync();
                 return null;
+            }
+
+            if (account.SoLanSai != 0 || account.KhoaDen != null)
+            {
+                account.SoLanSai = 0;
+                account.KhoaDen = null;
+                await _context.SaveChangesAsync();
+            }
 
             // Tài khoản cũ còn lưu mật khẩu dạng chữ thường: băm lại ngay khi đăng nhập thành công
             if (!PasswordHasher.IsHashed(account.MatKhau))

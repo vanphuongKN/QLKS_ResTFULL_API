@@ -49,6 +49,7 @@ namespace QLKSan.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Cashier)]
+        [Audit("Lập hoá đơn", "Hoá đơn")]
         public async Task<ActionResult<InvoiceDto>> Generate(GenerateInvoiceRequest request)
         {
             var invoice = await _checkoutService.GenerateInvoiceAsync(request.MaDatPhong, User.GetMaNhanVien(), request.MaKhuyenMai);
@@ -61,6 +62,7 @@ namespace QLKSan.Controllers
         /// </summary>
         [HttpPost("{maHoaDon}/payments")]
         [Authorize(Roles = AppRoles.Cashier)]
+        [Audit("Thanh toán, trả phòng", "Hoá đơn")]
         public async Task<ActionResult<InvoiceDto>> Pay(string maHoaDon, PaymentRequest request)
         {
             var invoice = await _checkoutService.ProcessPaymentAsync(maHoaDon, request.PhuongThuc, User.GetMaNhanVien(), request.DiemSuDung);
@@ -70,6 +72,7 @@ namespace QLKSan.Controllers
         /// <summary>Hoàn tiền cho hoá đơn đã thanh toán (không vượt quá tổng giá trị hoá đơn trừ phần đã hoàn).</summary>
         [HttpPost("{maHoaDon}/refunds")]
         [Authorize(Roles = AppRoles.Finance)]
+        [Audit("Hoàn tiền", "Hoá đơn")]
         public async Task<ActionResult<InvoiceDetailDto>> Refund(string maHoaDon, RefundRequest request)
         {
             return await _accountingService.RefundAsync(maHoaDon, request.SoTien, request.PhuongThuc, request.LyDo, User.GetMaNhanVien());

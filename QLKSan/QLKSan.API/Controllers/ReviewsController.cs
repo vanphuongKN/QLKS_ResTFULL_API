@@ -35,6 +35,7 @@ namespace QLKSan.Controllers
         /// <summary>Phản hồi công khai của khách sạn (ghi đè phản hồi cũ): body { "NoiDung": ... }.</summary>
         [HttpPut("{maDanhGia}/reply")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Phản hồi đánh giá", "Đánh giá")]
         public async Task<ActionResult<ReviewDto>> Reply(string maDanhGia, ReviewReplyRequest request)
         {
             return (await _reviewService.ReplyAsync(maDanhGia, request.NoiDung, User.GetMaNhanVien())).ToDto();
@@ -43,6 +44,7 @@ namespace QLKSan.Controllers
         /// <summary>Gỡ phản hồi.</summary>
         [HttpDelete("{maDanhGia}/reply")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Gỡ phản hồi đánh giá", "Đánh giá")]
         public async Task<IActionResult> DeleteReply(string maDanhGia)
         {
             await _reviewService.DeleteReplyAsync(maDanhGia);
@@ -52,6 +54,7 @@ namespace QLKSan.Controllers
         /// <summary>Ẩn / hiện đánh giá trên trang khách: body { "An": true | false }. Đánh giá ẩn vẫn tính vào điểm trung bình.</summary>
         [HttpPatch("{maDanhGia}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Ẩn/hiện đánh giá", "Đánh giá")]
         public async Task<ActionResult<ReviewDto>> SetVisibility(string maDanhGia, UpdateReviewVisibilityRequest request)
         {
             return (await _reviewService.SetHiddenAsync(maDanhGia, request.An!.Value)).ToDto();

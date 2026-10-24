@@ -17,6 +17,7 @@
 | 403 | Sai vai trò hoặc không phải dữ liệu của mình |
 | 404 | Không tìm thấy |
 | 409 | Trạng thái không cho phép thao tác (ví dụ duyệt phiếu đã trả phòng, hết phòng) |
+| 429 | Tài khoản tạm khoá 15 phút sau 5 lần đăng nhập sai liên tiếp (quản lý đặt lại mật khẩu để mở khoá) |
 
 **Đặt tên.**
 - Thao tác nghiệp vụ dùng `POST /{resource}/{id}/{hanh-dong}` (kebab-case).
@@ -163,4 +164,5 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/reports/occupancy` | Finance | Công suất phòng |
 | GET | `/api/reports/guests`, `/guests/export` | Cashier | Sổ khách lưu trú (JSON / Excel) |
 | GET / POST / PUT / DELETE | `/api/staff[/{id}]` | Admin | Quản lý nhân viên |
-| POST | `/api/staff/{id}/reset-password` | Admin | Đặt lại mật khẩu |
+| POST | `/api/staff/{id}/reset-password` | Admin | Đặt lại mật khẩu (đồng thời mở khoá tài khoản đang bị khoá tạm) |
+| GET | `/api/audit-logs?tuNgay&denNgay&doiTuong&nguoiDung&tuKhoa&trang&soDong` | Admin | Nhật ký thao tác: mọi thao tác thay đổi dữ liệu thành công (người thực hiện, thời gian, đối tượng, dữ liệu gửi lên — không lưu mật khẩu) và các lần tạm khoá tài khoản |

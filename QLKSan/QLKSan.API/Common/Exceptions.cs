@@ -19,4 +19,16 @@ namespace QLKSan.Common
     {
         public ConflictException(string message) : base(message) { }
     }
+
+    // 429 Too Many Requests: tài khoản bị khoá tạm do đăng nhập sai nhiều lần
+    public class AccountLockedException : Exception
+    {
+        public DateTime KhoaDen { get; }
+
+        public AccountLockedException(DateTime khoaDen)
+            : base($"Tài khoản tạm khoá đến {khoaDen:HH:mm} do đăng nhập sai nhiều lần. Vui lòng thử lại sau hoặc liên hệ quản lý.")
+        {
+            KhoaDen = khoaDen;
+        }
+    }
 }

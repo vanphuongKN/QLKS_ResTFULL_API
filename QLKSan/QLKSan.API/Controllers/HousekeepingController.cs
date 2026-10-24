@@ -72,6 +72,7 @@ namespace QLKSan.Controllers
         /// <summary>Lễ tân giao (hoặc giao lại) công việc cho nhân viên buồng phòng.</summary>
         [HttpPost("tasks/{maPhanCong}/assign")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Giao việc buồng phòng", "Buồng phòng")]
         public async Task<ActionResult<HousekeepingTaskDto>> Assign(string maPhanCong, AssignTaskRequest request)
         {
             var task = await _housekeepingService.AssignTaskAsync(maPhanCong, request.MaNhanVien);
@@ -88,6 +89,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Dọn xong: công việc hoàn thành, phòng chuyển sang Trống.</summary>
         [HttpPost("tasks/{maPhanCong}/complete")]
+        [Audit("Dọn phòng xong", "Buồng phòng")]
         public async Task<ActionResult<HousekeepingTaskDto>> Complete(string maPhanCong)
         {
             var task = await _housekeepingService.CompleteTaskAsync(maPhanCong, User.GetMaNhanVien(), LaQuanLy);
@@ -96,6 +98,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Báo sự cố khi dọn phòng: phòng chuyển sang Bảo trì.</summary>
         [HttpPost("tasks/{maPhanCong}/issue")]
+        [Audit("Báo sự cố phòng", "Buồng phòng")]
         public async Task<ActionResult<HousekeepingTaskDto>> ReportIssue(string maPhanCong, ReportIssueRequest request)
         {
             var task = await _housekeepingService.ReportIssueAsync(maPhanCong, request.GhiChu, User.GetMaNhanVien(), LaQuanLy);
@@ -105,6 +108,7 @@ namespace QLKSan.Controllers
         /// <summary>Lễ tân xác nhận phòng đã dọn xong (Đang dọn → Trống).</summary>
         [HttpPost("rooms/{maPhong}/clean")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Xác nhận phòng sạch", "Phòng")]
         public async Task<IActionResult> MarkClean(string maPhong)
         {
             await _housekeepingService.MarkRoomAsCleanAsync(maPhong);

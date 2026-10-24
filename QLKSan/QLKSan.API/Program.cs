@@ -17,7 +17,8 @@ namespace QLKSan
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            builder.Services.AddControllers()
+            // AuditFilter: ghi nhật ký cho các action gắn [Audit] khi thao tác thành công
+            builder.Services.AddControllers(options => options.Filters.Add<AuditFilter>())
                 .AddJsonOptions(options =>
                 {
                     // Giữ nguyên tên thuộc tính PascalCase (MaPhong, CCCD_Passport) thay vì camelCase (maPhong, cccD_Passport)
@@ -71,6 +72,7 @@ namespace QLKSan
             builder.Services.AddScoped<IPromotionService, PromotionService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();
+            builder.Services.AddScoped<IAuditLogService, AuditLogService>();
             builder.Services.AddScoped<IRoomTypeService, RoomTypeService>();
             builder.Services.AddScoped<IRoomTypeImageService, RoomTypeImageService>();
             builder.Services.AddScoped<ICustomerService, CustomerService>();

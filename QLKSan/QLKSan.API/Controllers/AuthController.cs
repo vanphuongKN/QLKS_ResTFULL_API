@@ -25,6 +25,7 @@ namespace QLKSan.Controllers
         /// <summary>Đăng nhập, trả về JWT và thông tin người dùng.</summary>
         [HttpPost("login")]
         [AllowAnonymous]
+        [Audit("Đăng nhập", "Tài khoản")]
         public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
         {
             var account = await _authService.LoginAsync(request.TenDangNhap.Trim(), request.MatKhau);
@@ -57,6 +58,7 @@ namespace QLKSan.Controllers
         /// <summary>Người dùng đang đăng nhập (khách hàng hoặc nhân viên) tự đổi mật khẩu.</summary>
         [HttpPost("change-password")]
         [Authorize]
+        [Audit("Đổi mật khẩu", "Tài khoản")]
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
         {
             await _authService.ChangePasswordAsync(User.GetMaDangNhap(), request.MatKhauCu, request.MatKhauMoi);

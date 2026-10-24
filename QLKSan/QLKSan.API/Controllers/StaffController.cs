@@ -40,6 +40,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Thêm nhân viên kèm tài khoản đăng nhập (vai trò: Admin, Lễ tân, Buồng phòng, Kế toán — mặc định Lễ tân).</summary>
         [HttpPost]
+        [Audit("Thêm nhân viên", "Nhân viên")]
         public async Task<ActionResult<StaffDto>> Create(CreateStaffRequest request)
         {
             var maNhanVien = await _adminService.GenerateNextStaffIdAsync();
@@ -53,6 +54,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Cập nhật thông tin, vai trò, trạng thái làm việc (Nghỉ việc = khoá đăng nhập).</summary>
         [HttpPut("{maNhanVien}")]
+        [Audit("Sửa nhân viên", "Nhân viên")]
         public async Task<IActionResult> Update(string maNhanVien, UpdateStaffRequest request)
         {
             await _adminService.UpdateStaffAsync(request.ToEntity(maNhanVien), request.VaiTro, request.TrangThai, User.GetMaNhanVien());
@@ -61,6 +63,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Đặt lại mật khẩu đăng nhập cho nhân viên.</summary>
         [HttpPost("{maNhanVien}/reset-password")]
+        [Audit("Đặt lại mật khẩu nhân viên", "Nhân viên")]
         public async Task<IActionResult> ResetPassword(string maNhanVien, ResetPasswordRequest request)
         {
             await _adminService.ResetPasswordAsync(maNhanVien, request.MatKhauMoi);
@@ -69,6 +72,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Xoá nhân viên chưa có lịch sử giao dịch (có lịch sử thì nên chuyển sang Nghỉ việc).</summary>
         [HttpDelete("{maNhanVien}")]
+        [Audit("Xoá nhân viên", "Nhân viên")]
         public async Task<IActionResult> Delete(string maNhanVien)
         {
             await _adminService.DeleteStaffAsync(maNhanVien, User.GetMaNhanVien());

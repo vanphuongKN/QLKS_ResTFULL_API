@@ -99,6 +99,7 @@ namespace QLKSan.Controllers
         /// <summary>Thêm phòng mới (mã phòng = "P" + số phòng).</summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Thêm phòng", "Phòng")]
         public async Task<ActionResult<RoomDetailDto>> Create(RoomRequest request)
         {
             var maPhong = "P" + request.SoPhong.Trim();
@@ -111,6 +112,7 @@ namespace QLKSan.Controllers
         /// <summary>Cập nhật số phòng / loại phòng.</summary>
         [HttpPut("{maPhong}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Sửa phòng", "Phòng")]
         public async Task<IActionResult> Update(string maPhong, RoomRequest request)
         {
             await _adminService.UpdateRoomAsync(request.ToEntity(maPhong));
@@ -120,6 +122,7 @@ namespace QLKSan.Controllers
         /// <summary>Xoá phòng.</summary>
         [HttpDelete("{maPhong}")]
         [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Xoá phòng", "Phòng")]
         public async Task<IActionResult> Delete(string maPhong)
         {
             await _adminService.DeleteRoomAsync(maPhong);
@@ -132,6 +135,7 @@ namespace QLKSan.Controllers
         /// </summary>
         [HttpPatch("{maPhong}")]
         [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Đổi trạng thái phòng", "Phòng")]
         public async Task<IActionResult> UpdateStatus(string maPhong, UpdateRoomStatusRequest request)
         {
             await _roomService.UpdateRoomStatusAsync(maPhong, request.TrangThai!.Value);

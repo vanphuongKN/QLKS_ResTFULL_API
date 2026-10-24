@@ -24,6 +24,7 @@ namespace QLKSan.Common
                 BusinessException => (StatusCodes.Status400BadRequest, "Yêu cầu không hợp lệ", exception.Message),
                 ArgumentException => (StatusCodes.Status400BadRequest, "Yêu cầu không hợp lệ", exception.Message),
                 ConflictException => (StatusCodes.Status409Conflict, "Xung đột dữ liệu", exception.Message),
+                AccountLockedException => (StatusCodes.Status429TooManyRequests, "Tài khoản tạm khoá", exception.Message),
                 DbUpdateException => (StatusCodes.Status409Conflict, "Xung đột dữ liệu",
                     "Không thể lưu vì dữ liệu bị trùng hoặc đang được sử dụng ở nơi khác."),
                 _ => (StatusCodes.Status500InternalServerError, "Lỗi hệ thống", "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau.")
