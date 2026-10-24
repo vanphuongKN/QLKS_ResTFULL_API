@@ -165,4 +165,6 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/reports/guests`, `/guests/export` | Cashier | Sổ khách lưu trú (JSON / Excel) |
 | GET / POST / PUT / DELETE | `/api/staff[/{id}]` | Admin | Quản lý nhân viên |
 | POST | `/api/staff/{id}/reset-password` | Admin | Đặt lại mật khẩu (đồng thời mở khoá tài khoản đang bị khoá tạm) |
+| GET | `/api/settings` | Admin | Cấu hình nghiệp vụ hiện hành (thông tin khách sạn, chính sách lưu trú, chương trình thành viên) và mục nào đã được tuỳ chỉnh |
+| PUT | `/api/settings/hotel-info` · `/policy` · `/loyalty` | Admin | Lưu từng mục vào CSDL (bảng `CauHinh`); có hiệu lực ngay, không cần khởi động lại |
 | GET | `/api/audit-logs?tuNgay&denNgay&doiTuong&nguoiDung&tuKhoa&trang&soDong` | Admin | Nhật ký thao tác: mọi thao tác thay đổi dữ liệu thành công (người thực hiện, thời gian, đối tượng, dữ liệu gửi lên — không lưu mật khẩu) và các lần tạm khoá tài khoản |

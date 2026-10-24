@@ -193,4 +193,23 @@ namespace QLKSan.ApiClients
             return HttpGetAsync<AuditLogPageDto>("api/audit-logs?" + string.Join("&", q));
         }
     }
+
+    // ===== /api/settings =====
+    public interface ISettingsApiClient
+    {
+        Task<HotelSettingsDto> GetAsync();
+        Task SaveHotelInfoAsync(HotelInfoSettingsDto request);
+        Task SavePolicyAsync(HotelPolicySettingsDto request);
+        Task SaveLoyaltyAsync(LoyaltySettingsDto request);
+    }
+
+    public class SettingsApiClient : ApiClientBase, ISettingsApiClient
+    {
+        public SettingsApiClient(HttpClient http) : base(http) { }
+
+        public Task<HotelSettingsDto> GetAsync() => HttpGetAsync<HotelSettingsDto>("api/settings");
+        public Task SaveHotelInfoAsync(HotelInfoSettingsDto request) => HttpPutAsync("api/settings/hotel-info", request);
+        public Task SavePolicyAsync(HotelPolicySettingsDto request) => HttpPutAsync("api/settings/policy", request);
+        public Task SaveLoyaltyAsync(LoyaltySettingsDto request) => HttpPutAsync("api/settings/loyalty", request);
+    }
 }

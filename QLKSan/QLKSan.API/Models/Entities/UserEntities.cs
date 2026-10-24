@@ -209,4 +209,19 @@ namespace QLKSan.Models.Entities
         [StringLength(50)]
         public string? DiaChiIP { get; set; }
     }
+
+    // Cấu hình nghiệp vụ do quản lý sửa trên web: mỗi mục (HotelInfo, HotelPolicy, Loyalty) lưu một JSON
+    public class CauHinh
+    {
+        [Key]
+        [StringLength(50)]
+        public string Khoa { get; set; }
+
+        public string GiaTri { get; set; }
+
+        public DateTime NgayCapNhat { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        public string? MaNhanVien { get; set; }
+    }
 }

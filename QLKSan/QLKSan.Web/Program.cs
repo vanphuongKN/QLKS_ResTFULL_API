@@ -55,6 +55,7 @@ namespace QLKSan
             AddApiClient<IReviewApiClient, ReviewApiClient>();
             AddApiClient<IDashboardApiClient, DashboardApiClient>();
             AddApiClient<IAuditLogApiClient, AuditLogApiClient>();
+            AddApiClient<ISettingsApiClient, SettingsApiClient>();
             AddApiClient<IBookingApiClient, BookingApiClient>();
             AddApiClient<ICustomerApiClient, CustomerApiClient>();
             AddApiClient<IInvoiceApiClient, InvoiceApiClient>();

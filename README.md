@@ -65,7 +65,9 @@ dotnet run --project QLKSan.Web --launch-profile https
 | Kế toán | `ketoan1` |
 | Khách hàng | `khach1` … `khach5` |
 
-## Cấu hình nghiệp vụ (`QLKSan.API/appsettings.json`)
+## Cấu hình nghiệp vụ
+
+Quản lý sửa trên web tại **Quản trị → Cấu hình khách sạn**. Thay đổi được lưu vào bảng `CauHinh` và có hiệu lực ngay. Mục nào chưa từng lưu thì dùng giá trị mặc định trong `QLKSan.API/appsettings.json`:
 
 | Mục | Nội dung |
 |---|---|

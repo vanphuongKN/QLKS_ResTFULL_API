@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using QLKSan.Business;
 using QLKSan.Common;
@@ -57,6 +58,14 @@ namespace QLKSan
             builder.Services.Configure<HotelPolicy>(builder.Configuration.GetSection(HotelPolicy.SectionName));
             builder.Services.Configure<HotelInfo>(builder.Configuration.GetSection(HotelInfo.SectionName));
             builder.Services.Configure<LoyaltyPolicy>(builder.Configuration.GetSection(LoyaltyPolicy.SectionName));
+
+            // Cấu hình nghiệp vụ: quản lý sửa trên web (bảng CauHinh); mục chưa lưu thì dùng các mục appsettings.json ở trên.
+            // Ghi đè IOptions<T> theo phạm vi request để mọi service đang nhận IOptions đọc được cấu hình mới nhất.
+            builder.Services.AddMemoryCache();
+            builder.Services.AddScoped<IHotelSettingsService, HotelSettingsService>();
+            builder.Services.AddScoped<IOptions<HotelInfo>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetHotelInfo()));
+            builder.Services.AddScoped<IOptions<HotelPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetPolicy()));
+            builder.Services.AddScoped<IOptions<LoyaltyPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetLoyalty()));
             builder.Services.AddHostedService<NoShowCleanupService>();
 
             builder.Services.AddScoped<IRoomAvailabilityService, RoomAvailabilityService>();

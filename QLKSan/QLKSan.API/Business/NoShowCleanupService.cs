@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
@@ -10,39 +9,39 @@ namespace QLKSan.Business
     public class NoShowCleanupService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly HotelPolicy _policy;
         private readonly ILogger<NoShowCleanupService> _logger;
 
-        public NoShowCleanupService(IServiceScopeFactory scopeFactory, IOptions<HotelPolicy> policy, ILogger<NoShowCleanupService> logger)
+        public NoShowCleanupService(IServiceScopeFactory scopeFactory, ILogger<NoShowCleanupService> logger)
         {
             _scopeFactory = scopeFactory;
-            _policy = policy.Value;
             _logger = logger;
         }
 
+        // Chính sách (bật/tắt, chu kỳ) đọc lại mỗi vòng nên thay đổi trên trang Cấu hình có hiệu lực ngay
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!_policy.TuDongHuyKhachKhongDen) return;
-
-            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(Math.Max(1, _policy.ChuKyKiemTraKhongDenPhut)));
-            do
+            while (!stoppingToken.IsCancellationRequested)
             {
+                var chuKy = 60;
                 try
                 {
-                    await CancelNoShowBookingsAsync(stoppingToken);
+                    using var scope = _scopeFactory.CreateScope();
+                    var policy = scope.ServiceProvider.GetRequiredService<IHotelSettingsService>().GetPolicy();
+                    chuKy = Math.Max(1, policy.ChuKyKiemTraKhongDenPhut);
+                    if (policy.TuDongHuyKhachKhongDen)
+                        await CancelNoShowBookingsAsync(scope, stoppingToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     // Không để lỗi của tác vụ nền làm dừng cả API
                     _logger.LogError(ex, "Lỗi khi tự động huỷ phiếu khách không đến");
                 }
+                await Task.Delay(TimeSpan.FromMinutes(chuKy), stoppingToken);
             }
-            while (await timer.WaitForNextTickAsync(stoppingToken));
         }
 
-        private async Task CancelNoShowBookingsAsync(CancellationToken cancellationToken)
+        private async Task CancelNoShowBookingsAsync(IServiceScope scope, CancellationToken cancellationToken)
         {
-            using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var today = DateTime.Today;
 

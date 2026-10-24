@@ -297,6 +297,14 @@ CREATE TABLE DanhGia (
 CREATE UNIQUE INDEX UX_DanhGia_MaDatPhong ON DanhGia(MaDatPhong) WHERE MaDatPhong IS NOT NULL;
 
 -- 7. NHÓM BUỒNG PHÒNG: công việc dọn phòng giao cho nhân viên buồng phòng
+-- Cấu hình nghiệp vụ sửa trên web (HotelInfo / HotelPolicy / Loyalty, mỗi mục một JSON). Chưa có dòng thì API dùng appsettings.json
+CREATE TABLE CauHinh (
+    Khoa NVARCHAR(50) PRIMARY KEY,
+    GiaTri NVARCHAR(MAX) NOT NULL,
+    NgayCapNhat DATETIME NOT NULL DEFAULT GETDATE(),
+    MaNhanVien VARCHAR(10) NULL
+);
+
 -- Nhật ký thao tác của người dùng (ghi tự động bởi API)
 CREATE TABLE NhatKyThaoTac (
     MaNhatKy BIGINT IDENTITY(1,1) PRIMARY KEY,

@@ -33,6 +33,7 @@ namespace QLKSan.Data
         public DbSet<HinhAnhLoaiPhong> HinhAnhLoaiPhongs { get; set; }
         public DbSet<LichSuDiem> LichSuDiems { get; set; }
         public DbSet<NhatKyThaoTac> NhatKyThaoTacs { get; set; }
+        public DbSet<CauHinh> CauHinhs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,3 +1,5 @@
+using System;
+using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
 namespace QLKSan.Models.DTOs
@@ -47,5 +49,85 @@ namespace QLKSan.Models.DTOs
         // Trả phòng đến (bao gồm) giờ này: phụ thu PhanTram % giá 1 đêm
         public string DenGio { get; set; }
         public int PhanTram { get; set; }
+    }
+
+    // GET /api/settings: cấu hình nghiệp vụ quản lý sửa được (các PUT dùng lại từng phần làm body)
+    public class HotelSettingsDto
+    {
+        public HotelInfoSettingsDto ThongTin { get; set; } = new HotelInfoSettingsDto();
+        public HotelPolicySettingsDto ChinhSach { get; set; } = new HotelPolicySettingsDto();
+        public LoyaltySettingsDto ThanhVien { get; set; } = new LoyaltySettingsDto();
+
+        // true = đang dùng giá trị quản lý đã lưu; false = giá trị mặc định trong appsettings.json
+        public bool ThongTinDaTuyChinh { get; set; }
+        public bool ChinhSachDaTuyChinh { get; set; }
+        public bool ThanhVienDaTuyChinh { get; set; }
+        public DateTime? CapNhatLuc { get; set; }
+    }
+
+    public class HotelInfoSettingsDto
+    {
+        [Required(ErrorMessage = "Vui lòng nhập tên khách sạn.")]
+        [StringLength(100)]
+        public string Ten { get; set; }
+
+        [StringLength(300)]
+        public string MoTaNgan { get; set; }
+
+        [StringLength(255)]
+        public string DiaChi { get; set; }
+
+        [StringLength(30)]
+        public string Hotline { get; set; }
+
+        [EmailAddress(ErrorMessage = "Email sai định dạng.")]
+        [StringLength(100)]
+        public string Email { get; set; }
+
+        [Url(ErrorMessage = "Liên kết bản đồ phải là địa chỉ web (http/https).")]
+        [StringLength(500)]
+        public string BanDoUrl { get; set; }
+    }
+
+    public class HotelPolicySettingsDto
+    {
+        [Range(0, 23, ErrorMessage = "Giờ nhận phòng từ 0 đến 23.")]
+        public int GioNhanPhong { get; set; }
+
+        [Range(0, 23, ErrorMessage = "Giờ trả phòng từ 0 đến 23.")]
+        public int GioTraPhong { get; set; }
+
+        // Trả phòng đến (bao gồm) DenGio giờ: phụ thu PhanTram % giá 1 đêm; sau mốc cuối tính thêm 1 đêm
+        public List<LateCheckoutRuleDto> PhuThuTraMuon { get; set; } = new List<LateCheckoutRuleDto>();
+
+        public bool TuDongXacNhanDatPhong { get; set; }
+
+        [Range(0, 100, ErrorMessage = "Tiền cọc từ 0 đến 100%.")]
+        public int PhanTramTienCocVangLai { get; set; }
+
+        public bool TuDongHuyKhachKhongDen { get; set; }
+
+        [Range(5, 1440, ErrorMessage = "Chu kỳ kiểm tra từ 5 đến 1440 phút.")]
+        public int ChuKyKiemTraKhongDenPhut { get; set; }
+    }
+
+    public class LateCheckoutRuleDto
+    {
+        public int DenGio { get; set; }
+        public int PhanTram { get; set; }
+    }
+
+    public class LoyaltySettingsDto
+    {
+        [Range(1000, 100000000, ErrorMessage = "Số tiền cho 1 điểm phải từ 1.000đ.")]
+        public int SoTienMotDiem { get; set; }
+
+        [Range(1, 1000000, ErrorMessage = "Giá trị 1 điểm phải từ 1đ.")]
+        public int GiaTriMotDiem { get; set; }
+
+        [Range(1, 1000000, ErrorMessage = "Số điểm đổi tối thiểu phải từ 1.")]
+        public int DiemDoiToiThieu { get; set; }
+
+        public List<MembershipTierDto> Hangs { get; set; } = new List<MembershipTierDto>();
     }
 }

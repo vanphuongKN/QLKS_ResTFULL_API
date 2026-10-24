@@ -265,7 +265,17 @@ namespace QLKSan.Data
                         DiaChiIP VARCHAR(50) NULL
                     );
                     CREATE INDEX IX_NhatKy_ThoiGian ON NhatKyThaoTac(ThoiGian DESC);
-                END")
+                END"),
+
+            // A4: cấu hình nghiệp vụ sửa trên web (chưa có dòng thì dùng appsettings.json)
+            ("27. Tạo bảng CauHinh", @"
+                IF OBJECT_ID('CauHinh', 'U') IS NULL
+                    CREATE TABLE CauHinh (
+                        Khoa NVARCHAR(50) PRIMARY KEY,
+                        GiaTri NVARCHAR(MAX) NOT NULL,
+                        NgayCapNhat DATETIME NOT NULL CONSTRAINT DF_CauHinh_NgayCapNhat DEFAULT GETDATE(),
+                        MaNhanVien VARCHAR(10) NULL
+                    );")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

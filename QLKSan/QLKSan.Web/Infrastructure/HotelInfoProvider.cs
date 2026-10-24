@@ -17,6 +17,9 @@ namespace QLKSan.Infrastructure
             _cache = cache;
         }
 
+        // Gọi sau khi quản lý sửa cấu hình để footer / trang khách hiện ngay thông tin mới
+        public void Invalidate() => _cache.Remove(CacheKey);
+
         // API chưa chạy: trả về thông tin tối thiểu để trang vẫn hiển thị được (không lưu đệm để lần sau thử lại)
         public async Task<HotelInfoDto> GetAsync()
         {

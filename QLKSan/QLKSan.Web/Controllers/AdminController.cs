@@ -4,6 +4,7 @@ using QLKSan.ApiClients;
 using QLKSan.Enums;
 using QLKSan.Extensions;
 using QLKSan.Infrastructure;
+using QLKSan.Models.DTOs;
 using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
@@ -20,12 +21,16 @@ namespace QLKSan.Controllers
         private readonly IReviewApiClient _reviewApi;
         private readonly IPricingRuleApiClient _pricingApi;
         private readonly IAuditLogApiClient _auditApi;
+        private readonly ISettingsApiClient _settingsApi;
+        private readonly HotelInfoProvider _hotelInfo;
 
         public AdminController(IDashboardApiClient dashboardApi, IRoomTypeApiClient roomTypeApi, IRoomApiClient roomApi,
             IServiceApiClient serviceApi, IStaffApiClient staffApi, IPromotionApiClient promotionApi, IReviewApiClient reviewApi,
-            IPricingRuleApiClient pricingApi, IAuditLogApiClient auditApi)
+            IPricingRuleApiClient pricingApi, IAuditLogApiClient auditApi, ISettingsApiClient settingsApi, HotelInfoProvider hotelInfo)
         {
             _auditApi = auditApi;
+            _settingsApi = settingsApi;
+            _hotelInfo = hotelInfo;
             _dashboardApi = dashboardApi;
             _roomTypeApi = roomTypeApi;
             _roomApi = roomApi;
@@ -278,6 +283,58 @@ namespace QLKSan.Controllers
         [HttpPost]
         public Task<IActionResult> DeletePricingRule(string id)
             => RunAsync(() => _pricingApi.DeleteAsync(id), $"Đã xoá quy tắc {id}.", "Pricing");
+
+        // ===== CẤU HÌNH KHÁCH SẠN =====
+        [HttpGet]
+        public async Task<IActionResult> Settings(string tab = "thong-tin")
+        {
+            ViewBag.Tab = tab;
+            return View(await _settingsApi.GetAsync());
+        }
+
+        private async Task<IActionResult> SaveSettingsAsync(Func<Task> save, string tab, string message)
+        {
+            // Các dòng để trống trong bảng phụ thu / hạng thành viên không tính là lỗi nhập liệu
+            foreach (var key in ModelState.Keys.Where(k => k.Contains('[')).ToList())
+                if (string.IsNullOrEmpty(ModelState[key]?.AttemptedValue)) ModelState.Remove(key);
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(Settings), new { tab });
+            }
+            try
+            {
+                await save();
+                _hotelInfo.Invalidate();
+                TempData["SuccessMessage"] = message;
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Settings), new { tab });
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SaveHotelInfo(HotelInfoSettingsDto model)
+            => SaveSettingsAsync(() => _settingsApi.SaveHotelInfoAsync(model), "thong-tin", "Đã lưu thông tin khách sạn — footer và trang khách đã cập nhật.");
+
+        [HttpPost]
+        public Task<IActionResult> SavePolicy(HotelPolicySettingsDto model)
+        {
+            model.PhuThuTraMuon = model.PhuThuTraMuon.Where(m => m.DenGio > 0).ToList();
+            return SaveSettingsAsync(() => _settingsApi.SavePolicyAsync(model), "chinh-sach", "Đã lưu chính sách lưu trú — áp dụng cho hoá đơn lập từ bây giờ.");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SaveLoyalty(LoyaltySettingsDto model)
+        {
+            // Quyền lợi nhập mỗi dòng một ý trong ô văn bản
+            foreach (var h in model.Hangs)
+                h.QuyenLoi = h.QuyenLoi.SelectMany(q => (q ?? "").Split('\n')).Select(q => q.Trim()).Where(q => q.Length > 0).ToList();
+            model.Hangs = model.Hangs.Where(h => !string.IsNullOrWhiteSpace(h.Ten)).ToList();
+            return SaveSettingsAsync(() => _settingsApi.SaveLoyaltyAsync(model), "thanh-vien", "Đã lưu chương trình thành viên.");
+        }
 
         // ===== NHẬT KÝ THAO TÁC =====
         [HttpGet]
