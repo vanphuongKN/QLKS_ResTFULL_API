@@ -160,9 +160,10 @@ try:
     print('\n===== 3.1 Khách đặt phòng thấy giá theo ngày =====')
     s, _, body, _ = web(kw, 'GET', f'/Customer/BookRoom?checkIn={d(0)}&checkOut={d(7)}')
     check('Trang đặt phòng 7 đêm: hiển thị giá trung bình/đêm', s == 200 and '(trung bình)' in body)
-    s, _, body, _ = web(kw, 'GET', f"/Customer/Quote?maPhong={R['MaPhong']}&checkIn={d(0)}&checkOut={d(7)}")
-    j = json.loads(body)
-    check('Customer/Quote (JSON) trả tổng tiền và các đêm có điều chỉnh', j['success'] and j['tongTien'] == quote(R['MaPhong'], 0, 7)['TongTien'] and any(x['quyTac'] for x in j['cacDem']), j['tongTien'])
+    q7 = quote(R['MaPhong'], 0, 7)
+    s, _, body, _ = web(kw, 'GET', f"/Customer/BookRoom?checkIn={d(0)}&checkOut={d(7)}&soNguoi=1&maLoai={R['LoaiPhong']['MaLoai']}")
+    check('Bước xác nhận: tổng tiền và giá từng đêm khớp báo giá API', s == 200 and f"{q7['TongTien']:,.0f} ₫" in body
+          and body.count('bk-line night') == 7 and all(x['QuyTac'] in body for x in q7['CacDem'] if x['QuyTac']), q7['TongTien'])
 
     print('\n===== 3.2 Lịch phòng =====')
     s, tl = api('GET', '/api/bookings/timeline', L)

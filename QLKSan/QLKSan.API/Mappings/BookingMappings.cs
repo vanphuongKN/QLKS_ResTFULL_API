@@ -52,6 +52,8 @@ namespace QLKSan.Mappings
                 TienCoc = entity.TienCoc,
                 GhiChu = entity.GhiChu,
                 MaKhuyenMai = entity.MaKhuyenMai,
+                YeuCauDacBiet = entity.YeuCauDacBiet,
+                GioDenDuKien = entity.GioDenDuKien,
                 KhachHang = entity.KhachHang.ToSummaryDto(),
                 ChiTietDatPhongs = entity.ChiTietDatPhongs?.Select(c => c.ToDto()).ToList() ?? new List<BookingRoomDto>(),
                 SuDungDichVus = entity.SuDungDichVus?.Select(s => s.ToDto()).ToList() ?? new List<ServiceUsageDto>(),

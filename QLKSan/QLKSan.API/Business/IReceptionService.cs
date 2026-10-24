@@ -14,6 +14,9 @@ namespace QLKSan.Business
 
         // Online Booking Actions (ném NotFoundException/BusinessException khi thất bại)
         Task ApproveOnlineBookingAsync(string maDatPhong);
+
+        // Đổi phòng đã xếp cho phiếu chưa nhận phòng; giá theo hạng của phòng mới
+        Task ChangeRoomAsync(string maDatPhong, string maPhongMoi);
         Task CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien);
 
         // Huỷ/từ chối phiếu chưa nhận phòng. laKhachHang = true: áp dụng chính sách khách tự huỷ (trước ngày nhận phòng)

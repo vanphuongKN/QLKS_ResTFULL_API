@@ -31,6 +31,34 @@ namespace QLKSan.Controllers
             return View();
         }
 
+        // Đổi phòng đã xếp cho phiếu chưa nhận phòng: liệt kê phòng trống đủ sức chứa trong đúng khoảng ngày của phiếu
+        [HttpGet]
+        public async Task<IActionResult> ChangeRoom(string id)
+        {
+            var booking = string.IsNullOrEmpty(id) ? null : await _bookingApi.GetByIdAsync(id);
+            if (booking == null) return NotFound();
+            ViewBag.Rooms = booking.TrangThai is Enums.BookingStatus.Pending or Enums.BookingStatus.Approved
+                ? await _roomApi.GetAvailableAsync(booking.NgayCheckInDuKien, booking.NgayCheckOutDuKien, booking.SoLuongKhach)
+                : new List<Models.DTOs.RoomDto>();
+            return View(booking);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ChangeRoom(string id, string maPhong)
+        {
+            try
+            {
+                await _bookingApi.ChangeRoomAsync(id, maPhong);
+                TempData["SuccessMessage"] = $"Đã đổi phòng cho phiếu {id}.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể đổi phòng. " + ex.UserMessage;
+                return RedirectToAction(nameof(ChangeRoom), new { id });
+            }
+        }
+
         // Duyệt phòng online
         [HttpPost]
         public async Task<IActionResult> ApproveBooking(string id)

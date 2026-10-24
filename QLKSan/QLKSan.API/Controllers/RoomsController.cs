@@ -47,6 +47,7 @@ namespace QLKSan.Controllers
         /// Dùng cho cả khách hàng đặt online và lễ tân nhận khách vãng lai.
         /// </summary>
         [HttpGet("available")]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetAvailable([FromQuery] DateTime? checkIn, [FromQuery] DateTime? checkOut, [FromQuery] int? soNguoi)
         {
             var from = (checkIn ?? DateTime.Today).Date;
@@ -68,6 +69,7 @@ namespace QLKSan.Controllers
 
         /// <summary>Báo giá phòng cho khoảng ngày: giá từng đêm sau khi áp dụng quy tắc giá mùa/cuối tuần/lễ.</summary>
         [HttpGet("{maPhong}/quote")]
+        [AllowAnonymous]
         public async Task<ActionResult<PriceQuoteDto>> Quote(string maPhong, [FromQuery] DateTime checkIn, [FromQuery] DateTime checkOut)
         {
             return await _pricing.QuoteAsync(maPhong, checkIn, checkOut);

@@ -118,8 +118,8 @@ _today, _tomorrow = _dt.date.today().isoformat(), (_dt.date.today() + _dt.timede
 s, _, body = req(lt, 'POST', '/Reception/WalkIn', {'Ho': 'A', 'Ten': 'B', 'SDT': '0912345678', 'CCCD_Passport': '123456789',
                                                    'NgayCheckIn': _today, 'NgayCheckOut': _tomorrow, 'MaPhong': OCC, 'SoNguoi': 1})
 check('Walk-in vào phòng đang có khách → lỗi hiển thị trên form', s == 200 and 'Phòng không khả dụng hoặc đã được đặt' in body)
-s, body = post_follow(kh, '/Customer/SubmitFeedback', {'maPhong': 'P206', 'rating': 5, 'comment': 'x', 'isAnonymous': 'false'})
-check('Khách đánh giá phòng chưa ở', alert(body)[0] == 'danger' and 'chỉ có thể đánh giá phòng đã ở' in alert(body)[1], str(alert(body)))
+s, body = post_follow(kh, '/Customer/SubmitFeedback', {'maDatPhong': 'DP02', 'rating': 5, 'comment': 'x', 'isAnonymous': 'false'})
+check('Khách đánh giá kỳ nghỉ không phải của mình', alert(body)[0] == 'danger' and 'kỳ nghỉ của mình đã trả phòng' in alert(body)[1], str(alert(body)))
 s, _, body = req(kh, 'POST', '/Customer/BookRoom', {'MaPhong': OCC, 'SoNguoi': 1, 'CheckIn': _today, 'CheckOut': _tomorrow})
 check('Khách đặt phòng đang có người ở (trùng lịch hôm nay) → lỗi hiển thị', s == 200 and 'đang có khách lưu trú' in body)
 s, _, body = req(kh, 'GET', '/Customer/CheckPromotion?code=KM01')

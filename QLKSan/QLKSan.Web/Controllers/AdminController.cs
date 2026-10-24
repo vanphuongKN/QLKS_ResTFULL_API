@@ -71,17 +71,58 @@ namespace QLKSan.Controllers
         }
 
         [HttpPost]
-        public Task<IActionResult> AddRoomType(string tenLoai, int soNguoiToiDa, decimal giaThueNgay, decimal giaThueGio, string moTa)
+        public Task<IActionResult> AddRoomType(RoomTypeRequest request)
+            => RunAsync(() => _roomTypeApi.CreateAsync(request), "Thêm loại phòng thành công!", "RoomTypes");
+
+        [HttpPost]
+        public Task<IActionResult> EditRoomType(string maLoai, RoomTypeRequest request)
+            => RunAsync(() => _roomTypeApi.UpdateAsync(maLoai, request), "Cập nhật loại phòng thành công!", "RoomTypes");
+
+        // Bộ ảnh của hạng phòng (ảnh đầu tiên là ảnh đại diện trên trang khách)
+        [HttpGet]
+        public async Task<IActionResult> RoomTypeImages(string id)
         {
-            var request = new RoomTypeRequest { TenLoai = tenLoai, SoNguoiToiDa = soNguoiToiDa, GiaThueNgay = giaThueNgay, GiaThueGio = giaThueGio, MoTa = moTa };
-            return RunAsync(() => _roomTypeApi.CreateAsync(request), "Thêm loại phòng thành công!", "RoomTypes");
+            var detail = string.IsNullOrEmpty(id) ? null : await _roomTypeApi.GetDetailAsync(id);
+            if (detail == null) return NotFound();
+            return View(detail);
         }
 
         [HttpPost]
-        public Task<IActionResult> EditRoomType(string maLoai, string tenLoai, int soNguoiToiDa, decimal giaThueNgay, decimal giaThueGio, string moTa)
+        public async Task<IActionResult> UploadRoomTypeImage(string maLoai, IFormFile file)
         {
-            var request = new RoomTypeRequest { TenLoai = tenLoai, SoNguoiToiDa = soNguoiToiDa, GiaThueNgay = giaThueNgay, GiaThueGio = giaThueGio, MoTa = moTa };
-            return RunAsync(() => _roomTypeApi.UpdateAsync(maLoai, request), "Cập nhật loại phòng thành công!", "RoomTypes");
+            if (file == null || file.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn ảnh cần tải lên.";
+            }
+            else
+            {
+                try
+                {
+                    using var stream = file.OpenReadStream();
+                    await _roomTypeApi.UploadImageAsync(maLoai, stream, file.FileName, file.ContentType);
+                    TempData["SuccessMessage"] = "Đã tải ảnh lên.";
+                }
+                catch (ApiException ex)
+                {
+                    TempData["ErrorMessage"] = ex.UserMessage;
+                }
+            }
+            return RedirectToAction(nameof(RoomTypeImages), new { id = maLoai });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteRoomTypeImage(string maLoai, string maHinhAnh)
+        {
+            try
+            {
+                await _roomTypeApi.DeleteImageAsync(maLoai, maHinhAnh);
+                TempData["SuccessMessage"] = "Đã xoá ảnh.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(RoomTypeImages), new { id = maLoai });
         }
 
         [HttpPost]
@@ -118,9 +159,8 @@ namespace QLKSan.Controllers
         }
 
         [HttpPost]
-        public Task<IActionResult> AddService(string tenDichVu, decimal giaDichVu, string donViTinh)
-            => RunAsync(() => _serviceApi.CreateAsync(new ServiceRequest { TenDichVu = tenDichVu, GiaDichVu = giaDichVu, DonViTinh = donViTinh }),
-                "Thêm dịch vụ thành công!", "Services");
+        public Task<IActionResult> AddService(ServiceRequest request)
+            => RunAsync(() => _serviceApi.CreateAsync(request), "Thêm dịch vụ thành công!", "Services");
 
         [HttpPost]
         public Task<IActionResult> DeleteService(string maDichVu)
@@ -132,9 +172,8 @@ namespace QLKSan.Controllers
                 $"Đã chuyển dịch vụ sang \"{trangThai.GetDisplayName()}\".", "Services");
 
         [HttpPost]
-        public Task<IActionResult> EditService(string maDichVu, string tenDichVu, decimal giaDichVu, string donViTinh)
-            => RunAsync(() => _serviceApi.UpdateAsync(maDichVu, new ServiceRequest { TenDichVu = tenDichVu, GiaDichVu = giaDichVu, DonViTinh = donViTinh }),
-                "Cập nhật dịch vụ thành công!", "Services");
+        public Task<IActionResult> EditService(string maDichVu, ServiceRequest request)
+            => RunAsync(() => _serviceApi.UpdateAsync(maDichVu, request), "Cập nhật dịch vụ thành công!", "Services");
 
         // ===== STAFF =====
         [HttpGet]

@@ -19,6 +19,7 @@ namespace QLKSan.ApiClients
         Task ApproveAsync(string maDatPhong);
         Task CheckInAsync(string maDatPhong);
         Task CancelAsync(string maDatPhong, string lyDo);
+        Task ChangeRoomAsync(string maDatPhong, string maPhong);
         Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request);
     }
 
@@ -40,6 +41,7 @@ namespace QLKSan.ApiClients
         public Task ApproveAsync(string maDatPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/approve");
         public Task CheckInAsync(string maDatPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/check-in");
         public Task CancelAsync(string maDatPhong, string lyDo) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/cancel", new CancelBookingRequest { LyDo = lyDo });
+        public Task ChangeRoomAsync(string maDatPhong, string maPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/change-room", new ChangeRoomRequest { MaPhong = maPhong });
 
         public Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request)
             => HttpPostAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/services", request);

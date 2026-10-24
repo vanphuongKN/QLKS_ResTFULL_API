@@ -86,7 +86,12 @@ CREATE TABLE LoaiPhong (
     SoNguoiToiDa INT CHECK (SoNguoiToiDa > 0),
     GiaThueNgay DECIMAL(18,0) CHECK (GiaThueNgay >= 0),
     GiaThueGio DECIMAL(18,0) CHECK (GiaThueGio >= 0),
-    MoTa NVARCHAR(500)
+    MoTa NVARCHAR(500),                             -- mô tả ngắn (thẻ hạng phòng)
+    DienTich DECIMAL(6,1) NULL,                     -- m²
+    LoaiGiuong NVARCHAR(100) NULL,
+    HuongNhin NVARCHAR(100) NULL,
+    MoTaChiTiet NVARCHAR(MAX) NULL,                 -- trang chi tiết hạng phòng
+    AnhDaiDien NVARCHAR(255) NULL                   -- ảnh đầu tiên của bộ ảnh (HinhAnhLoaiPhong)
 );
 
 -- TrangThai là trạng thái VẬT LÝ của phòng: Trống | Đang ở | Chờ dọn dẹp | Bảo trì
@@ -136,12 +141,23 @@ CREATE TABLE HinhAnh (
     CONSTRAINT FK_HinhAnh_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong)
 );
 
+-- Bộ ảnh giới thiệu của hạng phòng; ảnh do quản trị tải lên có đường dẫn /uploads/... (lưu ở QLKSan.API)
+CREATE TABLE HinhAnhLoaiPhong (
+    MaHinhAnh VARCHAR(10) PRIMARY KEY,
+    MaLoai VARCHAR(10) NOT NULL,
+    DuongDan NVARCHAR(255) NOT NULL,
+    ThuTu INT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_HinhAnhLoaiPhong_LoaiPhong FOREIGN KEY (MaLoai) REFERENCES LoaiPhong(MaLoai) ON DELETE CASCADE
+);
+
 CREATE TABLE DichVu (
     MaDichVu VARCHAR(10) PRIMARY KEY,
     TenDichVu NVARCHAR(100) NOT NULL,
     GiaDichVu DECIMAL(18,0) CHECK (GiaDichVu >= 0),
     DonViTinh NVARCHAR(20),
-    TrangThai NVARCHAR(50) DEFAULT N'Sẵn sàng'      -- Sẵn sàng | Đã hết
+    TrangThai NVARCHAR(50) DEFAULT N'Sẵn sàng',     -- Sẵn sàng | Đã hết
+    LaTraiNghiem BIT NOT NULL DEFAULT 0,            -- giới thiệu ở mục "Trải nghiệm" trang chủ (không ghi giá)
+    MoTa NVARCHAR(500) NULL
 );
 
 -- 4. NHÓM KHUYẾN MÃI
@@ -171,6 +187,8 @@ CREATE TABLE PhieuDatPhong (
     TienCoc DECIMAL(18,0) DEFAULT 0,
     GhiChu NVARCHAR(MAX),
     MaKhuyenMai VARCHAR(10) NULL,                   -- mã khách chọn khi đặt online, áp dụng lúc lập hoá đơn
+    YeuCauDacBiet NVARCHAR(500) NULL,               -- yêu cầu riêng của khách khi đặt online
+    GioDenDuKien NVARCHAR(30) NULL,                 -- khung giờ dự kiến đến
     CONSTRAINT FK_PhieuDat_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
     CONSTRAINT FK_PhieuDat_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
 );
@@ -251,9 +269,12 @@ CREATE TABLE DanhGia (
     NoiDung NVARCHAR(1000),
     NgayDanhGia DATETIME DEFAULT GETDATE(),
     AnDanh BIT DEFAULT 0,
+    MaDatPhong VARCHAR(10) NULL,                    -- lần lưu trú được đánh giá (mỗi phiếu 1 đánh giá)
     CONSTRAINT FK_DanhGia_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
-    CONSTRAINT FK_DanhGia_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong)
+    CONSTRAINT FK_DanhGia_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
+    CONSTRAINT FK_DanhGia_PhieuDatPhong FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong)
 );
+CREATE UNIQUE INDEX UX_DanhGia_MaDatPhong ON DanhGia(MaDatPhong) WHERE MaDatPhong IS NOT NULL;
 
 -- 7. NHÓM BUỒNG PHÒNG: công việc dọn phòng giao cho nhân viên buồng phòng
 CREATE TABLE PhanCongDonPhong (
@@ -347,12 +368,38 @@ INSERT INTO LienHe_DiaChi (MaLienHe, MaKhachHang, SDT, Email, DiaChi, QuocGia) V
 ('LH07', 'KH07', '0977777777', NULL,                    NULL,                     N'Việt Nam');
 
 -- ---------- 3. LOẠI PHÒNG, PHÒNG, TIỆN ÍCH, HÌNH ẢNH, DỊCH VỤ ----------
-INSERT INTO LoaiPhong (MaLoai, TenLoai, SoNguoiToiDa, GiaThueNgay, GiaThueGio, MoTa) VALUES
-('LP01', N'Standard (STD)', 2,  500000, 100000, N'Phòng tiêu chuẩn, thiết kế cơ bản'),
-('LP02', N'Superior (SUP)', 2,  800000, 150000, N'Phòng chất lượng cao, có ban công'),
-('LP03', N'Deluxe (DLX)',   3, 1200000, 200000, N'Phòng rộng rãi, view ngắm biển'),
-('LP04', N'Suite (SUT)',    4, 2500000, 400000, N'Phòng cao cấp, có phòng khách riêng biệt'),
-('LP05', N'Family',         4, 1500000, 250000, N'Phòng dành cho gia đình, 2 giường đôi');
+INSERT INTO LoaiPhong (MaLoai, TenLoai, SoNguoiToiDa, GiaThueNgay, GiaThueGio, MoTa, DienTich, LoaiGiuong, HuongNhin, MoTaChiTiet, AnhDaiDien) VALUES
+('LP01', N'Phòng Tiêu Chuẩn',        2,  500000, 100000, N'Không gian ấm cúng nhìn ra vườn nhiệt đới, đủ tiện nghi cho chuyến đi ngắn ngày.',
+         28, N'1 giường đôi', N'Hướng vườn',
+         N'Phòng Tiêu Chuẩn mang gam gỗ ấm và ánh sáng dịu, mở ra khoảng vườn xanh yên tĩnh. Phù hợp cho chuyến công tác hoặc kỳ nghỉ ngắn của hai người, với đầy đủ tiện nghi thiết yếu được chuẩn bị chu đáo trước giờ nhận phòng.',
+         '/images/room_garden.png'),
+('LP02', N'Phòng Superior Ban Công', 2,  800000, 150000, N'Ban công riêng đón gió biển, nội thất gỗ và ánh sáng tự nhiên.',
+         34, N'1 giường đôi lớn', N'Ban công hướng biển một phần',
+         N'Phòng Superior có ban công riêng để thư thái mỗi chiều, nội thất gỗ tự nhiên và cửa kính lớn đón trọn ánh sáng. Lựa chọn cân bằng giữa không gian và chi phí cho các cặp đôi.',
+         '/images/room_ocean.png'),
+('LP03', N'Phòng Deluxe Hướng Biển', 3, 1200000, 200000, N'Tầm nhìn toàn cảnh biển, không gian rộng cho ba khách.',
+         42, N'1 giường đôi lớn + 1 giường đơn', N'Hướng biển',
+         N'Phòng Deluxe mở ra tầm nhìn biển trọn vẹn từ giường ngủ và ban công. Không gian rộng rãi, phù hợp cho ba khách hoặc gia đình nhỏ muốn tận hưởng bình minh trên biển ngay trong phòng.',
+         '/images/room_ocean.png'),
+('LP04', N'Suite Hoàng Gia',         4, 2500000, 400000, N'Phòng khách riêng biệt, cửa kính lớn nhìn ra biển.',
+         68, N'1 giường King', N'Toàn cảnh biển',
+         N'Suite Hoàng Gia gồm phòng ngủ và phòng khách tách biệt, cửa kính kịch trần nhìn ra biển. Không gian dành cho những dịp đặc biệt, kỳ nghỉ dài ngày hoặc khách cần sự riêng tư tuyệt đối.',
+         '/images/room_presidential.png'),
+('LP05', N'Phòng Gia Đình',          4, 1500000, 250000, N'Hai giường đôi, không gian rộng cho cả gia đình.',
+         48, N'2 giường đôi', N'Hướng vườn',
+         N'Phòng Gia Đình có hai giường đôi và khu sinh hoạt chung rộng rãi, thuận tiện cho gia đình có trẻ nhỏ. Gần khu vườn và hồ bơi, dễ dàng cho những buổi chiều vui chơi cùng nhau.',
+         '/images/room_garden.png');
+
+-- Bộ ảnh mẫu theo hạng phòng (thay bằng ảnh thật trong trang Quản trị → Loại phòng)
+INSERT INTO HinhAnhLoaiPhong (MaHinhAnh, MaLoai, DuongDan, ThuTu) VALUES
+('HL01', 'LP01', '/images/room_garden.png', 1),
+('HL02', 'LP02', '/images/room_ocean.png', 1),
+('HL03', 'LP03', '/images/room_ocean.png', 1),
+('HL04', 'LP03', '/images/hero.png', 2),
+('HL05', 'LP04', '/images/room_presidential.png', 1),
+('HL06', 'LP04', '/images/hero.png', 2),
+('HL07', 'LP05', '/images/room_garden.png', 1),
+('HL08', 'LP05', '/images/hero.png', 2);
 
 -- Trạng thái phòng khớp với phiếu đặt bên dưới
 INSERT INTO Phong (MaPhong, MaLoai, SoPhong, TrangThai) VALUES
@@ -391,13 +438,14 @@ INSERT INTO HinhAnh (MaHinhAnh, MaPhong, DuongDanAnh) VALUES
 ('HA04', 'P301', '/assets/img/rooms/p301_family.jpg'),
 ('HA05', 'P301', '/assets/img/rooms/p301_bathroom.jpg');
 
-INSERT INTO DichVu (MaDichVu, TenDichVu, GiaDichVu, DonViTinh, TrangThai) VALUES
-('DV01', N'Dọn phòng thêm',     100000, N'Lần',  N'Sẵn sàng'),
-('DV02', N'Giặt ủi quần áo',     50000, N'Kg',   N'Sẵn sàng'),
-('DV03', N'Thuê xe máy',        150000, N'Ngày', N'Sẵn sàng'),
-('DV04', N'Spa & Massage',      500000, N'Lượt', N'Sẵn sàng'),
-('DV05', N'Ăn sáng Buffet',     200000, N'Vé',   N'Sẵn sàng'),
-('DV06', N'Đưa đón sân bay',    300000, N'Lượt', N'Đã hết');
+-- LaTraiNghiem = 1: giới thiệu ở mục "Trải nghiệm" trang chủ (chỉ khi dịch vụ đang Sẵn sàng)
+INSERT INTO DichVu (MaDichVu, TenDichVu, GiaDichVu, DonViTinh, TrangThai, LaTraiNghiem, MoTa) VALUES
+('DV01', N'Dọn phòng thêm',     100000, N'Lần',  N'Sẵn sàng', 0, NULL),
+('DV02', N'Giặt ủi quần áo',     50000, N'Kg',   N'Sẵn sàng', 0, NULL),
+('DV03', N'Thuê xe máy',        150000, N'Ngày', N'Sẵn sàng', 0, NULL),
+('DV04', N'Spa & Massage',      500000, N'Lượt', N'Sẵn sàng', 1, N'Liệu trình massage và chăm sóc cơ thể giúp cân bằng lại sau những ngày dài di chuyển.'),
+('DV05', N'Ăn sáng Buffet',     200000, N'Vé',   N'Sẵn sàng', 1, N'Bữa sáng tự chọn với nguyên liệu địa phương, phục vụ mỗi sáng trong không gian yên tĩnh.'),
+('DV06', N'Đưa đón sân bay',    300000, N'Lượt', N'Đã hết',   1, N'Xe đón tận sân bay và đưa quý khách về khách sạn, sắp xếp trước theo lịch trình.');
 
 -- Quy tắc giá: cuối tuần luôn áp dụng; dịp lễ sắp tới; ưu đãi Suite mùa thấp điểm
 INSERT INTO QuyTacGia (MaQuyTac, TenQuyTac, MaLoai, TuNgay, DenNgay, CacThu, PhanTramDieuChinh, UuTien, KichHoat) VALUES
@@ -499,11 +547,11 @@ INSERT INTO PhanCongDonPhong (MaPhanCong, MaPhong, MaNhanVien, MaDatPhong, LoaiC
 ('PC0006', 'P302', 'NV06', 'DP06', N'Dọn sau trả phòng', N'Đã giao',    DATEADD(MINUTE, -85, @Nay),    DATEADD(MINUTE, -60, @Nay),    NULL, NULL, NULL);
 
 -- ---------- 7. ĐÁNH GIÁ (chỉ phòng khách đã ở và đã trả phòng) ----------
-INSERT INTO DanhGia (MaDanhGia, MaKhachHang, MaPhong, SoSao, NoiDung, NgayDanhGia, AnDanh) VALUES
-('DG01', 'KH01', 'P101', 5, N'Phòng sạch sẽ, nhân viên nhiệt tình!',       @H - 27, 0),
-('DG02', 'KH05', 'P301', 4, N'Phòng rộng nhưng wifi đôi lúc hơi chậm.',    @H - 17, 0),
-('DG03', 'KH02', 'P102', 3, N'Bình thường, cách âm chưa tốt lắm.',         @H - 9,  1),
-('DG04', 'KH04', 'P202', 5, N'Tuyệt vời, sẽ quay lại lần sau.',            @H - 4,  0);
+INSERT INTO DanhGia (MaDanhGia, MaKhachHang, MaPhong, MaDatPhong, SoSao, NoiDung, NgayDanhGia, AnDanh) VALUES
+('DG01', 'KH01', 'P101', 'DP01', 5, N'Phòng sạch sẽ, nhân viên nhiệt tình!',       @H - 27, 0),
+('DG02', 'KH05', 'P301', 'DP02', 4, N'Phòng rộng nhưng wifi đôi lúc hơi chậm.',    @H - 17, 0),
+('DG03', 'KH02', 'P102', 'DP03', 3, N'Bình thường, cách âm chưa tốt lắm.',         @H - 9,  1),
+('DG04', 'KH04', 'P202', 'DP04', 5, N'Tuyệt vời, sẽ quay lại lần sau.',            @H - 4,  0);
 
 -- ---------- 8. ĐIỂM TÍCH LUỸ = 1 điểm / 10.000đ giá trị các hoá đơn đã thanh toán ----------
 UPDATE k SET DiemTichLuy = ISNULL((

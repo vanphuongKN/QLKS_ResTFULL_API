@@ -21,6 +21,18 @@ namespace QLKSan.Models.Requests
 
         [StringLength(500)]
         public string MoTa { get; set; }
+
+        [Range(5, 500, ErrorMessage = "Diện tích phải từ 5 đến 500 m².")]
+        public decimal? DienTich { get; set; }
+
+        [StringLength(100)]
+        public string LoaiGiuong { get; set; }
+
+        [StringLength(100)]
+        public string HuongNhin { get; set; }
+
+        [StringLength(4000)]
+        public string MoTaChiTiet { get; set; }
     }
 
     // Dùng cho cả thêm (POST) và sửa (PUT /{id}) phòng

@@ -1,0 +1,72 @@
+@model QLKSan.Models.DTOs.BookingDto
+@using QLKSan.Enums
+@{
+    ViewData["Title"] = "Đổi phòng — " + Model.MaDatPhong;
+    var rooms = ViewBag.Rooms as List<QLKSan.Models.DTOs.RoomDto> ?? new List<QLKSan.Models.DTOs.RoomDto>();
+    var hienTai = Model.ChiTietDatPhongs.FirstOrDefault();
+    var choPhep = Model.TrangThai is BookingStatus.Pending or BookingStatus.Approved;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label"><a asp-action="Index" class="text-reset text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Lễ tân</a></p>
+        <h2>Đổi phòng — Phiếu #@Model.MaDatPhong</h2>
+    </div>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
+}
+
+<div class="card p-4 mb-4">
+    <div class="row g-3">
+        <div class="col-md-3"><span class="text-muted small d-block">Khách</span><strong>@Model.KhachHang?.Ho @Model.KhachHang?.Ten</strong></div>
+        <div class="col-md-3"><span class="text-muted small d-block">Lưu trú</span><strong>@Model.NgayCheckInDuKien.ToString("dd/MM/yyyy") → @Model.NgayCheckOutDuKien.ToString("dd/MM/yyyy")</strong></div>
+        <div class="col-md-2"><span class="text-muted small d-block">Số khách</span><strong>@Model.SoLuongKhach</strong></div>
+        <div class="col-md-4"><span class="text-muted small d-block">Phòng hiện tại</span><strong>@(hienTai?.Phong?.SoPhong ?? "—") · @hienTai?.Phong?.LoaiPhong?.TenLoai</strong> <span class="text-muted">(@FormatHelper.ToVND(hienTai?.GiaThueThucTe ?? 0)/đêm)</span></div>
+        @if (!string.IsNullOrEmpty(Model.YeuCauDacBiet))
+        {
+            <div class="col-12"><span class="text-muted small d-block">Yêu cầu của khách</span>@Model.YeuCauDacBiet</div>
+        }
+    </div>
+</div>
+
+@if (!choPhep)
+{
+    <div class="alert alert-warning">Chỉ đổi phòng cho phiếu chưa nhận phòng (chờ duyệt hoặc đã duyệt).</div>
+}
+else if (!rooms.Any(r => r.MaPhong != hienTai?.MaPhong))
+{
+    <div class="alert alert-info">Không còn phòng trống khác đủ sức chứa trong khoảng ngày này.</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr><th>Phòng</th><th>Hạng phòng</th><th>Sức chứa</th><th>Giá / đêm</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in rooms.Where(r => r.MaPhong != hienTai?.MaPhong).OrderBy(r => r.LoaiPhong?.MaLoai != hienTai?.Phong?.MaLoai).ThenBy(r => r.SoPhong))
+                    {
+                        <tr>
+                            <td><strong>@r.SoPhong</strong></td>
+                            <td>@r.LoaiPhong?.TenLoai @if (r.MaLoai == hienTai?.Phong?.MaLoai) {<span class="badge bg-gold-light text-gold ms-1">cùng hạng</span>}</td>
+                            <td>@r.LoaiPhong?.SoNguoiToiDa khách</td>
+                            <td>@FormatHelper.ToVND(r.LoaiPhong?.GiaThueNgay ?? 0)</td>
+                            <td class="text-end">
+                                <form asp-action="ChangeRoom" method="post" onsubmit="return confirm('Chuyển phiếu @Model.MaDatPhong sang phòng @r.SoPhong?')">
+                                    <input type="hidden" name="id" value="@Model.MaDatPhong" />
+                                    <input type="hidden" name="maPhong" value="@r.MaPhong" />
+                                    <button type="submit" class="btn btn-sm btn-gold">Chọn phòng này</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

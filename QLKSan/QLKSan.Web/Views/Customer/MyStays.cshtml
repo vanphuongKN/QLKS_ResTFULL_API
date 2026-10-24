@@ -7,7 +7,7 @@
     var bookings = ViewBag.Bookings as IEnumerable<BookingDto>;
 
     // 1. Map real bookings
-    var reviewedRoomIds = ViewBag.ReviewedRoomIds as HashSet<string> ?? new HashSet<string>();
+    var reviewedBookingIds = ViewBag.ReviewedBookingIds as HashSet<string> ?? new HashSet<string>();
     var realStays = new List<StayItem>();
     if (bookings != null)
     {
@@ -25,16 +25,8 @@
             var room = detail?.Phong;
             var roomType = room?.LoaiPhong;
             
-            // Map room images dynamically or fallback
-            string img = "/images/room_ocean.png";
-            if (roomType != null)
-            {
-                var name = roomType.TenLoai.ToLower();
-                if (name.Contains("tổng thống") || name.Contains("presidential") || name.Contains("vip"))
-                    img = "/images/room_presidential.png";
-                else if (name.Contains("sân vườn") || name.Contains("garden") || name.Contains("standard"))
-                    img = "/images/room_garden.png";
-            }
+            // Ảnh đại diện của hạng phòng (ảnh mặc định nếu hạng chưa có ảnh)
+            string img = MediaUrl.Of(roomType?.AnhDaiDien);
 
             var nights = (int)(b.NgayCheckOutDuKien - b.NgayCheckInDuKien).TotalDays;
             if (nights <= 0) nights = 1;
@@ -112,7 +104,7 @@
                 CanReview = b.TrangThai == BookingStatus.CheckedOut,
                 // Chính sách: khách tự huỷ được phiếu chưa nhận phòng, trước ngày nhận phòng
                 CanCancel = (b.TrangThai == BookingStatus.Pending || b.TrangThai == BookingStatus.Approved) && DateTime.Today < b.NgayCheckInDuKien.Date,
-                HasReviewed = room != null && reviewedRoomIds.Contains(room.MaPhong)
+                HasReviewed = reviewedBookingIds.Contains(b.MaDatPhong)
             });
         }
     }
@@ -127,7 +119,7 @@
     var favRoom = allStays.GroupBy(s => s.RoomName)
                           .OrderByDescending(g => g.Count())
                           .Select(g => g.Key)
-                          .FirstOrDefault() ?? "French Riviera";
+                          .FirstOrDefault() ?? "—";
 
     string memberTier = "Thành viên Đồng";
     if (currentPoints >= 5000) memberTier = "Thành viên Kim Cương";
@@ -691,12 +683,16 @@
                         }
                         else
                         {
-                            <a asp-action="Feedback" asp-route-roomId="@f.RoomId" class="luxe-btn-outline luxe-btn-feedback">
+                            <a asp-action="Feedback" asp-route-maDatPhong="@f.Id" class="luxe-btn-outline luxe-btn-feedback">
                                 <span>ĐÁNH GIÁ TRẢI NGHIỆM</span>
                                 <i class="fas fa-star ms-2"></i>
                             </a>
                         }
                     }
+                    <a asp-action="Booking" asp-route-id="@f.Id" class="luxe-btn-outline">
+                        <span>CHI TIẾT</span>
+                        <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
                     @if (f.InvoiceId != null)
                     {
                         <a href="@Url.Action("Print", "Invoice", new { id = f.InvoiceId })" target="_blank" class="luxe-btn-outline">
@@ -757,7 +753,7 @@
                         <span class="luxe-grid-date">@s.DateText</span>
                         <span class="luxe-grid-id">Mã: @s.Id</span>
                     </div>
-                    <h3 class="luxe-grid-title font-playfair">@s.RoomName</h3>
+                    <h3 class="luxe-grid-title font-playfair"><a asp-action="Booking" asp-route-id="@s.Id" class="text-reset text-decoration-none">@s.RoomName</a></h3>
                     
                     <div class="luxe-grid-payment-row">
                         @{
@@ -797,7 +793,7 @@
                         }
                         else
                         {
-                            <a asp-action="Feedback" asp-route-roomId="@s.RoomId" class="luxe-btn-dark">
+                            <a asp-action="Feedback" asp-route-maDatPhong="@s.Id" class="luxe-btn-dark">
                                 ĐÁNH GIÁ PHÒNG
                             </a>
                         }
@@ -825,7 +821,7 @@
                 <div class="luxe-history-row">
                     <div class="luxe-history-info">
                         <div class="luxe-history-date">@s.Id</div>
-                        <div class="luxe-history-name font-playfair">@s.RoomName</div>
+                        <div class="luxe-history-name font-playfair"><a asp-action="Booking" asp-route-id="@s.Id" class="text-reset text-decoration-none">@s.RoomName</a></div>
                     </div>
                     <div class="luxe-history-amount">
                         <div class="luxe-history-label">TỔNG SỐ TIỀN</div>

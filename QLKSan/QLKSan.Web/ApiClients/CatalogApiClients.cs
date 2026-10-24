@@ -9,9 +9,13 @@ namespace QLKSan.ApiClients
     public interface IRoomTypeApiClient
     {
         Task<List<RoomTypeDto>> GetAllAsync();
+        Task<RoomTypeDetailDto> GetDetailAsync(string maLoai);
+        Task<List<RoomTypeAvailabilityDto>> GetAvailableAsync(DateTime checkIn, DateTime checkOut, int? soNguoi);
         Task CreateAsync(RoomTypeRequest request);
         Task UpdateAsync(string maLoai, RoomTypeRequest request);
         Task DeleteAsync(string maLoai);
+        Task<RoomTypeImageDto> UploadImageAsync(string maLoai, Stream content, string fileName, string contentType);
+        Task DeleteImageAsync(string maLoai, string maHinhAnh);
     }
 
     public class RoomTypeApiClient : ApiClientBase, IRoomTypeApiClient
@@ -19,9 +23,17 @@ namespace QLKSan.ApiClients
         public RoomTypeApiClient(HttpClient http) : base(http) { }
 
         public Task<List<RoomTypeDto>> GetAllAsync() => HttpGetAsync<List<RoomTypeDto>>("api/room-types");
+        public Task<RoomTypeDetailDto> GetDetailAsync(string maLoai) => HttpGetOrDefaultAsync<RoomTypeDetailDto>($"api/room-types/{Uri.EscapeDataString(maLoai)}");
+
+        public Task<List<RoomTypeAvailabilityDto>> GetAvailableAsync(DateTime checkIn, DateTime checkOut, int? soNguoi)
+            => HttpGetAsync<List<RoomTypeAvailabilityDto>>($"api/room-types/available?checkIn={checkIn:yyyy-MM-dd}&checkOut={checkOut:yyyy-MM-dd}" + (soNguoi > 0 ? $"&soNguoi={soNguoi}" : ""));
         public Task CreateAsync(RoomTypeRequest request) => HttpPostAsync("api/room-types", request);
         public Task UpdateAsync(string maLoai, RoomTypeRequest request) => HttpPutAsync($"api/room-types/{Uri.EscapeDataString(maLoai)}", request);
         public Task DeleteAsync(string maLoai) => HttpDeleteAsync($"api/room-types/{Uri.EscapeDataString(maLoai)}");
+        public Task<RoomTypeImageDto> UploadImageAsync(string maLoai, Stream content, string fileName, string contentType)
+            => HttpPostFileAsync<RoomTypeImageDto>($"api/room-types/{Uri.EscapeDataString(maLoai)}/images", "file", content, fileName, contentType);
+        public Task DeleteImageAsync(string maLoai, string maHinhAnh)
+            => HttpDeleteAsync($"api/room-types/{Uri.EscapeDataString(maLoai)}/images/{Uri.EscapeDataString(maHinhAnh)}");
     }
 
     // ===== /api/services =====
@@ -92,6 +104,7 @@ namespace QLKSan.ApiClients
     public interface IReviewApiClient
     {
         Task<List<ReviewDto>> GetAllAsync();
+        Task<List<ReviewDto>> GetFeaturedAsync(int soLuong = 3);
         Task CreateAsync(ReviewRequest request);
     }
 
@@ -100,6 +113,7 @@ namespace QLKSan.ApiClients
         public ReviewApiClient(HttpClient http) : base(http) { }
 
         public Task<List<ReviewDto>> GetAllAsync() => HttpGetAsync<List<ReviewDto>>("api/reviews");
+        public Task<List<ReviewDto>> GetFeaturedAsync(int soLuong = 3) => HttpGetAsync<List<ReviewDto>>($"api/reviews/featured?soLuong={soLuong}");
         public Task CreateAsync(ReviewRequest request) => HttpPostAsync("api/reviews", request);
     }
 

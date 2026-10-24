@@ -148,6 +148,10 @@ namespace QLKSan.Business
             existing.GiaThueNgay = roomType.GiaThueNgay;
             existing.GiaThueGio = roomType.GiaThueGio;
             existing.MoTa = roomType.MoTa;
+            existing.DienTich = roomType.DienTich;
+            existing.LoaiGiuong = roomType.LoaiGiuong;
+            existing.HuongNhin = roomType.HuongNhin;
+            existing.MoTaChiTiet = roomType.MoTaChiTiet;
             await _context.SaveChangesAsync();
         }
 
@@ -245,6 +249,8 @@ namespace QLKSan.Business
             existing.TenDichVu = service.TenDichVu;
             existing.GiaDichVu = service.GiaDichVu;
             existing.DonViTinh = service.DonViTinh;
+            existing.LaTraiNghiem = service.LaTraiNghiem;
+            existing.MoTa = service.MoTa;
             await _context.SaveChangesAsync();
         }
 
@@ -393,6 +399,7 @@ namespace QLKSan.Business
 
         // Reviews
         public async Task<IEnumerable<DanhGia>> GetAllReviewsAsync()
-            => await _context.DanhGias.Include(d => d.KhachHang).Include(d => d.Phong).OrderByDescending(d => d.NgayDanhGia).ToListAsync();
+            => await _context.DanhGias.Include(d => d.KhachHang).Include(d => d.Phong).ThenInclude(p => p.LoaiPhong)
+                .OrderByDescending(d => d.NgayDanhGia).ToListAsync();
     }
 }

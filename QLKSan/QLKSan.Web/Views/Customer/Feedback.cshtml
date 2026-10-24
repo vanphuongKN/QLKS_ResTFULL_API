@@ -1,178 +1,133 @@
+@using QLKSan.Models.DTOs
 @{
     Layout = "_CustomerLayout";
-    ViewData["Title"] = "Đánh giá";
-    var bookedRooms = ViewBag.BookedRooms as IEnumerable<QLKSan.Models.DTOs.RoomBriefDto>;
+    ViewData["Title"] = "Đánh giá kỳ nghỉ";
+    var stays = ViewBag.Stays as List<BookingDto> ?? new List<BookingDto>();
+    var selectedId = ViewBag.SelectedBookingId as string;
+    var myReviews = ViewBag.MyReviews as List<ReviewDto> ?? new List<ReviewDto>();
+    string TenKyNghi(BookingDto b)
+    {
+        var lp = b.ChiTietDatPhongs.FirstOrDefault()?.Phong?.LoaiPhong;
+        return $"{FormatHelper.TenHangPhong(lp?.TenLoai ?? "Kỳ nghỉ")} · {b.NgayCheckInDuKien:dd/MM} – {(b.NgayCheckOutThucTe ?? b.NgayCheckOutDuKien):dd/MM/yyyy}";
+    }
 }
 
-<!-- Hero Section -->
 <div class="feedback-hero">
     <div>
         <div class="lr-section-label">Trải nghiệm khách hàng</div>
         <h2 class="lr-section-title">Cảm nhận của bạn tạo nên di sản của chúng tôi.</h2>
-        <p class="lr-section-desc">Chúng tôi trân trọng mọi chia sẻ trải nghiệm về kỳ nghỉ vừa qua. Mọi chi tiết đều giúp chúng tôi hoàn thiện nghệ thuật hiếu khách.</p>
+        <p class="lr-section-desc">Mỗi kỳ nghỉ đã trả phòng được đánh giá một lần. Mọi chia sẻ đều giúp chúng tôi hoàn thiện nghệ thuật hiếu khách.</p>
     </div>
     <div class="feedback-hero-img">
-        <img src="/images/room_ocean.png" alt="Luxe Resort Room">
+        <img src="/images/room_ocean.png" alt="Phòng nghỉ tại LUXE RESERVE">
     </div>
 </div>
 
-<!-- Success / Error -->
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success mt-3">
-        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-    </div>
+    <div class="alert alert-success mt-3"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
     <div class="alert alert-danger mt-3">@TempData["ErrorMessage"]</div>
 }
 
-<!-- Feedback Form -->
 <div class="feedback-form-section">
-    <form action="@Url.Action("SubmitFeedback", "Customer")" method="post">
-        @Html.AntiForgeryToken()
-        <!-- Room Reference (từ DB) -->
-        <div class="mb-4">
-            <label class="form-label-upper">Phòng tham chiếu</label>
-            <select name="maPhong" class="form-control form-control-lg-custom" style="font-size:1rem;padding:14px" required>
-                <option value="">-- Chọn phòng bạn đã ở --</option>
-                @if (bookedRooms != null && bookedRooms.Any())
-                {
-                    foreach (var room in bookedRooms)
+    @if (!stays.Any())
+    {
+        <div class="text-center py-4">
+            <i class="far fa-star" style="font-size:2.4rem;color:var(--lr-gold)"></i>
+            <h3 class="font-playfair mt-3" style="color:var(--lr-ink)">Chưa có kỳ nghỉ nào chờ đánh giá</h3>
+            <p style="color:var(--lr-text-muted)">Bạn có thể đánh giá sau khi trả phòng. Các kỳ nghỉ đã đánh giá nằm ở danh sách bên dưới.</p>
+            <a asp-action="MyStays" class="lr-btn lr-btn-ghost">Lịch sử kỳ nghỉ</a>
+        </div>
+    }
+    else
+    {
+        <form asp-action="SubmitFeedback" method="post">
+            <div class="mb-4">
+                <label class="form-label-upper" for="maDatPhong">Kỳ nghỉ</label>
+                <select name="maDatPhong" id="maDatPhong" class="form-control form-control-lg-custom" style="font-size:1rem;padding:14px" required>
+                    @foreach (var b in stays)
                     {
-                        if (ViewBag.SelectedRoomId != null && ViewBag.SelectedRoomId == room.MaPhong)
-                        {
-                            <option value="@room.MaPhong" selected>Phòng @room.SoPhong — @FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng")</option>
-                        }
-                        else
-                        {
-                            <option value="@room.MaPhong">Phòng @room.SoPhong — @FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng")</option>
-                        }
+                        <option value="@b.MaDatPhong" selected="@(b.MaDatPhong == selectedId)">@b.MaDatPhong — @TenKyNghi(b)</option>
                     }
-                }
-                else
-                {
-                    <option value="" disabled>Bạn chưa đặt phòng nào để đánh giá</option>
-                }
-            </select>
-        </div>
-
-        <!-- Star Rating -->
-        <div class="mb-4">
-            <label class="form-label-upper">Ấn tượng chung</label>
-            <div class="star-rating mt-2" id="starRating">
-                <i class="fas fa-star" data-rating="1"></i>
-                <i class="fas fa-star" data-rating="2"></i>
-                <i class="fas fa-star" data-rating="3"></i>
-                <i class="fas fa-star" data-rating="4"></i>
-                <i class="fas fa-star empty" data-rating="5"></i>
+                </select>
             </div>
-            <input type="hidden" name="rating" id="ratingInput" value="4" />
-        </div>
 
-        <!-- Comment -->
-        <div class="mb-4">
-            <label class="form-label-upper">Ý kiến của bạn</label>
-            <textarea name="comment" class="feedback-textarea" placeholder="Chia sẻ những khoảnh khắc đáng nhớ trong kỳ nghỉ của bạn..."></textarea>
-        </div>
-
-        <!-- Anonymous Toggle -->
-        <div class="anonymous-toggle">
-            <div>
-                <strong>Gửi ẩn danh</strong>
-                <p class="text-muted small mb-0">Tên của bạn sẽ không hiển thị trên các bài đánh giá công khai.</p>
+            <div class="mb-4">
+                <label class="form-label-upper">Ấn tượng chung</label>
+                <div class="star-rating mt-2" id="starRating">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <i class="fas fa-star" data-rating="@i" role="button" aria-label="@i sao"></i>
+                    }
+                </div>
+                <input type="hidden" name="rating" id="ratingInput" value="5" />
             </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" role="switch" name="isAnonymous" value="true" style="width:48px;height:24px">
-            </div>
-        </div>
 
-        <!-- Buttons -->
-        <div class="d-flex gap-3 mt-4">
-            <button type="submit" class="btn-submit-feedback">Gửi đánh giá</button>
-            <button type="button" class="btn-cancel-feedback" onclick="history.back()">Hủy bỏ</button>
-        </div>
-    </form>
+            <div class="mb-4">
+                <label class="form-label-upper" for="comment">Ý kiến của bạn</label>
+                <textarea name="comment" id="comment" class="feedback-textarea" maxlength="1000" placeholder="Chia sẻ những khoảnh khắc đáng nhớ trong kỳ nghỉ của bạn..."></textarea>
+            </div>
+
+            <div class="anonymous-toggle">
+                <div>
+                    <strong>Gửi ẩn danh</strong>
+                    <p class="text-muted small mb-0">Tên của bạn sẽ không hiển thị trên các bài đánh giá công khai.</p>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="isAnonymous" value="true" style="width:48px;height:24px">
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 mt-4">
+                <button type="submit" class="btn-submit-feedback">Gửi đánh giá</button>
+                <a asp-action="MyStays" class="btn-cancel-feedback text-decoration-none">Để sau</a>
+            </div>
+        </form>
+    }
 </div>
+
+@if (myReviews.Any())
+{
+    <div class="mt-5">
+        <span class="lr-eyebrow">Đã gửi</span>
+        <h3 class="font-playfair" style="color:var(--lr-ink)">Đánh giá của bạn</h3>
+        @foreach (var r in myReviews)
+        {
+            <div class="rt-review">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <strong style="color:var(--lr-ink)">@FormatHelper.TenHangPhong(r.TenLoaiPhong ?? "Kỳ nghỉ")@(r.MaDatPhong != null ? " · " + r.MaDatPhong : "")</strong>
+                    <span>
+                        @for (var i = 1; i <= 5; i++)
+                        {
+                            <i class="@(i <= r.SoSao ? "fas" : "far") fa-star"></i>
+                        }
+                    </span>
+                </div>
+                <p>@(string.IsNullOrEmpty(r.NoiDung) ? "(Không có nhận xét)" : r.NoiDung)</p>
+                <small>@r.NgayDanhGia.ToString("dd/MM/yyyy")@(r.AnDanh ? " · ẩn danh" : "")</small>
+            </div>
+        }
+    </div>
+}
 
 @section Scripts {
     <script>
-        var currentRating = 4;
-        
-        // Parse the reviews list passed from the controller
-        const myReviews = JSON.parse('@Html.Raw(ViewBag.MyReviewsJson ?? "[]")');
-        
-        // References to DOM elements
-        const roomSelect = document.querySelector('select[name="maPhong"]');
-        const ratingInput = document.getElementById('ratingInput');
-        const commentInput = document.querySelector('textarea[name="comment"]');
-        const anonymousInput = document.querySelector('input[name="isAnonymous"]');
-        const stars = document.querySelectorAll('#starRating .fa-star');
-
-        // Helper function to update the star UI
-        function updateStarUI(ratingValue) {
-            stars.forEach(function(s) {
-                var r = parseInt(s.getAttribute('data-rating'));
-                s.classList.toggle('empty', r > ratingValue);
+        (function () {
+            var stars = document.querySelectorAll('#starRating .fa-star');
+            var input = document.getElementById('ratingInput');
+            if (!input) return;
+            var current = parseInt(input.value);
+            function paint(v) { stars.forEach(function (s) { s.classList.toggle('empty', parseInt(s.getAttribute('data-rating')) > v); }); }
+            stars.forEach(function (star) {
+                var r = parseInt(star.getAttribute('data-rating'));
+                star.addEventListener('click', function () { current = r; input.value = r; paint(r); });
+                star.addEventListener('mouseover', function () { paint(r); });
+                star.addEventListener('mouseout', function () { paint(current); });
             });
-        }
-
-        // Change listener on Room Select
-        roomSelect.addEventListener('change', function() {
-            const selectedMaPhong = this.value;
-            if (!selectedMaPhong) {
-                // Reset to defaults
-                currentRating = 4;
-                ratingInput.value = 4;
-                updateStarUI(4);
-                commentInput.value = '';
-                anonymousInput.checked = false;
-                return;
-            }
-
-            // Find if there's an existing review for this room
-            const review = myReviews.find(r => r.maPhong === selectedMaPhong);
-            if (review) {
-                // Populate previous review details
-                currentRating = review.soSao;
-                ratingInput.value = review.soSao;
-                updateStarUI(review.soSao);
-                commentInput.value = review.noiDung;
-                anonymousInput.checked = review.anDanh;
-            } else {
-                // Reset to default rating of 4 stars, empty comment, and not anonymous
-                currentRating = 4;
-                ratingInput.value = 4;
-                updateStarUI(4);
-                commentInput.value = '';
-                anonymousInput.checked = false;
-            }
-        });
-
-        // Event listeners for star ratings
-        stars.forEach(function(star) {
-            star.addEventListener('click', function() {
-                currentRating = parseInt(this.getAttribute('data-rating'));
-                ratingInput.value = currentRating;
-                updateStarUI(currentRating);
-            });
-            star.addEventListener('mouseover', function() {
-                var r = parseInt(this.getAttribute('data-rating'));
-                stars.forEach(function(s) {
-                    s.classList.toggle('empty', parseInt(s.getAttribute('data-rating')) > r);
-                });
-            });
-            star.addEventListener('mouseout', function() {
-                stars.forEach(function(s) {
-                    s.classList.toggle('empty', parseInt(s.getAttribute('data-rating')) > currentRating);
-                });
-            });
-        });
-
-        // Trigger change event if a room is pre-selected from URL
-        if (roomSelect.value) {
-            roomSelect.dispatchEvent(new Event('change'));
-        }
+            paint(current);
+        })();
     </script>
 }

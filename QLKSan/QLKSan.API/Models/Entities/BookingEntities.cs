@@ -24,6 +24,11 @@ namespace QLKSan.Models.Entities
 
         public ServiceStatus TrangThai { get; set; } = ServiceStatus.Available;
 
+        public bool LaTraiNghiem { get; set; }
+
+        [StringLength(500)]
+        public string? MoTa { get; set; }
+
         public ICollection<SuDungDichVu> SuDungDichVus { get; set; }
     }
 
@@ -92,6 +97,13 @@ namespace QLKSan.Models.Entities
         // Mã khuyến mãi khách chọn khi đặt online (được áp dụng khi lập hoá đơn)
         [StringLength(10)]
         public string? MaKhuyenMai { get; set; }
+
+        // Yêu cầu riêng khi đặt online và khung giờ khách dự kiến đến
+        [StringLength(500)]
+        public string? YeuCauDacBiet { get; set; }
+
+        [StringLength(30)]
+        public string? GioDenDuKien { get; set; }
 
         public KhachHang KhachHang { get; set; }
         public NhanVien NhanVien { get; set; }
@@ -327,6 +339,13 @@ namespace QLKSan.Models.Entities
         public DateTime NgayDanhGia { get; set; } = DateTime.Now;
         
         public bool AnDanh { get; set; } = false;
+
+        // Lần lưu trú được đánh giá (mỗi phiếu đặt 1 đánh giá)
+        [StringLength(10)]
+        [ForeignKey("PhieuDatPhong")]
+        public string? MaDatPhong { get; set; }
+
+        public PhieuDatPhong PhieuDatPhong { get; set; }
 
         public KhachHang KhachHang { get; set; }
         public Phong Phong { get; set; }

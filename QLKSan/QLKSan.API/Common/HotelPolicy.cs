@@ -13,6 +13,9 @@ namespace QLKSan.Common
         // Để trống mặc định: configuration binder NỐI THÊM vào list có sẵn chứ không thay thế
         public List<MucPhuThu> PhuThuTraMuon { get; set; } = new List<MucPhuThu>();
 
+        // Phiếu đặt online được xác nhận ngay khi còn phòng (false: chờ lễ tân duyệt)
+        public bool TuDongXacNhanDatPhong { get; set; } = true;
+
         // Tiền cọc khách vãng lai (% tiền phòng dự kiến)
         public int PhanTramTienCocVangLai { get; set; } = 50;
 

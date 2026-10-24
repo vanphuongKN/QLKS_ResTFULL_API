@@ -40,7 +40,7 @@ s, loc, _ = req(anon, 'GET', '/Reception')
 check('Vào /Reception khi chưa đăng nhập → chuyển tới trang đăng nhập', s == 302 and '/Auth/Login' in (loc or ''), f'{s} → {loc}')
 s, _, body = req(anon, 'GET', '/')
 check('Trang chủ mở được khi chưa đăng nhập', s == 200)
-check('Trang chủ hiện hạng phòng thật (không còn phòng mẫu viết cứng, không lộ mã nội bộ)', 'Standard' in body and '(STD)' not in body and 'Imperial President Suite' not in body)
+check('Trang chủ hiện hạng phòng thật (không còn phòng mẫu viết cứng, không lộ mã nội bộ)', 'Phòng Tiêu Chuẩn' in body and '(STD)' not in body and 'Imperial President Suite' not in body)
 s, _, body = login(anon, 'admin1', 'saimatkhau')
 check('Sai mật khẩu → thông báo lỗi từ API', s == 200 and 'Thông tin đăng nhập không chính xác' in body, f'{s}')
 

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using QLKSan.Business;
 using QLKSan.Common;
@@ -65,9 +66,15 @@ namespace QLKSan
             builder.Services.AddScoped<ICheckoutService, CheckoutService>();
             builder.Services.AddScoped<IHousekeepingService, HousekeepingService>();
             builder.Services.AddScoped<IAdminService, AdminService>();
+            builder.Services.AddScoped<IRoomTypeService, RoomTypeService>();
+            builder.Services.AddScoped<IRoomTypeImageService, RoomTypeImageService>();
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<IAccountingService, AccountingService>();
             builder.Services.AddScoped<IPricingService, PricingService>();
+
+            // Ảnh quản trị tải lên: lưu ở wwwroot/uploads của API
+            var media = new MediaStorage(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads"));
+            builder.Services.AddSingleton(media);
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -91,6 +98,9 @@ namespace QLKSan
             }
 
             app.UseHttpsRedirection();
+
+            // Phục vụ công khai ảnh đã tải lên (Web hiển thị qua <API>/uploads/...)
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(media.RootPath), RequestPath = MediaStorage.UrlPrefix });
 
             app.UseAuthentication();
             app.UseAuthorization();

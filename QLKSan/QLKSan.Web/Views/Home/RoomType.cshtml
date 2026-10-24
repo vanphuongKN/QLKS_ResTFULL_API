@@ -1,0 +1,138 @@
+@model QLKSan.Models.DTOs.RoomTypeDetailDto
+@using QLKSan.Models.DTOs
+@{
+    Layout = "_CustomerLayout";
+    var ten = FormatHelper.TenHangPhong(Model.TenLoai);
+    ViewData["Title"] = ten;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto();
+    var checkIn = (DateTime)ViewBag.CheckIn;
+    var checkOut = (DateTime)ViewBag.CheckOut;
+    var dangNhapNhanVien = User.IsLoggedIn() && User.GetRole() != "Customer";
+
+    // Bộ ảnh: ảnh của hạng (theo thứ tự) — chưa có thì dùng ảnh đại diện
+    var anh = Model.HinhAnhs.Select(h => MediaUrl.Of(h.DuongDan)).ToList();
+    if (!anh.Any()) anh.Add(MediaUrl.Of(Model.AnhDaiDien));
+    string IconOf(string icon) => string.IsNullOrEmpty(icon) ? "fas fa-check" : (icon.Contains(' ') ? icon : "fas " + icon);
+}
+
+<a asp-action="Index" asp-fragment="rooms" class="lr-link mb-4 d-inline-block" style="font-size:0.78rem"><i class="fas fa-arrow-left me-2"></i>Tất cả hạng phòng</a>
+
+<div class="rt-gallery">
+    <div class="rt-gallery-main" id="rtMain" style="background-image:url('@anh[0]')" role="img" aria-label="@ten"></div>
+    @if (anh.Count > 1)
+    {
+        <div class="rt-thumbs">
+            @for (var i = 0; i < anh.Count && i < 4; i++)
+            {
+                <button type="button" class="rt-thumb @(i == 0 ? "active" : "")" style="background-image:url('@anh[i]')" data-src="@anh[i]" aria-label="Ảnh @(i + 1)"></button>
+            }
+        </div>
+    }
+</div>
+
+<div class="rt-layout">
+    <div>
+        <span class="lr-eyebrow">Hạng phòng</span>
+        <h1 style="font-size:clamp(2.2rem,4.5vw,3.2rem);color:var(--lr-ink);margin:0 0 10px">@ten</h1>
+        @if (Model.DiemDanhGia != null)
+        {
+            <div class="bk-rating mb-2"><i class="fas fa-star"></i> @Model.DiemDanhGia.Value.ToString("0.0") / 5 · @Model.SoDanhGia đánh giá</div>
+        }
+        <p style="color:var(--lr-text-muted);font-size:1.02rem">@Model.MoTa</p>
+
+        <div class="rt-facts">
+            <div><small>Diện tích</small><strong>@(Model.DienTich != null ? Model.DienTich.Value.ToString("0.#") + " m²" : "—")</strong></div>
+            <div><small>Giường</small><strong>@(string.IsNullOrEmpty(Model.LoaiGiuong) ? "—" : Model.LoaiGiuong)</strong></div>
+            <div><small>Hướng nhìn</small><strong>@(string.IsNullOrEmpty(Model.HuongNhin) ? "—" : Model.HuongNhin)</strong></div>
+            <div><small>Sức chứa</small><strong>@Model.SoNguoiToiDa khách</strong></div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.MoTaChiTiet))
+        {
+            <div class="rt-desc mb-5" style="white-space:pre-line">@Model.MoTaChiTiet</div>
+        }
+
+        @if (Model.TienIchs.Any())
+        {
+            <h2 style="font-size:1.6rem;color:var(--lr-ink);margin-bottom:18px">Tiện nghi trong phòng</h2>
+            <ul class="rt-amenities">
+                @foreach (var ti in Model.TienIchs)
+                {
+                    <li><i class="@IconOf(ti.Icon)"></i>@ti.TenTienIch</li>
+                }
+            </ul>
+        }
+
+        <h2 style="font-size:1.6rem;color:var(--lr-ink);margin-bottom:6px">Khách nói gì</h2>
+        @if (!Model.DanhGiaGanDay.Any())
+        {
+            <p style="color:var(--lr-text-muted)">Hạng phòng này chưa có đánh giá.</p>
+        }
+        @foreach (var r in Model.DanhGiaGanDay)
+        {
+            <div class="rt-review">
+                @for (var i = 1; i <= 5; i++)
+                {
+                    <i class="@(i <= r.SoSao ? "fas" : "far") fa-star"></i>
+                }
+                <p>@(string.IsNullOrEmpty(r.NoiDung) ? "(Không có nhận xét)" : r.NoiDung)</p>
+                <small>@r.TenHienThi · @r.NgayDanhGia.ToString("MM/yyyy")</small>
+            </div>
+        }
+    </div>
+
+    <aside class="bk-summary">
+        <div class="bk-summary-body">
+            <span class="lr-eyebrow">Giá niêm yết</span>
+            <div class="mb-3"><span class="bk-total">@FormatHelper.ToVND(Model.GiaThueNgay)</span> <small style="color:var(--lr-text-muted)">/ đêm</small></div>
+            @if (dangNhapNhanVien)
+            {
+                <p class="mb-0" style="color:var(--lr-text-muted);font-size:0.88rem">Tài khoản nhân viên không đặt phòng trực tuyến.</p>
+            }
+            else
+            {
+                <form method="get" asp-controller="Customer" asp-action="BookRoom" class="bk-card p-0 border-0 mb-0">
+                    <input type="hidden" name="maLoai" value="@Model.MaLoai" />
+                    <div class="mb-3">
+                        <label for="CheckIn">Ngày nhận phòng</label>
+                        <input type="date" id="CheckIn" name="checkIn" class="form-control" value="@checkIn.ToString("yyyy-MM-dd")" data-lr-date min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="CheckOut">Ngày trả phòng</label>
+                        <input type="date" id="CheckOut" name="checkOut" class="form-control" value="@checkOut.ToString("yyyy-MM-dd")" data-lr-date data-lr-after="#CheckIn" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="mb-4">
+                        <label for="soNguoi">Số khách</label>
+                        <select id="soNguoi" name="soNguoi" class="form-select">
+                            @for (var i = 1; i <= Model.SoNguoiToiDa; i++)
+                            {
+                                <option value="@i" selected="@(i == Math.Min(2, Model.SoNguoiToiDa))">@i khách</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="lr-btn lr-btn-primary w-100">Xem giá &amp; đặt phòng</button>
+                </form>
+                <p class="bk-note mt-3 mb-0">Giá cuối tuần và ngày lễ có thể khác; giá từng đêm hiển thị ở bước tiếp theo.</p>
+            }
+            <hr />
+            <div class="bk-line"><span>Nhận phòng</span><span>từ @(hotel.GioNhanPhong ?? "14:00")</span></div>
+            <div class="bk-line"><span>Trả phòng</span><span>trước @(hotel.GioTraPhong ?? "12:00")</span></div>
+            @if (!string.IsNullOrEmpty(hotel.Hotline))
+            {
+                <div class="bk-line"><span>Hotline</span><span>@hotel.Hotline</span></div>
+            }
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script>
+        // Chọn ảnh nhỏ để xem ảnh lớn
+        document.querySelectorAll('.rt-thumb').forEach(function (t) {
+            t.addEventListener('click', function () {
+                document.getElementById('rtMain').style.backgroundImage = "url('" + t.getAttribute('data-src') + "')";
+                document.querySelectorAll('.rt-thumb').forEach(function (x) { x.classList.toggle('active', x === t); });
+            });
+        });
+    </script>
+}

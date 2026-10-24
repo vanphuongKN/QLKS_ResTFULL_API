@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QLKSan.ApiClients;
+using QLKSan.Enums;
 using QLKSan.Infrastructure;
 using QLKSan.Models.DTOs;
 using QLKSan.Models.Requests;
@@ -16,18 +17,22 @@ namespace QLKSan.Controllers
     {
         private readonly ICustomerApiClient _customerApi;
         private readonly IRoomApiClient _roomApi;
+        private readonly IRoomTypeApiClient _roomTypeApi;
         private readonly IBookingApiClient _bookingApi;
         private readonly IReviewApiClient _reviewApi;
         private readonly IPromotionApiClient _promotionApi;
+        private readonly HotelInfoProvider _hotelInfo;
 
-        public CustomerController(ICustomerApiClient customerApi, IRoomApiClient roomApi, IBookingApiClient bookingApi,
-            IReviewApiClient reviewApi, IPromotionApiClient promotionApi)
+        public CustomerController(ICustomerApiClient customerApi, IRoomApiClient roomApi, IRoomTypeApiClient roomTypeApi, IBookingApiClient bookingApi,
+            IReviewApiClient reviewApi, IPromotionApiClient promotionApi, HotelInfoProvider hotelInfo)
         {
             _customerApi = customerApi;
             _roomApi = roomApi;
+            _roomTypeApi = roomTypeApi;
             _bookingApi = bookingApi;
             _reviewApi = reviewApi;
             _promotionApi = promotionApi;
+            _hotelInfo = hotelInfo;
         }
 
         [HttpGet]
@@ -39,10 +44,42 @@ namespace QLKSan.Controllers
             ViewBag.Customer = customer;
             ViewBag.Bookings = await _customerApi.GetMyBookingsAsync();
 
+            // Mỗi lần lưu trú được đánh giá một lần
             var reviews = await _customerApi.GetMyReviewsAsync();
-            ViewBag.ReviewedRoomIds = reviews.Select(r => r.MaPhong).ToHashSet();
+            ViewBag.ReviewedBookingIds = reviews.Where(r => r.MaDatPhong != null).Select(r => r.MaDatPhong).ToHashSet();
 
             return View();
+        }
+
+        // Chi tiết một phiếu đặt: giá từng đêm, yêu cầu riêng, thông tin trước ngày đến, hoá đơn, huỷ, đánh giá
+        [HttpGet]
+        public async Task<IActionResult> Booking(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+            BookingDto booking;
+            try
+            {
+                booking = await _bookingApi.GetByIdAsync(id);
+            }
+            catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return Forbid();
+            }
+            if (booking == null) return NotFound();
+
+            var room = booking.ChiTietDatPhongs.FirstOrDefault();
+            if (room != null && booking.HoaDon == null && booking.NgayCheckOutDuKien.Date > booking.NgayCheckInDuKien.Date)
+            {
+                try
+                {
+                    ViewBag.Quote = await _roomApi.QuoteAsync(room.MaPhong, booking.NgayCheckInDuKien, booking.NgayCheckOutDuKien);
+                }
+                catch (ApiException) { /* không có báo giá thì chỉ hiển thị giá niêm yết */ }
+            }
+            var reviews = await _customerApi.GetMyReviewsAsync();
+            ViewBag.Review = reviews.FirstOrDefault(r => r.MaDatPhong == booking.MaDatPhong);
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
+            return View(booking);
         }
 
         [HttpGet]
@@ -76,69 +113,53 @@ namespace QLKSan.Controllers
             return RedirectToAction(nameof(Profile));
         }
 
+        // Đánh giá theo lần lưu trú: chỉ các kỳ nghỉ đã trả phòng và chưa đánh giá
         [HttpGet]
-        public async Task<IActionResult> Feedback(string? roomId = null)
+        public async Task<IActionResult> Feedback(string maDatPhong = null)
         {
-            ViewBag.SelectedRoomId = roomId;
-
-            // Query bookings of the logged-in customer
             var bookings = await _customerApi.GetMyBookingsAsync();
-
-            // Filter unique rooms that the customer has actually stayed in and checked out
-            var bookedRooms = bookings
-                .Where(b => b.TrangThai == QLKSan.Enums.BookingStatus.CheckedOut)
-                .SelectMany(b => b.ChiTietDatPhongs ?? Enumerable.Empty<BookingRoomDto>())
-                .Select(c => c.Phong)
-                .Where(r => r != null)
-                .GroupBy(r => r.MaPhong)
-                .Select(g => g.First())
-                .OrderBy(r => r.SoPhong)
-                .ToList();
-
-            ViewBag.BookedRooms = bookedRooms;
-
-            // Query all existing reviews by this customer
             var reviews = await _customerApi.GetMyReviewsAsync();
-            var reviewsProjection = reviews.Select(r => new
-            {
-                maPhong = r.MaPhong,
-                soSao = r.SoSao,
-                noiDung = r.NoiDung ?? "",
-                anDanh = r.AnDanh
-            }).ToList();
+            var daDanhGia = reviews.Where(r => r.MaDatPhong != null).Select(r => r.MaDatPhong).ToHashSet();
 
-            ViewBag.MyReviewsJson = System.Text.Json.JsonSerializer.Serialize(reviewsProjection);
-
+            ViewBag.Stays = bookings
+                .Where(b => b.TrangThai == BookingStatus.CheckedOut && !daDanhGia.Contains(b.MaDatPhong))
+                .OrderByDescending(b => b.NgayCheckOutThucTe ?? b.NgayCheckOutDuKien)
+                .ToList();
+            ViewBag.SelectedBookingId = maDatPhong;
+            ViewBag.MyReviews = reviews.OrderByDescending(r => r.NgayDanhGia).ToList();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> SubmitFeedback(string maPhong, int rating, string comment, bool isAnonymous)
+        public async Task<IActionResult> SubmitFeedback(string maDatPhong, int rating, string comment, bool isAnonymous)
         {
             try
             {
-                await _reviewApi.CreateAsync(new ReviewRequest { MaPhong = maPhong, SoSao = rating, NoiDung = comment, AnDanh = isAnonymous });
-                TempData["SuccessMessage"] = "Đã gửi đánh giá thành công!";
+                await _reviewApi.CreateAsync(new ReviewRequest { MaDatPhong = maDatPhong, SoSao = rating, NoiDung = comment, AnDanh = isAnonymous });
+                TempData["SuccessMessage"] = "Cảm ơn bạn đã chia sẻ cảm nhận về kỳ nghỉ!";
+                return RedirectToAction(nameof(Booking), new { id = maDatPhong });
             }
             catch (ApiException ex)
             {
                 TempData["ErrorMessage"] = ex.UserMessage;
+                return RedirectToAction(nameof(Feedback), new { maDatPhong });
             }
-            return RedirectToAction("Feedback");
         }
 
-        // Danh sách phòng trống phụ thuộc khoảng ngày khách chọn (mặc định: hôm nay → ngày mai)
+        // Đặt phòng 3 bước: chọn ngày → chọn hạng phòng (giá từng đêm) → yêu cầu riêng & xác nhận.
+        // Xem phòng trống không cần đăng nhập; bước xác nhận mới yêu cầu tài khoản khách hàng
         [HttpGet]
-        public async Task<IActionResult> BookRoom(DateTime? checkIn = null, DateTime? checkOut = null, int? soNguoi = null)
+        [AllowAnonymous]
+        public async Task<IActionResult> BookRoom(DateTime? checkIn = null, DateTime? checkOut = null, int? soNguoi = null, string maLoai = null)
         {
             var model = new BookRoomRequest
             {
                 CheckIn = checkIn == null || checkIn.Value.Date < DateTime.Today ? DateTime.Today : checkIn.Value.Date,
-                SoNguoi = soNguoi is > 0 ? soNguoi.Value : 1
+                SoNguoi = soNguoi is > 0 ? soNguoi.Value : 2,
+                MaLoai = maLoai
             };
             model.CheckOut = checkOut != null && checkOut.Value.Date > model.CheckIn ? checkOut.Value.Date : model.CheckIn.AddDays(1);
-
-            ViewBag.AvailableRooms = await _roomApi.GetAvailableAsync(model.CheckIn, model.CheckOut, model.SoNguoi);
+            await LoadBookingStepsAsync(model);
             return View(model);
         }
 
@@ -149,26 +170,53 @@ namespace QLKSan.Controllers
             {
                 try
                 {
-                    await _bookingApi.CreateAsync(model);
-                    TempData["SuccessMessage"] = "Đặt phòng thành công! Vui lòng chờ duyệt.";
-                    return RedirectToAction("MyStays");
+                    var booking = await _bookingApi.CreateAsync(model);
+                    TempData["SuccessMessage"] = booking.TrangThai == BookingStatus.Approved
+                        ? "Đặt phòng thành công — kỳ nghỉ của bạn đã được xác nhận."
+                        : "Đã gửi yêu cầu đặt phòng, lễ tân sẽ xác nhận sớm.";
+                    return RedirectToAction(nameof(Booking), new { id = booking.MaDatPhong });
                 }
                 catch (ApiException ex)
                 {
                     TempData["ErrorMessage"] = ex.UserMessage;
                 }
             }
+            else
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            }
 
-            // Return to form with error and entered data
-            ViewBag.AvailableRooms = model.CheckOut > model.CheckIn && model.CheckIn >= DateTime.Today
-                ? await _roomApi.GetAvailableAsync(model.CheckIn, model.CheckOut, model.SoNguoi > 0 ? model.SoNguoi : null)
-                : await _roomApi.GetAvailableAsync();
+            if (model.CheckIn < DateTime.Today) model.CheckIn = DateTime.Today;
+            if (model.CheckOut <= model.CheckIn) model.CheckOut = model.CheckIn.AddDays(1);
+            await LoadBookingStepsAsync(model);
             return View(model);
+        }
+
+        // Dữ liệu cho trang đặt phòng: hạng còn trống + báo giá, hạng đang chọn, hồ sơ khách, chính sách
+        private async Task LoadBookingStepsAsync(BookRoomRequest model)
+        {
+            var types = await _roomTypeApi.GetAvailableAsync(model.CheckIn, model.CheckOut, model.SoNguoi);
+            ViewBag.Types = types;
+            ViewBag.Hotel = await _hotelInfo.GetAsync();
+            if (!string.IsNullOrEmpty(model.MaLoai))
+            {
+                var selected = types.FirstOrDefault(t => t.LoaiPhong.MaLoai == model.MaLoai);
+                if (selected == null)
+                {
+                    TempData["ErrorMessage"] ??= "Hạng phòng này đã hết phòng trong khoảng ngày đã chọn. Vui lòng chọn hạng khác.";
+                    model.MaLoai = null;
+                }
+                ViewBag.Selected = selected;
+            }
+            if (User.IsInRole(WebRoles.Customer))
+            {
+                ViewBag.Customer = await _customerApi.GetMeAsync();
+            }
         }
 
         // Khách tự huỷ phiếu chưa nhận phòng (trước ngày nhận phòng)
         [HttpPost]
-        public async Task<IActionResult> CancelBooking(string id, string lyDo)
+        public async Task<IActionResult> CancelBooking(string id, string lyDo, bool veChiTiet = false)
         {
             try
             {
@@ -179,29 +227,7 @@ namespace QLKSan.Controllers
             {
                 TempData["ErrorMessage"] = "Không thể huỷ phiếu. " + ex.UserMessage;
             }
-            return RedirectToAction("MyStays");
-        }
-
-        // Báo giá theo từng đêm cho khoảng ngày đã chọn (giá cuối tuần / lễ có thể khác giá niêm yết)
-        [HttpGet]
-        public async Task<IActionResult> Quote(string maPhong, DateTime checkIn, DateTime checkOut)
-        {
-            try
-            {
-                var quote = await _roomApi.QuoteAsync(maPhong, checkIn, checkOut);
-                return Json(new
-                {
-                    success = true,
-                    soDem = quote.SoDem,
-                    tongTien = quote.TongTien,
-                    giaTrungBinh = quote.GiaTrungBinhDem,
-                    cacDem = quote.CacDem.Select(d => new { dem = d.Dem.ToString("dd/MM"), gia = d.Gia, quyTac = d.QuyTac })
-                });
-            }
-            catch (ApiException ex)
-            {
-                return Json(new { success = false, message = ex.UserMessage });
-            }
+            return veChiTiet ? RedirectToAction(nameof(Booking), new { id }) : RedirectToAction(nameof(MyStays));
         }
 
         [HttpGet]

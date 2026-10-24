@@ -46,6 +46,42 @@ namespace QLKSan.Business
                 .ToListAsync();
         }
 
+        public async Task ChangeRoomAsync(string maDatPhong, string maPhongMoi)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var booking = await _context.PhieuDatPhongs.Include(p => p.ChiTietDatPhongs)
+                    .FirstOrDefaultAsync(p => p.MaDatPhong == maDatPhong)
+                    ?? throw new NotFoundException($"Không tìm thấy phiếu đặt phòng '{maDatPhong}'.");
+                if (booking.TrangThai != BookingStatus.Pending && booking.TrangThai != BookingStatus.Approved)
+                    throw new ConflictException("Chỉ đổi phòng cho phiếu chưa nhận phòng (chờ duyệt hoặc đã duyệt).");
+
+                var chiTiet = booking.ChiTietDatPhongs.FirstOrDefault()
+                    ?? throw new BusinessException("Phiếu đặt không gắn với phòng nào.");
+                if (chiTiet.MaPhong == maPhongMoi) return;
+
+                await _availability.LockRoomAsync(maPhongMoi);
+                var room = await _context.Phongs.Include(p => p.LoaiPhong).FirstOrDefaultAsync(p => p.MaPhong == maPhongMoi)
+                    ?? throw new NotFoundException($"Không tìm thấy phòng '{maPhongMoi}'.");
+                if (room.TrangThai == RoomStatus.Maintenance)
+                    throw new ConflictException($"Phòng {room.SoPhong} đang bảo trì.");
+                if (booking.SoLuongKhach > room.LoaiPhong.SoNguoiToiDa)
+                    throw new BusinessException($"Phòng {room.SoPhong} chỉ chứa tối đa {room.LoaiPhong.SoNguoiToiDa} khách.");
+                await _availability.EnsureAvailableAsync(maPhongMoi, booking.NgayCheckInDuKien, booking.NgayCheckOutDuKien);
+
+                chiTiet.MaPhong = maPhongMoi;
+                chiTiet.GiaThueThucTe = room.LoaiPhong.GiaThueNgay;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task ApproveOnlineBookingAsync(string maDatPhong)
         {
             var booking = await _context.PhieuDatPhongs.FindAsync(maDatPhong)

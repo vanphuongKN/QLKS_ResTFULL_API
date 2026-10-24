@@ -40,6 +40,10 @@
                             {
                                 <span class="badge bg-secondary ms-2 small mb-2">Đã hết</span>
                             }
+                            @if (svc.LaTraiNghiem)
+                            {
+                                <span class="badge bg-gold-light text-gold ms-2 small mb-2" title="Hiển thị ở mục Trải nghiệm trang chủ"><i class="fas fa-star me-1"></i>Trải nghiệm</span>
+                            }
                             <h6 class="fw-bold mb-0">@svc.TenDichVu</h6>
                         </div>
                         <div class="d-flex gap-2">
@@ -50,8 +54,8 @@
                                     <i class="fas fa-exchange-alt"></i>
                                 </button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-outline-primary border-0" title="Sửa dịch vụ" 
-                                    onclick="editService('@svc.MaDichVu', '@svc.TenDichVu', '@svc.GiaDichVu.ToString("0")', '@svc.DonViTinh')">
+                            <button type="button" class="btn btn-sm btn-outline-primary border-0" title="Sửa dịch vụ"
+                                    data-svc="@Json.Serialize(svc)" onclick="editService(this)">
                                 <i class="fas fa-pen"></i>
                             </button>
                             <form asp-action="DeleteService" method="post" onsubmit="return confirm('Xóa dịch vụ này?')">
@@ -63,6 +67,10 @@
                         </div>
                     </div>
                     <p class="text-muted small mb-2">Đơn vị: @svc.DonViTinh</p>
+                    @if (!string.IsNullOrEmpty(svc.MoTa))
+                    {
+                        <p class="small mb-2">@svc.MoTa</p>
+                    }
                     <div class="mt-auto">
                         <span class="text-gold fw-bold fs-5">@svc.GiaDichVu.ToString("N0") ₫</span>
                         <span class="text-muted small"> / @svc.DonViTinh</span>
@@ -102,6 +110,14 @@
                         <label class="form-label fw-semibold">Đơn vị tính</label>
                         <input type="text" name="donViTinh" class="form-control" placeholder="VD: lần, kg, giờ..." required>
                     </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="laTraiNghiem" value="true" id="addServiceTN">
+                        <label class="form-check-label" for="addServiceTN">Giới thiệu ở mục "Trải nghiệm" trên trang chủ</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả cho khách</label>
+                        <textarea name="moTa" class="form-control" rows="2" maxlength="500" placeholder="Một câu giới thiệu ngắn, hiển thị trên trang chủ"></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
@@ -135,6 +151,14 @@
                         <label class="form-label fw-semibold">Đơn vị tính</label>
                         <input type="text" name="donViTinh" id="editServiceDvt" class="form-control" required>
                     </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="laTraiNghiem" value="true" id="editServiceTN">
+                        <label class="form-check-label" for="editServiceTN">Giới thiệu ở mục "Trải nghiệm" trên trang chủ</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả cho khách</label>
+                        <textarea name="moTa" id="editServiceMoTa" class="form-control" rows="2" maxlength="500" placeholder="Một câu giới thiệu ngắn, hiển thị trên trang chủ"></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
@@ -147,11 +171,14 @@
 
 @section Scripts {
 <script>
-    function editService(ma, ten, gia, dvt) {
-        document.getElementById('editServiceMa').value = ma;
-        document.getElementById('editServiceTen').value = ten;
-        document.getElementById('editServiceGia').value = Math.floor(gia);
-        document.getElementById('editServiceDvt').value = dvt;
+    function editService(btn) {
+        var s = JSON.parse(btn.getAttribute('data-svc'));
+        document.getElementById('editServiceMa').value = s.maDichVu;
+        document.getElementById('editServiceTen').value = s.tenDichVu;
+        document.getElementById('editServiceGia').value = Math.floor(s.giaDichVu);
+        document.getElementById('editServiceDvt').value = s.donViTinh;
+        document.getElementById('editServiceTN').checked = s.laTraiNghiem;
+        document.getElementById('editServiceMoTa').value = s.moTa || '';
         new bootstrap.Modal(document.getElementById('editServiceModal')).show();
     }
 </script>

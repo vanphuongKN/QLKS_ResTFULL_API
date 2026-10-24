@@ -17,9 +17,20 @@ namespace QLKSan.Mappings
                 SoNguoiToiDa = entity.SoNguoiToiDa,
                 GiaThueNgay = entity.GiaThueNgay,
                 GiaThueGio = entity.GiaThueGio,
-                MoTa = entity.MoTa
+                MoTa = entity.MoTa,
+                DienTich = entity.DienTich,
+                LoaiGiuong = entity.LoaiGiuong,
+                HuongNhin = entity.HuongNhin,
+                MoTaChiTiet = entity.MoTaChiTiet,
+                AnhDaiDien = entity.AnhDaiDien
             };
         }
+
+        public static AmenityDto ToDto(this TienIch entity)
+            => new AmenityDto { MaTienIch = entity.MaTienIch, TenTienIch = entity.TenTienIch, Icon = entity.Icon };
+
+        public static RoomTypeImageDto ToDto(this HinhAnhLoaiPhong entity)
+            => new RoomTypeImageDto { MaHinhAnh = entity.MaHinhAnh, DuongDan = entity.DuongDan, ThuTu = entity.ThuTu };
 
         public static RoomBriefDto ToBriefDto(this Phong entity)
         {
@@ -106,7 +117,11 @@ namespace QLKSan.Mappings
                 SoNguoiToiDa = request.SoNguoiToiDa,
                 GiaThueNgay = request.GiaThueNgay,
                 GiaThueGio = request.GiaThueGio,
-                MoTa = request.MoTa
+                MoTa = request.MoTa,
+                DienTich = request.DienTich,
+                LoaiGiuong = request.LoaiGiuong,
+                HuongNhin = request.HuongNhin,
+                MoTaChiTiet = request.MoTaChiTiet
             };
         }
 

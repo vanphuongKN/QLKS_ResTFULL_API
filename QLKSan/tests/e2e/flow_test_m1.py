@@ -110,11 +110,12 @@ try:
 
     print('\n===== 1.2 Phòng trống theo khoảng ngày =====')
     s, body = web(kh, 'GET', f"/Customer/BookRoom?checkIn={d(3)}&checkOut={d(5)}&soNguoi=1")[0::2]
-    check('Trang đặt phòng hiển thị phòng trống theo khoảng ngày chọn', s == 200 and f'Phòng trống từ {dvn(3)} đến {dvn(5)}' in body)
+    check('Trang đặt phòng hiển thị hạng còn trống theo khoảng ngày chọn', s == 200 and f'Còn trống từ {dvn(3)} đến {dvn(5)}' in ' '.join(re.sub(r'<[^>]+>', ' ', body).split()))
     s, loc, body = web_post(kh, '/Customer/BookRoom', {'MaPhong': R1['MaPhong'], 'SoNguoi': 1, 'CheckIn': d(3), 'CheckOut': d(5), 'MaKhuyenMai': 'KM03'})
     A1 = track_booking(next((b['MaDatPhong'] for b in api('GET', '/api/customers/me/bookings', KT)[1]), None))
     check('Khách đặt online ngày +3→+5 (kèm KM03) qua Web', A1 and alert(body)[0] == 'success', f"{A1} | {alert(body)[1]}")
-    check('  Trang Kỳ nghỉ hiện thông báo thành công (sửa lỗi #8)', alert(body) == ('success', 'Đặt phòng thành công! Vui lòng chờ duyệt.'))
+    check('  Chuyển tới trang chi tiết phiếu, báo đã xác nhận', loc == f'/Customer/Booking/{A1}' and alert(body) == ('success', 'Đặt phòng thành công — kỳ nghỉ của bạn đã được xác nhận.'), loc)
+    check('  Phiếu online còn phòng được xác nhận ngay (Đã duyệt)', booking(A1)['TrangThai'] == 'Approved')
     check('  1.4 Mã KM03 được lưu vào phiếu', booking(A1)['MaKhuyenMai'] == 'KM03')
     check('  Phòng KHÔNG bị chuyển sang "Đã đặt" (nhận phòng sau 3 ngày)', room(R1['MaPhong'])['TrangThai'] == 'Available')
     s, r = book_api(K1, R1['MaPhong'], d(10), d(12)); track_booking(r and r.get('MaDatPhong'))
@@ -150,11 +151,11 @@ try:
     s, loc, body = web_post(kh, '/Customer/MyStays', {}) if False else (None, None, None)
     ltweb = web_login('letan1')
     s, loc, body = web_post(ltweb, '/Reception/CancelBooking', {'id': A1, 'lyDo': ''}) if False else (None, None, None)
-    # lễ tân từ chối phiếu chờ duyệt (+10→+12 của khach1)
+    # lễ tân huỷ phiếu đã xác nhận (+10→+12 của khach1; phiếu online được tự xác nhận)
     A3 = next(b for b in created['bookings'] if b and booking(b) and booking(b)['NgayCheckInDuKien'].startswith(d(10)))
     s, loc, body = web_post(ltweb, '/Reception/CancelBooking', {'id': A3, 'lyDo': 'Khách không xác nhận cọc'})
     b3 = booking(A3)
-    check('Lễ tân TỪ CHỐI phiếu chờ duyệt (qua Web)', alert(body)[0] == 'success' and b3['TrangThai'] == 'Cancelled' and '[Từ chối' in b3['GhiChu'], b3['GhiChu'])
+    check('Lễ tân HUỶ phiếu đã xác nhận (qua Web)', alert(body)[0] == 'success' and b3['TrangThai'] == 'Cancelled' and '[Huỷ' in b3['GhiChu'], b3['GhiChu'])
     s, r = api('POST', '/api/bookings/DP04/cancel', LETAN, {'LyDo': 'x'})
     check('Huỷ phiếu đã trả phòng → 409', s == 409, r and r.get('detail'))
 

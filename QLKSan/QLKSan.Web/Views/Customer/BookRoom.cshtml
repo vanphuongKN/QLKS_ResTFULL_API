@@ -1,19 +1,40 @@
 @model QLKSan.Models.Requests.BookRoomRequest
+@using QLKSan.Models.DTOs
 @{
     Layout = "_CustomerLayout";
-    ViewData["Title"] = "Đặt phòng trực tuyến";
-    var availableRooms = ViewBag.AvailableRooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
-}
-<div class="lr-section-label">Dịch vụ lưu trú</div>
-<h2 class="lr-section-title" style="font-size:2rem">Đặt phòng trực tuyến</h2>
-<p class="lr-section-desc mb-5">Chọn phòng lý tưởng, nhập ngày lưu trú và hoàn tất đặt phòng chỉ trong vài giây. Yêu cầu sẽ được xác nhận trong vòng 24 giờ.</p>
+    ViewData["Title"] = "Đặt phòng";
+    var types = ViewBag.Types as List<RoomTypeAvailabilityDto> ?? new List<RoomTypeAvailabilityDto>();
+    var selected = ViewBag.Selected as RoomTypeAvailabilityDto;
+    var customer = ViewBag.Customer as CustomerDto;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto();
+    var laKhach = User.IsLoggedIn() && User.GetRole() == "Customer";
+    var soDem = (Model.CheckOut.Date - Model.CheckIn.Date).Days;
+    var buoc = selected != null ? 3 : 2;
 
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success mb-4" role="alert">
-        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-    </div>
+    // Liên kết giữ nguyên ngày / số khách đang tìm
+    string BookUrl(string maLoai) => Url.Action("BookRoom", "Customer", new
+    {
+        checkIn = Model.CheckIn.ToString("yyyy-MM-dd"),
+        checkOut = Model.CheckOut.ToString("yyyy-MM-dd"),
+        soNguoi = Model.SoNguoi,
+        maLoai
+    });
+    var lienHe = customer?.LienHeDiaChis?.FirstOrDefault();
+    var gioNhan = hotel.GioNhanPhong ?? "14:00";
 }
+
+<div class="lx-page-head">
+    <span class="lr-eyebrow">Đặt phòng trực tuyến</span>
+    <h1>@(selected != null ? "Hoàn tất đặt phòng" : "Chọn hạng phòng")</h1>
+    <p>Giá hiển thị là giá thực tế từng đêm theo ngày bạn chọn, chưa gồm VAT.</p>
+</div>
+
+<ol class="bk-steps">
+    <li class="done"><span>01</span>Ngày lưu trú</li>
+    <li class="@(buoc == 2 ? "active" : "done")"><span>02</span>Hạng phòng</li>
+    <li class="@(buoc == 3 ? "active" : "")"><span>03</span>Xác nhận</li>
+</ol>
+
 @if (TempData["ErrorMessage"] != null)
 {
     <div class="alert alert-danger mb-4" role="alert">
@@ -21,304 +42,231 @@
     </div>
 }
 
-<div class="row g-4">
-    <!-- Booking Form -->
-    <div class="col-lg-5">
-        <div class="lr-card p-4">
-            <h5 class="fw-bold mb-4"><i class="fas fa-calendar-check me-2 text-gold"></i>Thông tin đặt phòng</h5>
-            <form asp-action="BookRoom" method="post" id="bookRoomForm">
-                <div class="mb-4">
-                    <label asp-for="MaPhong" class="form-label fw-semibold">Chọn phòng</label>
-                    <select asp-for="MaPhong" id="roomSelect" class="form-select" onchange="updateRoomInfo(this)">
-                        <option value="">-- Chọn phòng --</option>
-                        @if (availableRooms != null)
-                        {
-                            foreach (var room in availableRooms)
-                            {
-                                <option value="@room.MaPhong"
-                                        data-gia="@(room.GiaTrungBinhDem ?? room.LoaiPhong?.GiaThueNgay ?? 0)"
-                                        data-loai="@FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng")"
-                                        data-so="@room.SoPhong"
-                                        data-maxnguoi="@(room.LoaiPhong?.SoNguoiToiDa ?? 2)">
-                                    Phòng @room.SoPhong — @FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng") — @((room.GiaTrungBinhDem ?? room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫/đêm
-                                </option>
-                            }
-                        }
-                    </select>
-                    <span asp-validation-for="MaPhong" class="text-danger small"></span>
-                </div>
-
-                <div id="roomInfoBox" class="mb-4 p-3 rounded" style="background:rgba(197,160,89,0.08);border:1px solid rgba(197,160,89,0.2);display:none">
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted small">Loại phòng</span>
-                        <span id="infoLoai" class="fw-semibold small"></span>
-                    </div>
-                    <div class="d-flex justify-content-between mt-1">
-                        <span class="text-muted small">Giá / Đêm</span>
-                        <span id="infoGia" class="fw-bold text-gold small"></span>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="SoNguoi" class="form-label fw-semibold">Số lượng khách</label>
-                    <input asp-for="SoNguoi" id="soNguoi" class="form-control" min="1">
-                    <span asp-validation-for="SoNguoi" class="text-danger small d-block"></span>
-                    <small id="soNguoiHelp" class="text-muted d-none">Sức chứa tối đa: <span id="maxNguoiText" class="fw-bold text-danger"></span> người lớn.</small>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="CheckIn" class="form-label fw-semibold">Ngày nhận phòng</label>
-                    <input type="date" asp-for="CheckIn" id="CheckIn" class="form-control" data-lr-date min="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="calcTotal()">
-                    <span asp-validation-for="CheckIn" class="text-danger small"></span>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="CheckOut" class="form-label fw-semibold">Ngày trả phòng</label>
-                    <input type="date" asp-for="CheckOut" id="CheckOut" class="form-control" data-lr-date data-lr-after="#CheckIn" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" onchange="calcTotal()">
-                    <span asp-validation-for="CheckOut" class="text-danger small"></span>
-                </div>
-                <button type="button" class="lr-btn lr-btn-ghost w-100 mb-4" onclick="checkAvailability()">
-                    <i class="fas fa-search me-2"></i>Kiểm tra phòng trống theo ngày
-                </button>
-
-                <div class="mb-4">
-                    <label asp-for="MaKhuyenMai" class="form-label fw-semibold">Mã khuyến mãi</label>
-                    <div class="input-group">
-                        <input type="text" asp-for="MaKhuyenMai" id="maKhuyenMai" class="form-control" placeholder="Nhập mã ưu đãi (nếu có)">
-                        <button type="button" class="btn" style="border:1px solid #C5A059;color:#C5A059;font-weight:600" id="btnApplyPromo" onclick="applyPromo()">Áp dụng</button>
-                    </div>
-                    <div id="promoMessage" class="form-text mt-1 fw-medium" style="display:none;"></div>
-                </div>
-
-                <div id="totalBox" class="mb-4 p-3 rounded" style="background:#f8f8f8;display:none">
-                    <div id="totalBoxContent">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Ước tính tổng tiền</span>
-                            <span id="totalPrice" class="fw-bold text-gold fs-5"></span>
-                        </div>
-                    </div>
-                    <small class="text-muted mt-2 d-block">* Có thể thay đổi theo dịch vụ phát sinh</small>
-                </div>
-
-                <button type="submit" class="btn-submit-feedback w-100" style="text-align:center;justify-content:center">
-                    <i class="fas fa-check me-2"></i>Xác nhận đặt phòng
-                </button>
-            </form>
-        </div>
+<!-- BƯỚC 1: ngày lưu trú và số khách -->
+<form class="bk-search" method="get" asp-action="BookRoom">
+    <div class="lx-search-field">
+        <label for="CheckIn">Ngày nhận phòng</label>
+        <input type="date" id="CheckIn" name="checkIn" value="@Model.CheckIn.ToString("yyyy-MM-dd")" data-lr-date min="@DateTime.Today.ToString("yyyy-MM-dd")" />
     </div>
-
-    <!-- Available Rooms Grid -->
-    <div class="col-lg-7">
-        <h5 class="fw-bold mb-3">Phòng trống từ @(Model?.CheckIn.ToString("dd/MM/yyyy")) đến @(Model?.CheckOut.ToString("dd/MM/yyyy")) (@(availableRooms?.Count() ?? 0) phòng)</h5>
-        <div class="row g-3">
-            @if (availableRooms != null && availableRooms.Any())
+    <div class="lx-search-field">
+        <label for="CheckOut">Ngày trả phòng</label>
+        <input type="date" id="CheckOut" name="checkOut" value="@Model.CheckOut.ToString("yyyy-MM-dd")" data-lr-date data-lr-after="#CheckIn" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="lx-search-field">
+        <label for="SoNguoiSearch">Số khách</label>
+        <select id="SoNguoiSearch" name="soNguoi">
+            @for (var i = 1; i <= Math.Max(6, Model.SoNguoi); i++)
             {
-                foreach (var room in availableRooms)
-                {
-                    var hasImage = room.HinhAnhs != null && room.HinhAnhs.Any() && !string.IsNullOrEmpty(room.HinhAnhs.FirstOrDefault()?.DuongDanAnh);
-                    var imageUrl = "";
-                    if (hasImage)
+                <option value="@i" selected="@(i == Model.SoNguoi)">@i khách</option>
+            }
+        </select>
+    </div>
+    <button type="submit" class="lr-btn lr-btn-primary">Tìm phòng</button>
+</form>
+
+@if (selected == null)
+{
+    <!-- BƯỚC 2: hạng phòng còn trống kèm tổng giá cho cả kỳ nghỉ -->
+    <p class="bk-result">
+        Còn trống từ <strong>@Model.CheckIn.ToString("dd/MM/yyyy")</strong> đến <strong>@Model.CheckOut.ToString("dd/MM/yyyy")</strong>
+        · @soDem đêm · @Model.SoNguoi khách — <strong>@types.Count</strong> hạng phòng phù hợp
+    </p>
+
+    @if (!types.Any())
+    {
+        <div class="bk-card text-center">
+            <h2>Không còn phòng phù hợp</h2>
+            <p class="mb-0" style="color:var(--lr-text-muted)">
+                Các hạng phòng đã kín trong khoảng ngày này hoặc không đủ sức chứa cho @Model.SoNguoi khách.
+                Vui lòng chọn ngày khác@(string.IsNullOrEmpty(hotel.Hotline) ? "." : $" hoặc gọi {hotel.Hotline} để được hỗ trợ.")
+            </p>
+        </div>
+    }
+
+    @foreach (var t in types)
+    {
+        var lp = t.LoaiPhong;
+        var q = t.BaoGia;
+        <div class="bk-type">
+            <div class="bk-type-img" style="background-image:url('@MediaUrl.Of(lp.AnhDaiDien)')" role="img" aria-label="@FormatHelper.TenHangPhong(lp.TenLoai)"></div>
+            <div class="bk-type-body">
+                <h3>@FormatHelper.TenHangPhong(lp.TenLoai)</h3>
+                <div class="bk-facts">
+                    @if (lp.DienTich != null)
                     {
-                        imageUrl = room.HinhAnhs.FirstOrDefault()?.DuongDanAnh;
+                        <span><i class="fas fa-vector-square"></i>@lp.DienTich.Value.ToString("0.#") m²</span>
+                    }
+                    @if (!string.IsNullOrEmpty(lp.LoaiGiuong))
+                    {
+                        <span><i class="fas fa-bed"></i>@lp.LoaiGiuong</span>
+                    }
+                    @if (!string.IsNullOrEmpty(lp.HuongNhin))
+                    {
+                        <span><i class="fas fa-mountain-sun"></i>@lp.HuongNhin</span>
+                    }
+                    <span><i class="fas fa-user-group"></i>Tối đa @lp.SoNguoiToiDa khách</span>
+                </div>
+                <p>@lp.MoTa</p>
+                @if (lp.DiemDanhGia != null)
+                {
+                    <div class="bk-rating"><i class="fas fa-star"></i> @lp.DiemDanhGia.Value.ToString("0.0") / 5 · @lp.SoDanhGia đánh giá</div>
+                }
+                @if (t.SoPhongTrong <= 2)
+                {
+                    <span class="bk-scarce">Chỉ còn @t.SoPhongTrong phòng cho ngày bạn chọn</span>
+                }
+            </div>
+            <div class="bk-type-price">
+                <div>
+                    <small>Tổng @q.SoDem đêm</small>
+                    <div class="bk-total">@FormatHelper.ToVND(q.TongTien)</div>
+                    <small>@FormatHelper.ToVND(q.GiaTrungBinhDem) / đêm@(q.GiaTrungBinhDem != q.GiaGoc ? " (trung bình)" : "")</small>
+                </div>
+                <a href="@BookUrl(lp.MaLoai)" class="lr-btn lr-btn-primary">Chọn phòng này</a>
+                <a asp-controller="Home" asp-action="RoomType" asp-route-id="@lp.MaLoai" class="lr-link">Xem chi tiết</a>
+            </div>
+        </div>
+    }
+}
+else
+{
+    var lp = selected.LoaiPhong;
+    var q = selected.BaoGia;
+    <!-- BƯỚC 3: thông tin khách, yêu cầu riêng và xác nhận -->
+    <div class="bk-layout">
+        <div>
+            @if (!laKhach)
+            {
+                <div class="bk-card">
+                    <h2>Đăng nhập để hoàn tất</h2>
+                    @if (User.IsLoggedIn())
+                    {
+                        <p class="mb-0" style="color:var(--lr-text-muted)">Tài khoản nhân viên không đặt phòng trực tuyến. Vui lòng dùng tài khoản khách hàng.</p>
                     }
                     else
                     {
-                        var typeLower = room.LoaiPhong?.TenLoai?.ToLower() ?? "";
-                        if (typeLower.Contains("presidential") || typeLower.Contains("vip") || typeLower.Contains("suite") || typeLower.Contains("sut"))
-                        {
-                            imageUrl = "/images/room_presidential.png";
-                        }
-                        else if (typeLower.Contains("deluxe") || typeLower.Contains("dlx") || typeLower.Contains("superior") || typeLower.Contains("sup") || typeLower.Contains("ocean"))
-                        {
-                            imageUrl = "/images/room_ocean.png";
-                        }
-                        else
-                        {
-                            imageUrl = "/images/room_garden.png";
-                        }
-                    }
-                    
-                    <div class="col-md-6">
-                        <div class="lr-card p-3 h-100 d-flex flex-column justify-content-between" style="cursor:pointer" onclick="selectRoom('@room.MaPhong')">
-                            <div>
-                                <img src="@imageUrl" alt="Phòng @room.SoPhong" class="w-100 rounded mb-3" style="height: 140px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <span class="fw-bold">Phòng @room.SoPhong</span>
-                                        <p class="text-muted small mb-0">@FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai ?? "Phòng")</p>
-                                    </div>
-                                    <span class="badge-status badge-available" style="font-size:0.65rem">TRỐNG</span>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                                <span class="text-gold fw-bold">@((room.GiaTrungBinhDem ?? room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫</span>
-                                <span class="text-muted small">
-                                    /đêm@(room.GiaTrungBinhDem != null && room.GiaTrungBinhDem != room.LoaiPhong?.GiaThueNgay ? ((Model.CheckOut - Model.CheckIn).Days > 1 ? " (trung bình)" : " (giá cuối tuần/lễ)") : "")
-                                </span>
-                            </div>
+                        <p style="color:var(--lr-text-muted)">Phòng và giá bạn chọn được giữ nguyên sau khi đăng nhập. Chưa có tài khoản? Đăng ký chỉ mất một phút.</p>
+                        <div class="d-flex flex-wrap gap-3">
+                            <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@BookUrl(lp.MaLoai)" class="lr-btn lr-btn-primary">Đăng nhập</a>
+                            <a asp-controller="Auth" asp-action="Register" class="lr-btn lr-btn-ghost">Tạo tài khoản</a>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             }
             else
             {
-                <div class="col-12 text-center p-5 text-muted">
-                    <i class="fas fa-bed" style="font-size:3rem;opacity:0.3"></i>
-                    <p class="mt-3">Hiện không có phòng trống nào.</p>
-                </div>
+                <form asp-action="BookRoom" method="post" id="bookRoomForm">
+                    <input type="hidden" name="MaLoai" value="@lp.MaLoai" />
+                    <input type="hidden" name="CheckIn" value="@Model.CheckIn.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="CheckOut" value="@Model.CheckOut.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="SoNguoi" value="@Model.SoNguoi" />
+
+                    <div class="bk-card">
+                        <h2>Thông tin khách</h2>
+                        <div class="bk-guest">
+                            <div><label>Họ tên</label><span>@customer?.HoTen</span></div>
+                            <div><label>Điện thoại</label><span>@(lienHe?.SDT ?? "—")</span></div>
+                            <div><label>Email</label><span>@(string.IsNullOrEmpty(lienHe?.Email) ? "—" : lienHe.Email)</span></div>
+                        </div>
+                        <a asp-action="Profile" class="lr-link mt-3 d-inline-block" style="font-size:0.78rem">Cập nhật thông tin liên hệ</a>
+                    </div>
+
+                    <div class="bk-card">
+                        <h2>Yêu cầu riêng</h2>
+                        <div class="mb-3">
+                            <label asp-for="GioDenDuKien">Giờ đến dự kiến</label>
+                            <select asp-for="GioDenDuKien" class="form-select">
+                                <option value="">Chưa xác định</option>
+                                <option value="Trước @gioNhan">Trước @gioNhan (nhận phòng sớm nếu phòng đã sẵn sàng)</option>
+                                <option value="@gioNhan – 16:00">@gioNhan – 16:00</option>
+                                <option value="16:00 – 18:00">16:00 – 18:00</option>
+                                <option value="18:00 – 21:00">18:00 – 21:00</option>
+                                <option value="Sau 21:00">Sau 21:00</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label asp-for="YeuCauDacBiet">Lời nhắn cho khách sạn</label>
+                            <textarea asp-for="YeuCauDacBiet" class="form-control" rows="3" maxlength="500"
+                                      placeholder="Ví dụ: giường đôi, tầng cao, kỷ niệm ngày cưới, cần nôi cho em bé…"></textarea>
+                            <span asp-validation-for="YeuCauDacBiet" class="text-danger small"></span>
+                            <small class="d-block mt-1" style="color:var(--lr-text-muted)">Khách sạn sẽ cố gắng đáp ứng tuỳ tình trạng phòng thực tế.</small>
+                        </div>
+                    </div>
+
+                    <div class="bk-card">
+                        <h2>Mã ưu đãi</h2>
+                        <div class="input-group">
+                            <input type="text" asp-for="MaKhuyenMai" id="maKhuyenMai" class="form-control" placeholder="Nhập mã (nếu có)" />
+                            <button type="button" class="lr-btn lr-btn-ghost" onclick="applyPromo()">Áp dụng</button>
+                        </div>
+                        <div id="promoMessage" class="form-text mt-2" style="display:none"></div>
+                    </div>
+
+                    <div class="bk-policy mb-4">
+                        <strong>Nhận phòng</strong> từ @gioNhan · <strong>Trả phòng</strong> trước @(hotel.GioTraPhong ?? "12:00").<br />
+                        @if (!string.IsNullOrEmpty(hotel.ChinhSachHuy))
+                        {
+                            <strong>Huỷ phòng:</strong> @hotel.ChinhSachHuy<br />
+                        }
+                        Thanh toán tại khách sạn khi trả phòng.
+                    </div>
+
+                    <button type="submit" class="lr-btn lr-btn-primary w-100">Xác nhận đặt phòng</button>
+                </form>
             }
         </div>
+
+        <aside class="bk-summary bk-summary-first">
+            <div class="bk-summary-img" style="background-image:url('@MediaUrl.Of(lp.AnhDaiDien)')"></div>
+            <div class="bk-summary-body">
+                <span class="lr-eyebrow">Kỳ nghỉ của bạn</span>
+                <h3>@FormatHelper.TenHangPhong(lp.TenLoai)</h3>
+                <div class="bk-line"><span>Nhận phòng</span><span>@Model.CheckIn.ToString("dd/MM/yyyy") · @gioNhan</span></div>
+                <div class="bk-line"><span>Trả phòng</span><span>@Model.CheckOut.ToString("dd/MM/yyyy") · @(hotel.GioTraPhong ?? "12:00")</span></div>
+                <div class="bk-line"><span>Số khách</span><span>@Model.SoNguoi khách</span></div>
+                <hr />
+                @foreach (var dem in q.CacDem)
+                {
+                    <div class="bk-line night">
+                        <span>Đêm @dem.Dem.ToString("dd/MM")<span class="bk-tag">@dem.QuyTac</span></span>
+                        <span>@FormatHelper.ToVND(dem.Gia)</span>
+                    </div>
+                }
+                <div class="bk-line" id="discountLine" style="display:none;color:#2e7d32"><span style="color:inherit">Ưu đãi</span><span id="discountValue"></span></div>
+                <div class="bk-sum-total"><span>Tổng tiền phòng</span><strong id="totalValue">@FormatHelper.ToVND(q.TongTien)</strong></div>
+                <p class="bk-note">Chưa gồm VAT và dịch vụ phát sinh trong kỳ nghỉ.</p>
+                <a href="@BookUrl(null)" class="lr-link" style="font-size:0.78rem">Đổi hạng phòng</a>
+            </div>
+        </aside>
     </div>
-</div>
+}
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        function selectRoom(maPhong) {
-            document.getElementById('roomSelect').value = maPhong;
-            updateRoomInfo(document.getElementById('roomSelect'));
-        }
-
-        function updateRoomInfo(sel) {
-            var opt = sel.options[sel.selectedIndex];
-            if (opt.value) {
-                document.getElementById('infoLoai').textContent = opt.getAttribute('data-loai');
-                document.getElementById('infoGia').textContent = parseInt(opt.getAttribute('data-gia')).toLocaleString('en-US') + ' ₫/đêm';
-                
-                var maxNguoi = opt.getAttribute('data-maxnguoi');
-                var soNguoiInput = document.getElementById('soNguoi');
-                soNguoiInput.max = maxNguoi;
-                if (parseInt(soNguoiInput.value) > parseInt(maxNguoi)) {
-                    soNguoiInput.value = maxNguoi;
-                }
-                document.getElementById('maxNguoiText').textContent = maxNguoi;
-                document.getElementById('soNguoiHelp').classList.remove('d-none');
-
-                document.getElementById('roomInfoBox').style.display = 'block';
-                calcTotal();
-            } else {
-                document.getElementById('roomInfoBox').style.display = 'none';
-                document.getElementById('totalBox').style.display = 'none';
-                document.getElementById('soNguoiHelp').classList.add('d-none');
-                document.getElementById('soNguoi').removeAttribute('max');
+    @if (selected != null && laKhach)
+    {
+        <script>
+            // Mã ưu đãi chỉ để xem trước số tiền giảm; API áp dụng lại khi lập hoá đơn
+            var tongGoc = @selected.BaoGia.TongTien.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            function vnd(n) { return Math.round(n).toLocaleString('vi-VN') + ' ₫'; }
+            function applyPromo() {
+                var code = document.getElementById('maKhuyenMai').value.trim();
+                var msg = document.getElementById('promoMessage');
+                var show = function (text, ok, giam) {
+                    msg.textContent = text; msg.style.display = 'block'; msg.style.color = ok ? '#2e7d32' : '#b42318';
+                    document.getElementById('discountLine').style.display = giam > 0 ? 'flex' : 'none';
+                    document.getElementById('discountValue').textContent = '−' + vnd(giam);
+                    document.getElementById('totalValue').textContent = vnd(tongGoc - giam);
+                };
+                if (!code) { show('Vui lòng nhập mã ưu đãi.', false, 0); return; }
+                fetch('@Url.Action("CheckPromotion", "Customer")?code=' + encodeURIComponent(code))
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (!d.success) { show(d.message, false, 0); return; }
+                        var giam = d.loaiGiam === 'Phần trăm' ? tongGoc * d.giaTriGiam / 100 : d.giaTriGiam;
+                        show(d.message, true, Math.min(giam, tongGoc));
+                    })
+                    .catch(function () { show('Không kiểm tra được mã, vui lòng thử lại.', false, 0); });
             }
-        }
-
-        var appliedPromo = null;
-
-        // Tải lại danh sách phòng trống theo ngày nhận/trả và số khách đã chọn
-        function checkAvailability() {
-            var ci = document.getElementById('CheckIn').value;
-            var co = document.getElementById('CheckOut').value;
-            var guests = document.getElementById('soNguoi').value;
-            if (!ci || !co) { alert('Vui lòng chọn ngày nhận và trả phòng.'); return; }
-            var url = '@Url.Action("BookRoom", "Customer")' + '?checkIn=' + ci + '&checkOut=' + co + (guests ? '&soNguoi=' + guests : '');
-            window.location.href = url;
-        }
-
-        function applyPromo() {
-            var code = document.getElementById('maKhuyenMai').value.trim();
-            var msgDiv = document.getElementById('promoMessage');
-            if (!code) {
-                msgDiv.style.color = '#dc3545';
-                msgDiv.textContent = 'Vui lòng nhập mã khuyến mãi.';
-                msgDiv.style.display = 'block';
-                appliedPromo = null;
-                calcTotal();
-                return;
-            }
-
-            fetch('/Customer/CheckPromotion?code=' + encodeURIComponent(code))
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        msgDiv.style.color = '#2e7d32';
-                        msgDiv.textContent = data.message;
-                        msgDiv.style.display = 'block';
-                        appliedPromo = data;
-                        calcTotal();
-                    } else {
-                        msgDiv.style.color = '#dc3545';
-                        msgDiv.textContent = data.message;
-                        msgDiv.style.display = 'block';
-                        appliedPromo = null;
-                        calcTotal();
-                    }
-                })
-                .catch(err => {
-                    msgDiv.style.color = '#dc3545';
-                    msgDiv.textContent = 'Lỗi kết nối khi áp dụng mã.';
-                    msgDiv.style.display = 'block';
-                    appliedPromo = null;
-                    calcTotal();
-                });
-        }
-
-        // Lấy giá từng đêm từ API (giá cuối tuần / lễ có thể khác giá niêm yết) rồi tính tổng
-        var quoteSeq = 0;
-        function calcTotal() {
-            var sel = document.getElementById('roomSelect');
-            var ci = document.getElementById('CheckIn').value;
-            var co = document.getElementById('CheckOut').value;
-            if (!sel.value || !ci || !co) return;
-            var nights = Math.round((new Date(co) - new Date(ci)) / (1000 * 60 * 60 * 24));
-            if (nights <= 0) return;
-            var seq = ++quoteSeq;
-            fetch('@Url.Action("Quote", "Customer")?maPhong=' + encodeURIComponent(sel.value) + '&checkIn=' + ci + '&checkOut=' + co)
-                .then(res => res.json())
-                .then(q => { if (seq === quoteSeq) renderTotal(q.success ? q : null, nights, sel); })
-                .catch(() => { if (seq === quoteSeq) renderTotal(null, nights, sel); });
-        }
-
-        function renderTotal(quote, nights, sel) {
-            var gia = parseInt(sel.options[sel.selectedIndex].getAttribute('data-gia'));
-            var subtotal = quote ? quote.tongTien : nights * gia;
-            if (quote) {
-                document.getElementById('infoGia').textContent = quote.giaTrungBinh.toLocaleString('en-US') + ' ₫/đêm' + (quote.cacDem.some(d => d.quyTac) ? (quote.soDem > 1 ? ' (trung bình)' : ' (giá cuối tuần/lễ)') : '');
-            }
-
-            var discount = 0;
-            if (appliedPromo) {
-                if (appliedPromo.loaiGiam === 'Phần trăm') {
-                    discount = subtotal * (appliedPromo.giaTriGiam / 100);
-                } else {
-                    discount = appliedPromo.giaTriGiam;
-                }
-                if (discount > subtotal) discount = subtotal;
-            }
-
-            var finalTotal = subtotal - discount;
-
-            var html = '<div class="d-flex justify-content-between align-items-center mb-1">' +
-                       '  <span class="text-muted">Tiền phòng (' + nights + ' đêm):</span>' +
-                       '  <span class="fw-semibold">' + subtotal.toLocaleString('en-US') + ' ₫</span>' +
-                       '</div>';
-
-            // Liệt kê các đêm được điều chỉnh giá
-            if (quote) {
-                quote.cacDem.filter(d => d.quyTac).forEach(function (d) {
-                    html += '<div class="d-flex justify-content-between small text-muted">' +
-                            '  <span>· Đêm ' + d.dem + ' (' + d.quyTac + ')</span>' +
-                            '  <span>' + d.gia.toLocaleString('en-US') + ' ₫</span>' +
-                            '</div>';
-                });
-            }
-
-            if (discount > 0) {
-                html += '<div class="d-flex justify-content-between align-items-center mb-1 text-success">' +
-                        '  <span>Giảm giá khuyến mãi:</span>' +
-                        '  <span class="fw-semibold">-' + discount.toLocaleString('en-US') + ' ₫</span>' +
-                        '</div>';
-            }
-
-            html += '<hr class="my-2">' +
-                    '<div class="d-flex justify-content-between align-items-center">' +
-                    '  <span class="text-muted fw-bold">Tổng tiền ước tính:</span>' +
-                    '  <span id="totalPrice" class="fw-bold text-gold fs-5">' + finalTotal.toLocaleString('en-US') + ' ₫</span>' +
-                    '</div>';
-
-            document.getElementById('totalBoxContent').innerHTML = html;
-            document.getElementById('totalBox').style.display = 'block';
-        }
-
-    </script>
+        </script>
+    }
 }

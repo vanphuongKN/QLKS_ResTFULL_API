@@ -133,6 +133,47 @@ namespace QLKSan.Data
                     -- Hoá đơn cũ tính 1 giá cho mọi đêm nên suy ra được số đêm
                     EXEC('UPDATE h SET SoDem = ROUND(h.TongTienPhong / c.GiaThueThucTe, 0)
                           FROM HoaDon h CROSS APPLY (SELECT TOP 1 GiaThueThucTe FROM ChiTietDatPhong WHERE MaDatPhong = h.MaDatPhong AND GiaThueThucTe > 0) c');
+                END"),
+
+            // Kế hoạch khách hàng GĐ3: hạng phòng giới thiệu chi tiết, đặt theo hạng phòng, đánh giá theo lần lưu trú
+            ("14. Thêm cột giới thiệu cho LoaiPhong", @"
+                IF COL_LENGTH('LoaiPhong', 'DienTich') IS NULL ALTER TABLE LoaiPhong ADD DienTich DECIMAL(6,1) NULL;
+                IF COL_LENGTH('LoaiPhong', 'LoaiGiuong') IS NULL ALTER TABLE LoaiPhong ADD LoaiGiuong NVARCHAR(100) NULL;
+                IF COL_LENGTH('LoaiPhong', 'HuongNhin') IS NULL ALTER TABLE LoaiPhong ADD HuongNhin NVARCHAR(100) NULL;
+                IF COL_LENGTH('LoaiPhong', 'MoTaChiTiet') IS NULL ALTER TABLE LoaiPhong ADD MoTaChiTiet NVARCHAR(MAX) NULL;
+                IF COL_LENGTH('LoaiPhong', 'AnhDaiDien') IS NULL ALTER TABLE LoaiPhong ADD AnhDaiDien NVARCHAR(255) NULL;"),
+            ("15. Tạo bảng HinhAnhLoaiPhong", @"
+                IF OBJECT_ID('HinhAnhLoaiPhong') IS NULL
+                CREATE TABLE HinhAnhLoaiPhong (
+                    MaHinhAnh VARCHAR(10) PRIMARY KEY,
+                    MaLoai VARCHAR(10) NOT NULL,
+                    DuongDan NVARCHAR(255) NOT NULL,
+                    ThuTu INT NOT NULL DEFAULT 0,
+                    CONSTRAINT FK_HinhAnhLoaiPhong_LoaiPhong FOREIGN KEY (MaLoai) REFERENCES LoaiPhong(MaLoai) ON DELETE CASCADE
+                );"),
+            ("16. Thêm yêu cầu riêng / giờ đến cho PhieuDatPhong", @"
+                IF COL_LENGTH('PhieuDatPhong', 'YeuCauDacBiet') IS NULL ALTER TABLE PhieuDatPhong ADD YeuCauDacBiet NVARCHAR(500) NULL;
+                IF COL_LENGTH('PhieuDatPhong', 'GioDenDuKien') IS NULL ALTER TABLE PhieuDatPhong ADD GioDenDuKien NVARCHAR(30) NULL;"),
+            ("17. Thêm DichVu.LaTraiNghiem / MoTa", @"
+                IF COL_LENGTH('DichVu', 'LaTraiNghiem') IS NULL
+                BEGIN
+                    ALTER TABLE DichVu ADD LaTraiNghiem BIT NOT NULL CONSTRAINT DF_DichVu_LaTraiNghiem DEFAULT 0;
+                    -- Trước đây trang chủ tự nhận diện Spa / ăn sáng / đưa đón là trải nghiệm: giữ nguyên hiển thị đó
+                    EXEC('UPDATE DichVu SET LaTraiNghiem = 1 WHERE TenDichVu LIKE N''%Spa%'' OR TenDichVu LIKE N''%Massage%''
+                          OR TenDichVu LIKE N''%Buffet%'' OR TenDichVu LIKE N''%Ăn sáng%'' OR TenDichVu LIKE N''%Đưa đón%''');
+                END
+                IF COL_LENGTH('DichVu', 'MoTa') IS NULL ALTER TABLE DichVu ADD MoTa NVARCHAR(500) NULL;"),
+            ("18. Thêm DanhGia.MaDatPhong (đánh giá theo lần lưu trú)", @"
+                IF COL_LENGTH('DanhGia', 'MaDatPhong') IS NULL
+                BEGIN
+                    ALTER TABLE DanhGia ADD MaDatPhong VARCHAR(10) NULL
+                        CONSTRAINT FK_DanhGia_PhieuDatPhong FOREIGN KEY REFERENCES PhieuDatPhong(MaDatPhong);
+                    -- Đánh giá cũ: gắn vào lần trả phòng gần nhất của khách với phòng đó
+                    EXEC('UPDATE d SET MaDatPhong = x.MaDatPhong FROM DanhGia d
+                          CROSS APPLY (SELECT TOP 1 p.MaDatPhong FROM PhieuDatPhong p JOIN ChiTietDatPhong c ON c.MaDatPhong = p.MaDatPhong
+                                       WHERE p.MaKhachHang = d.MaKhachHang AND c.MaPhong = d.MaPhong AND p.TrangThai = N''Đã trả phòng''
+                                       ORDER BY p.NgayCheckOutThucTe DESC) x');
+                    EXEC('CREATE UNIQUE INDEX UX_DanhGia_MaDatPhong ON DanhGia(MaDatPhong) WHERE MaDatPhong IS NOT NULL');
                 END")
         };
 

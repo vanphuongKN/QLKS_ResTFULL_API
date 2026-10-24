@@ -16,6 +16,12 @@ namespace QLKSan.Models.Requests
         [Required(ErrorMessage = "Vui lòng nhập đơn vị tính.")]
         [StringLength(20)]
         public string DonViTinh { get; set; }
+
+        // Hiển thị ở mục "Trải nghiệm" trang chủ kèm mô tả ngắn
+        public bool LaTraiNghiem { get; set; }
+
+        [StringLength(500)]
+        public string MoTa { get; set; }
     }
 
     // PATCH /api/services/{id}: đặt trạng thái cụ thể (không đảo trạng thái kiểu toggle)

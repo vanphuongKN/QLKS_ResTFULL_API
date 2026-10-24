@@ -8,29 +8,12 @@
     var laKhach = User.IsLoggedIn() && role == "Customer";
     var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto { Ten = "LUXE RESERVE" };
     var roomTypes = ViewBag.RoomTypes as List<RoomTypeDto> ?? new List<RoomTypeDto>();
-    var services = ViewBag.Services as List<ServiceDto> ?? new List<ServiceDto>();
+    // "Trải nghiệm": dịch vụ được quản trị đánh dấu giới thiệu (không ghi bảng giá)
+    var experiences = ViewBag.Experiences as List<ServiceDto> ?? new List<ServiceDto>();
+    var reviews = ViewBag.Reviews as List<ReviewDto> ?? new List<ReviewDto>();
     var maxNguoi = roomTypes.Count > 0 ? roomTypes.Max(l => l.SoNguoiToiDa) : 4;
-    var bookUrl = laKhach ? Url.Action("BookRoom", "Customer") : Url.Action("Login", "Auth", new { returnUrl = Url.Action("BookRoom", "Customer") });
-
-    // Ảnh minh hoạ theo hạng phòng (CSDL chưa có ảnh riêng cho từng hạng — GĐ3 bổ sung)
-    string RoomImage(string tenLoai)
-    {
-        var t = (tenLoai ?? "").ToLower();
-        if (t.Contains("suite") || t.Contains("tổng thống") || t.Contains("vip")) return "/images/room_presidential.png";
-        if (t.Contains("deluxe") || t.Contains("superior")) return "/images/room_ocean.png";
-        return "/images/room_garden.png";
-    }
-
-    // "Trải nghiệm" chỉ giới thiệu các dịch vụ đang có thật trong hệ thống, không ghi bảng giá
-    (string Ten, string MoTa)? TraiNghiem(string tenDichVu)
-    {
-        var t = (tenDichVu ?? "").ToLower();
-        if (t.Contains("spa") || t.Contains("massage")) return ("Spa & trị liệu", "Liệu trình massage và chăm sóc cơ thể giúp cân bằng lại sau những ngày dài di chuyển.");
-        if (t.Contains("ăn sáng") || t.Contains("buffet")) return ("Ẩm thực buổi sáng", "Bữa sáng tự chọn với nguyên liệu địa phương, phục vụ mỗi sáng trong không gian yên tĩnh.");
-        if (t.Contains("đưa đón") || t.Contains("sân bay")) return ("Đưa đón riêng", "Xe đón tận sân bay và đưa quý khách về khách sạn, sắp xếp trước theo lịch trình.");
-        return null;
-    }
-    var experiences = services.Select(s => TraiNghiem(s.TenDichVu)).Where(x => x != null).Select(x => x.Value).Distinct().Take(3).ToList();
+    // Xem phòng trống và giá không cần đăng nhập; bước xác nhận mới yêu cầu tài khoản khách hàng
+    var bookUrl = Url.Action("BookRoom", "Customer");
 }
 
 <!-- HERO -->
@@ -110,8 +93,12 @@
     <div class="lx-rooms">
         @foreach (var lp in roomTypes)
         {
-            <a class="lx-room" href="@bookUrl">
-                <div class="lx-room-img"><img src="@RoomImage(lp.TenLoai)" alt="@FormatHelper.TenHangPhong(lp.TenLoai)" /></div>
+            <a class="lx-room" asp-action="RoomType" asp-route-id="@lp.MaLoai">
+                <div class="lx-room-img"><img src="@MediaUrl.Of(lp.AnhDaiDien)" alt="@FormatHelper.TenHangPhong(lp.TenLoai)" /></div>
+                @if (lp.DiemDanhGia != null)
+                {
+                    <div class="lx-room-rating"><i class="fas fa-star"></i> @lp.DiemDanhGia.Value.ToString("0.0") · @lp.SoDanhGia đánh giá</div>
+                }
                 <h3>@FormatHelper.TenHangPhong(lp.TenLoai)</h3>
                 <p>@(string.IsNullOrWhiteSpace(lp.MoTa) ? "Phòng nghỉ tiện nghi, yên tĩnh và được chuẩn bị chu đáo." : lp.MoTa)</p>
                 <div class="lx-room-meta">
@@ -136,7 +123,7 @@
                 {
                     <div class="lx-exp-item">
                         <span class="lx-exp-num">@((i + 1).ToString("00"))</span>
-                        <h3>@experiences[i].Ten</h3>
+                        <h3>@experiences[i].TenDichVu</h3>
                         <p>@experiences[i].MoTa</p>
                     </div>
                 }
@@ -145,11 +132,35 @@
     </section>
 }
 
+@if (reviews.Any())
+{
+    <!-- ĐÁNH GIÁ CỦA KHÁCH -->
+    <section class="lx-section" id="reviews">
+        <div class="lx-section-head">
+            <span class="lr-eyebrow">Cảm nhận</span>
+            <h2>Khách nói về chúng tôi</h2>
+        </div>
+        <div class="lx-reviews">
+            @foreach (var r in reviews)
+            {
+                <figure class="lx-quote m-0">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <i class="@(i <= r.SoSao ? "fas" : "far") fa-star"></i>
+                    }
+                    <blockquote>“@r.NoiDung”</blockquote>
+                    <figcaption><small>@r.TenHienThi · @FormatHelper.TenHangPhong(r.TenLoaiPhong ?? "")</small></figcaption>
+                </figure>
+            }
+        </div>
+    </section>
+}
+
 <!-- LỜI MỜI ĐẶT PHÒNG -->
 <section class="lx-cta">
     <span class="lr-eyebrow">Đặt phòng trực tuyến</span>
     <h2>Sẵn sàng cho kỳ nghỉ tiếp theo?</h2>
-    <p>Chọn ngày, xem giá từng đêm và gửi yêu cầu đặt phòng ngay trên website.</p>
+    <p>Chọn ngày, xem giá từng đêm và nhận xác nhận đặt phòng ngay trên website.</p>
     @if (!User.IsLoggedIn() || laKhach)
     {
         <a href="@bookUrl" class="lr-btn lr-btn-primary">Đặt phòng ngay</a>
@@ -174,25 +185,20 @@
             });
         })();
 
-        // Khách chưa đăng nhập: chuyển tới đăng nhập, xong quay lại trang đặt phòng với ngày đã chọn
+        // Ai cũng xem được phòng trống và giá; tài khoản nhân viên không đặt phòng trực tuyến
         function handleBooking(event) {
-            var form = event.target;
             var ci = document.getElementById('checkin-date').value, co = document.getElementById('checkout-date').value;
             if (!ci || !co || co <= ci) {
                 event.preventDefault();
                 alert('Vui lòng chọn ngày trả phòng sau ngày nhận phòng.');
                 return false;
             }
-            var laKhach = @(laKhach ? "true" : "false"), daDangNhap = @(User.IsLoggedIn() ? "true" : "false");
-            if (laKhach) return true;
-            event.preventDefault();
-            if (daDangNhap) {
+            if (@(User.IsLoggedIn() && !laKhach ? "true" : "false")) {
+                event.preventDefault();
                 alert('Tài khoản nhân viên không đặt phòng trực tuyến. Vui lòng dùng tài khoản khách hàng.');
                 return false;
             }
-            var target = '@Url.Action("BookRoom", "Customer")?' + new URLSearchParams(new FormData(form)).toString();
-            window.location.href = '@Url.Action("Login", "Auth")?returnUrl=' + encodeURIComponent(target);
-            return false;
+            return true;
         }
     </script>
 }

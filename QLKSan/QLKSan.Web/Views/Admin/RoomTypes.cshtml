@@ -8,7 +8,7 @@
         <p class="page-label">Quản lý tài sản</p>
         <h2>Danh sách Loại phòng</h2>
     </div>
-    <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#addRoomTypeModal">
+    <button class="btn-gold" onclick="openRoomType(null)">
         <i class="fas fa-plus me-2"></i>Thêm loại phòng
     </button>
 </div>
@@ -27,12 +27,14 @@
         <table class="table table-custom mb-0">
             <thead>
                 <tr>
+                    <th>Ảnh</th>
                     <th>Mã loại</th>
                     <th>Tên loại phòng</th>
-                    <th>Số người tối đa</th>
+                    <th>Sức chứa</th>
+                    <th>Diện tích</th>
                     <th>Giá / Ngày</th>
                     <th>Giá / Giờ</th>
-                    <th>Mô tả</th>
+                    <th>Đánh giá</th>
                     <th>Thao tác</th>
                 </tr>
             </thead>
@@ -42,21 +44,28 @@
                     foreach (var rt in roomTypes)
                     {
                         <tr>
+                            <td><img src="@MediaUrl.Of(rt.AnhDaiDien)" alt="" style="width:64px;height:44px;object-fit:cover;border-radius:4px" /></td>
                             <td><strong>@rt.MaLoai</strong></td>
-                            <td class="text-gold fw-bold">@rt.TenLoai</td>
-                            <td>@rt.SoNguoiToiDa</td>
+                            <td>
+                                <span class="text-gold fw-bold">@rt.TenLoai</span>
+                                <div class="text-muted small">@string.Join(" · ", new[] { rt.LoaiGiuong, rt.HuongNhin }.Where(x => !string.IsNullOrEmpty(x)))</div>
+                            </td>
+                            <td>@rt.SoNguoiToiDa khách</td>
+                            <td>@(rt.DienTich != null ? rt.DienTich.Value.ToString("0.#") + " m²" : "—")</td>
                             <td class="text-gold fw-bold">@FormatHelper.ToVND(rt.GiaThueNgay)</td>
                             <td>@FormatHelper.ToVND(rt.GiaThueGio)</td>
-                            <td>@rt.MoTa</td>
+                            <td>@(rt.DiemDanhGia != null ? $"{rt.DiemDanhGia:0.0} ★ ({rt.SoDanhGia})" : "—")</td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" 
-                                            onclick="editRoomType('@rt.MaLoai', '@rt.TenLoai', '@rt.SoNguoiToiDa', '@rt.GiaThueNgay.ToString("0")', '@rt.GiaThueGio.ToString("0")', '@rt.MoTa')">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" title="Sửa" data-rt="@Json.Serialize(rt)" onclick="openRoomType(this)">
                                         <i class="fas fa-pen"></i>
                                     </button>
+                                    <a asp-action="RoomTypeImages" asp-route-id="@rt.MaLoai" class="btn btn-sm btn-outline-secondary" title="Bộ ảnh">
+                                        <i class="fas fa-images"></i>
+                                    </a>
                                     <form asp-action="DeleteRoomType" method="post" class="d-inline" onsubmit="return confirm('Xóa loại phòng @rt.TenLoai?')">
                                         <input type="hidden" name="maLoai" value="@rt.MaLoai" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xoá">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -67,88 +76,67 @@
                 }
                 else
                 {
-                    <tr><td colspan="7" class="text-center text-muted p-4">Chưa có loại phòng nào.</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted p-4">Chưa có loại phòng nào.</td></tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Add RoomType Modal -->
-<div class="modal fade" id="addRoomTypeModal" tabindex="-1">
-    <div class="modal-dialog">
+<!-- Thêm / sửa loại phòng: một form, đổi action theo thao tác -->
+<div class="modal fade" id="roomTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fas fa-layer-group me-2"></i>Thêm loại phòng mới</h5>
+                <h5 class="modal-title fw-bold" id="rtTitle">Thêm loại phòng mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form asp-action="AddRoomType" method="post">
+            <form method="post" id="rtForm" data-add="@Url.Action("AddRoomType")" data-edit="@Url.Action("EditRoomType")">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="maLoai" id="rtMaLoai" />
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tên loại phòng</label>
-                        <input type="text" name="tenLoai" class="form-control" placeholder="VD: VIP, Standard..." required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Số người tối đa</label>
-                        <input type="number" name="soNguoiToiDa" class="form-control" placeholder="VD: 2" min="1" max="10" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Giá thuê / Ngày (₫)</label>
-                        <input type="number" name="giaThueNgay" class="form-control" placeholder="VD: 1500000" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Giá thuê / Giờ (₫)</label>
-                        <input type="number" name="giaThueGio" class="form-control" placeholder="VD: 200000" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Mô tả</label>
-                        <textarea name="moTa" class="form-control" rows="3" placeholder="Mô tả về loại phòng..."></textarea>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold" for="rtTenLoai">Tên loại phòng</label>
+                            <input type="text" name="tenLoai" id="rtTenLoai" class="form-control" maxlength="50" placeholder="VD: Phòng Deluxe Hướng Biển" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="rtSoNguoi">Số người tối đa</label>
+                            <input type="number" name="soNguoiToiDa" id="rtSoNguoi" class="form-control" min="1" max="10" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="rtGiaNgay">Giá thuê / Ngày (₫)</label>
+                            <input type="number" name="giaThueNgay" id="rtGiaNgay" class="form-control" min="0" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="rtGiaGio">Giá thuê / Giờ (₫)</label>
+                            <input type="number" name="giaThueGio" id="rtGiaGio" class="form-control" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="rtDienTich">Diện tích (m²)</label>
+                            <input type="number" name="dienTich" id="rtDienTich" class="form-control" min="5" max="500" step="0.5">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="rtGiuong">Loại giường</label>
+                            <input type="text" name="loaiGiuong" id="rtGiuong" class="form-control" maxlength="100" placeholder="VD: 1 giường đôi lớn">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="rtHuong">Hướng nhìn</label>
+                            <input type="text" name="huongNhin" id="rtHuong" class="form-control" maxlength="100" placeholder="VD: Hướng biển">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="rtMoTa">Mô tả ngắn <span class="text-muted fw-normal">(thẻ hạng phòng, trang đặt phòng)</span></label>
+                            <textarea name="moTa" id="rtMoTa" class="form-control" rows="2" maxlength="500"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="rtMoTaChiTiet">Mô tả chi tiết <span class="text-muted fw-normal">(trang chi tiết hạng phòng)</span></label>
+                            <textarea name="moTaChiTiet" id="rtMoTaChiTiet" class="form-control" rows="4" maxlength="4000"></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn-gold">Thêm</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit RoomType Modal -->
-<div class="modal fade" id="editRoomTypeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fas fa-pen me-2"></i>Cập nhật loại phòng</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form asp-action="EditRoomType" method="post">
-                <div class="modal-body">
-                    <input type="hidden" name="maLoai" id="editRTMaLoai" />
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tên loại phòng</label>
-                        <input type="text" name="tenLoai" id="editRTTenLoai" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Số người tối đa</label>
-                        <input type="number" name="soNguoiToiDa" id="editRTSoNguoi" class="form-control" min="1" max="10" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Giá thuê / Ngày (₫)</label>
-                        <input type="number" name="giaThueNgay" id="editRTGiaNgay" class="form-control" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Giá thuê / Giờ (₫)</label>
-                        <input type="number" name="giaThueGio" id="editRTGiaGio" class="form-control" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Mô tả</label>
-                        <textarea name="moTa" id="editRTMoTa" class="form-control" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn-gold">Cập nhật</button>
+                    <button type="submit" class="btn-gold" id="rtSubmit">Thêm</button>
                 </div>
             </form>
         </div>
@@ -157,15 +145,25 @@
 
 @section Scripts {
     <script>
-        function editRoomType(maLoai, tenLoai, soNguoi, giaNgay, giaGio, moTa) {
-            document.getElementById('editRTMaLoai').value = maLoai;
-            document.getElementById('editRTTenLoai').value = tenLoai;
-            document.getElementById('editRTSoNguoi').value = soNguoi;
-            document.getElementById('editRTGiaNgay').value = Math.floor(giaNgay);
-            document.getElementById('editRTGiaGio').value = Math.floor(giaGio);
-            document.getElementById('editRTMoTa').value = moTa;
-            var modal = new bootstrap.Modal(document.getElementById('editRoomTypeModal'));
-            modal.show();
+        // btn = null: thêm mới; ngược lại đọc dữ liệu hạng phòng từ data-rt để sửa
+        function openRoomType(btn) {
+            var rt = btn ? JSON.parse(btn.getAttribute('data-rt')) : {};
+            var form = document.getElementById('rtForm');
+            form.action = btn ? form.getAttribute('data-edit') : form.getAttribute('data-add');
+            document.getElementById('rtTitle').textContent = btn ? 'Cập nhật loại phòng ' + rt.maLoai : 'Thêm loại phòng mới';
+            document.getElementById('rtSubmit').textContent = btn ? 'Cập nhật' : 'Thêm';
+            var set = function (id, v) { document.getElementById(id).value = v == null ? '' : v; };
+            set('rtMaLoai', rt.maLoai);
+            set('rtTenLoai', rt.tenLoai);
+            set('rtSoNguoi', rt.soNguoiToiDa);
+            set('rtGiaNgay', rt.giaThueNgay != null ? Math.floor(rt.giaThueNgay) : '');
+            set('rtGiaGio', rt.giaThueGio != null ? Math.floor(rt.giaThueGio) : '');
+            set('rtDienTich', rt.dienTich);
+            set('rtGiuong', rt.loaiGiuong);
+            set('rtHuong', rt.huongNhin);
+            set('rtMoTa', rt.moTa);
+            set('rtMoTaChiTiet', rt.moTaChiTiet);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('roomTypeModal')).show();
         }
     </script>
 }

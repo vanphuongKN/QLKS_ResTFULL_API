@@ -37,6 +37,7 @@ namespace QLKSan
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<JwtTokenHandler>();
             var apiBaseUrl = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
+            MediaUrl.Configure(apiBaseUrl);
             void AddApiClient<TClient, TImplementation>()
                 where TClient : class
                 where TImplementation : class, TClient

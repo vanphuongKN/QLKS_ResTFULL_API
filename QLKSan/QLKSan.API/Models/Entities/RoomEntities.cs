@@ -28,6 +28,23 @@ namespace QLKSan.Models.Entities
         [StringLength(500)]
         public string? MoTa { get; set; }
 
+        [Column(TypeName = "decimal(6,1)")]
+        public decimal? DienTich { get; set; }
+
+        [StringLength(100)]
+        public string? LoaiGiuong { get; set; }
+
+        [StringLength(100)]
+        public string? HuongNhin { get; set; }
+
+        public string? MoTaChiTiet { get; set; }
+
+        // Ảnh đại diện (ảnh đầu tiên của bộ ảnh) để danh sách không phải nạp cả bộ ảnh
+        [StringLength(255)]
+        public string? AnhDaiDien { get; set; }
+
+        public ICollection<HinhAnhLoaiPhong> HinhAnhs { get; set; }
+
         public ICollection<Phong> Phongs { get; set; }
     }
 
@@ -112,6 +129,25 @@ namespace QLKSan.Models.Entities
         
         [ForeignKey("MaTienIch")]
         public TienIch TienIch { get; set; }
+    }
+
+    // Bộ ảnh giới thiệu của một hạng phòng (trang chi tiết hạng phòng)
+    public class HinhAnhLoaiPhong
+    {
+        [Key]
+        [StringLength(10)]
+        public string MaHinhAnh { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("LoaiPhong")]
+        public string MaLoai { get; set; }
+
+        [StringLength(255)]
+        public string DuongDan { get; set; }
+
+        public int ThuTu { get; set; }
+
+        public LoaiPhong LoaiPhong { get; set; }
     }
 
     public class HinhAnh

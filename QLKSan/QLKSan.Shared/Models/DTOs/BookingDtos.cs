@@ -56,6 +56,10 @@ namespace QLKSan.Models.DTOs
         public string GhiChu { get; set; }
         public string MaKhuyenMai { get; set; }
 
+        // Yêu cầu riêng của khách khi đặt online (giường, dịp đặc biệt…) và khung giờ dự kiến đến
+        public string YeuCauDacBiet { get; set; }
+        public string GioDenDuKien { get; set; }
+
         public CustomerSummaryDto KhachHang { get; set; }
         public List<BookingRoomDto> ChiTietDatPhongs { get; set; } = new List<BookingRoomDto>();
         public List<ServiceUsageDto> SuDungDichVus { get; set; } = new List<ServiceUsageDto>();

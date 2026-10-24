@@ -4,10 +4,14 @@ using QLKSan.Validation;
 
 namespace QLKSan.Models.Requests
 {
+    // Khách đặt online: chọn HẠNG phòng (MaLoai) — hệ thống tự xếp phòng trống; MaPhong (đích danh) giữ cho tương thích
     public class BookRoomRequest
     {
-        [Required(ErrorMessage = "Vui lòng chọn phòng")]
-        public string MaPhong { get; set; }
+        [StringLength(10)]
+        public string? MaLoai { get; set; }
+
+        [StringLength(10)]
+        public string? MaPhong { get; set; }
 
         [Required(ErrorMessage = "Vui lòng nhập số người")]
         [Range(1, 20, ErrorMessage = "Số lượng người phải từ 1 đến 20")]
@@ -24,5 +28,19 @@ namespace QLKSan.Models.Requests
         public DateTime CheckOut { get; set; } = DateTime.Today.AddDays(1);
 
         public string? MaKhuyenMai { get; set; }
+
+        [StringLength(500, ErrorMessage = "Yêu cầu riêng tối đa 500 ký tự.")]
+        public string? YeuCauDacBiet { get; set; }
+
+        [StringLength(30)]
+        public string? GioDenDuKien { get; set; }
+    }
+
+    // POST /api/bookings/{id}/change-room: lễ tân đổi phòng đã xếp trước khi nhận khách
+    public class ChangeRoomRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn phòng mới.")]
+        [StringLength(10)]
+        public string MaPhong { get; set; }
     }
 }

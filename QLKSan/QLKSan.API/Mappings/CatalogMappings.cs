@@ -16,7 +16,9 @@ namespace QLKSan.Mappings
                 TenDichVu = entity.TenDichVu,
                 GiaDichVu = entity.GiaDichVu,
                 DonViTinh = entity.DonViTinh,
-                TrangThai = entity.TrangThai
+                TrangThai = entity.TrangThai,
+                LaTraiNghiem = entity.LaTraiNghiem,
+                MoTa = entity.MoTa
             };
         }
 
@@ -27,7 +29,9 @@ namespace QLKSan.Mappings
                 MaDichVu = maDichVu,
                 TenDichVu = request.TenDichVu,
                 GiaDichVu = request.GiaDichVu,
-                DonViTinh = request.DonViTinh
+                DonViTinh = request.DonViTinh,
+                LaTraiNghiem = request.LaTraiNghiem,
+                MoTa = request.MoTa
             };
         }
 
@@ -102,7 +106,11 @@ namespace QLKSan.Mappings
                 SoSao = entity.SoSao,
                 NoiDung = entity.NoiDung,
                 NgayDanhGia = entity.NgayDanhGia,
-                AnDanh = entity.AnDanh
+                AnDanh = entity.AnDanh,
+                MaDatPhong = entity.MaDatPhong,
+                TenLoaiPhong = entity.Phong?.LoaiPhong?.TenLoai,
+                // Công khai: ẩn danh thì không lộ tên; còn lại chỉ hiện tên (không kèm họ)
+                TenHienThi = entity.AnDanh ? "Khách ẩn danh" : (entity.KhachHang?.Ten ?? "Khách lưu trú")
             };
         }
     }

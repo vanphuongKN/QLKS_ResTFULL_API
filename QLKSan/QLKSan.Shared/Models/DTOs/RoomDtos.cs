@@ -11,6 +11,42 @@ namespace QLKSan.Models.DTOs
         public decimal GiaThueNgay { get; set; }
         public decimal GiaThueGio { get; set; }
         public string MoTa { get; set; }
+
+        // Thông tin giới thiệu cho khách (trang chi tiết hạng phòng)
+        public decimal? DienTich { get; set; }
+        public string LoaiGiuong { get; set; }
+        public string HuongNhin { get; set; }
+        public string MoTaChiTiet { get; set; }
+
+        // Ảnh đại diện; đường dẫn bắt đầu bằng /uploads/ là ảnh do quản trị tải lên (lưu ở API)
+        public string AnhDaiDien { get; set; }
+
+        // Điểm đánh giá trung bình của các phòng thuộc hạng (null = chưa có đánh giá)
+        public double? DiemDanhGia { get; set; }
+        public int SoDanhGia { get; set; }
+    }
+
+    public class RoomTypeImageDto
+    {
+        public string MaHinhAnh { get; set; }
+        public string DuongDan { get; set; }
+        public int ThuTu { get; set; }
+    }
+
+    // GET /api/room-types/{id}: hạng phòng kèm bộ ảnh, tiện nghi và đánh giá gần đây
+    public class RoomTypeDetailDto : RoomTypeDto
+    {
+        public List<RoomTypeImageDto> HinhAnhs { get; set; } = new List<RoomTypeImageDto>();
+        public List<AmenityDto> TienIchs { get; set; } = new List<AmenityDto>();
+        public List<ReviewDto> DanhGiaGanDay { get; set; } = new List<ReviewDto>();
+    }
+
+    // GET /api/room-types/available: hạng phòng còn trống trong khoảng ngày kèm báo giá từng đêm
+    public class RoomTypeAvailabilityDto
+    {
+        public RoomTypeDto LoaiPhong { get; set; }
+        public int SoPhongTrong { get; set; }
+        public PriceQuoteDto BaoGia { get; set; }
     }
 
     public class RoomImageDto

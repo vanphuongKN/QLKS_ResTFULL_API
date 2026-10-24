@@ -41,6 +41,17 @@ namespace QLKSan.Infrastructure
             await EnsureSuccessAsync(response);
         }
 
+        // Gửi file dạng multipart/form-data (vd: tải ảnh lên)
+        protected async Task<T> HttpPostFileAsync<T>(string url, string fieldName, Stream content, string fileName, string contentType)
+        {
+            using var form = new MultipartFormDataContent();
+            var file = new StreamContent(content);
+            file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(string.IsNullOrEmpty(contentType) ? "application/octet-stream" : contentType);
+            form.Add(file, fieldName, fileName);
+            using var response = await Http.PostAsync(url, form);
+            return await ReadAsync<T>(response);
+        }
+
         protected async Task HttpPutAsync(string url, object body)
         {
             using var response = await Http.PutAsJsonAsync(url, body, JsonOptions);

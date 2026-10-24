@@ -78,16 +78,28 @@ namespace QLKSan.Controllers
             return booking.ToDto();
         }
 
-        /// <summary>Khách hàng đặt phòng online (trạng thái Chờ duyệt).</summary>
+        /// <summary>
+        /// Khách hàng đặt phòng online theo hạng phòng (MaLoai, hệ thống tự xếp phòng trống) hoặc đích danh (MaPhong).
+        /// Còn phòng thì phiếu được xác nhận ngay (Đã duyệt); hết phòng → 409.
+        /// </summary>
         [HttpPost]
         [Authorize(Roles = AppRoles.Customer)]
         public async Task<ActionResult<BookingDto>> Create(BookRoomRequest request)
         {
-            var maDatPhong = await _customerService.CreateOnlineBookingAsync(
-                User.GetMaKhachHang(), request.MaPhong, request.SoNguoi, request.CheckIn, request.CheckOut, request.MaKhuyenMai);
+            var maDatPhong = await _customerService.CreateOnlineBookingAsync(User.GetMaKhachHang(), request);
 
             var created = await _receptionService.GetBookingByIdAsync(maDatPhong);
             return CreatedAtAction(nameof(GetById), new { maDatPhong }, created.ToDto());
+        }
+
+        /// <summary>Lễ tân đổi phòng đã xếp cho phiếu chưa nhận phòng (phòng mới phải trống trong khoảng ngày và đủ sức chứa).</summary>
+        [HttpPost("{maDatPhong}/change-room")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        public async Task<ActionResult<BookingDto>> ChangeRoom(string maDatPhong, ChangeRoomRequest request)
+        {
+            await _receptionService.ChangeRoomAsync(maDatPhong, request.MaPhong);
+            var booking = await _receptionService.GetBookingByIdAsync(maDatPhong);
+            return booking.ToDto();
         }
 
         /// <summary>Lễ tân tạo đặt phòng và check-in ngay cho khách vãng lai.</summary>

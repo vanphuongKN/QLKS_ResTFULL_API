@@ -10,6 +10,10 @@ namespace QLKSan.Models.DTOs
         public decimal GiaDichVu { get; set; }
         public string DonViTinh { get; set; }
         public ServiceStatus TrangThai { get; set; }
+
+        // Dịch vụ được giới thiệu ở mục "Trải nghiệm" trang chủ (không ghi giá)
+        public bool LaTraiNghiem { get; set; }
+        public string MoTa { get; set; }
     }
 
     public class PromotionDto
@@ -50,5 +54,12 @@ namespace QLKSan.Models.DTOs
         public string NoiDung { get; set; }
         public DateTime NgayDanhGia { get; set; }
         public bool AnDanh { get; set; }
+
+        // Mỗi lần lưu trú (phiếu đặt) được đánh giá 1 lần
+        public string MaDatPhong { get; set; }
+        public string TenLoaiPhong { get; set; }
+
+        // Tên hiển thị công khai: "Khách ẩn danh" hoặc tên (không kèm họ) của khách
+        public string TenHienThi { get; set; }
     }
 }
