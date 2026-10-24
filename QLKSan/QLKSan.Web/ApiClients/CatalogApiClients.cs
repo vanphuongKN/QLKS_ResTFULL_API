@@ -144,6 +144,7 @@ namespace QLKSan.ApiClients
     {
         Task<List<PricingRuleDto>> GetAllAsync();
         Task CreateAsync(PricingRuleRequest request);
+        Task UpdateAsync(string maQuyTac, PricingRuleRequest request);
         Task SetActiveAsync(string maQuyTac, bool kichHoat);
         Task DeleteAsync(string maQuyTac);
     }
@@ -154,6 +155,7 @@ namespace QLKSan.ApiClients
 
         public Task<List<PricingRuleDto>> GetAllAsync() => HttpGetAsync<List<PricingRuleDto>>("api/pricing-rules");
         public Task CreateAsync(PricingRuleRequest request) => HttpPostAsync("api/pricing-rules", request);
+        public Task UpdateAsync(string maQuyTac, PricingRuleRequest request) => HttpPutAsync($"api/pricing-rules/{Uri.EscapeDataString(maQuyTac)}", request);
         public Task SetActiveAsync(string maQuyTac, bool kichHoat)
             => HttpPatchAsync($"api/pricing-rules/{Uri.EscapeDataString(maQuyTac)}", new UpdatePricingRuleStatusRequest { KichHoat = kichHoat });
         public Task DeleteAsync(string maQuyTac) => HttpDeleteAsync($"api/pricing-rules/{Uri.EscapeDataString(maQuyTac)}");
@@ -211,5 +213,24 @@ namespace QLKSan.ApiClients
         public Task SaveHotelInfoAsync(HotelInfoSettingsDto request) => HttpPutAsync("api/settings/hotel-info", request);
         public Task SavePolicyAsync(HotelPolicySettingsDto request) => HttpPutAsync("api/settings/policy", request);
         public Task SaveLoyaltyAsync(LoyaltySettingsDto request) => HttpPutAsync("api/settings/loyalty", request);
+    }
+
+    // ===== /api/amenities =====
+    public interface IAmenityApiClient
+    {
+        Task<List<AmenityDto>> GetAllAsync();
+        Task CreateAsync(AmenityRequest request);
+        Task UpdateAsync(string maTienIch, AmenityRequest request);
+        Task DeleteAsync(string maTienIch);
+    }
+
+    public class AmenityApiClient : ApiClientBase, IAmenityApiClient
+    {
+        public AmenityApiClient(HttpClient http) : base(http) { }
+
+        public Task<List<AmenityDto>> GetAllAsync() => HttpGetAsync<List<AmenityDto>>("api/amenities");
+        public Task CreateAsync(AmenityRequest request) => HttpPostAsync("api/amenities", request);
+        public Task UpdateAsync(string maTienIch, AmenityRequest request) => HttpPutAsync($"api/amenities/{Uri.EscapeDataString(maTienIch)}", request);
+        public Task DeleteAsync(string maTienIch) => HttpDeleteAsync($"api/amenities/{Uri.EscapeDataString(maTienIch)}");
     }
 }

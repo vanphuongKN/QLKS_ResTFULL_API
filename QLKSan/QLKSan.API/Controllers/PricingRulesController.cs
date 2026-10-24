@@ -37,6 +37,14 @@ namespace QLKSan.Controllers
             return Created($"/api/pricing-rules/{rule.MaQuyTac}", rule.ToDto());
         }
 
+        /// <summary>Sửa quy tắc giá (giữ trạng thái bật/tắt; hoá đơn đã lập không đổi).</summary>
+        [HttpPut("{maQuyTac}")]
+        [Audit("Sửa quy tắc giá", "Bảng giá")]
+        public async Task<ActionResult<PricingRuleDto>> Update(string maQuyTac, PricingRuleRequest request)
+        {
+            return (await _pricing.UpdateRuleAsync(maQuyTac, request)).ToDto();
+        }
+
         /// <summary>Bật hoặc tắt quy tắc giá: body { "KichHoat": true | false } (gọi lặp lại cho cùng kết quả).</summary>
         [HttpPatch("{maQuyTac}")]
         [Audit("Bật/tắt quy tắc giá", "Bảng giá")]

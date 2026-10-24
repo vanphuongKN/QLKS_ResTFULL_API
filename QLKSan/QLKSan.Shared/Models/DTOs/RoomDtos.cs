@@ -60,6 +60,9 @@ namespace QLKSan.Models.DTOs
         public string MaTienIch { get; set; }
         public string TenTienIch { get; set; }
         public string Icon { get; set; }
+
+        // Các phòng đang có tiện nghi này (chỉ trả ở danh mục tiện nghi)
+        public List<string> MaPhongs { get; set; } = new List<string>();
     }
 
     // Thông tin phòng rút gọn, dùng khi lồng trong phiếu đặt phòng

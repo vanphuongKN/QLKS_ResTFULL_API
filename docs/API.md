@@ -76,6 +76,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/{maPhong}/current-stay` | Cashier | Phiếu đang lưu trú (cho màn hình trả phòng) |
 | POST / PUT / DELETE | `/`, `/{maPhong}` | Admin | Quản lý phòng |
 | PATCH | `/{maPhong}` | FrontDesk | Đổi trạng thái thủ công `{ "TrangThai": ... }` |
+| PUT | `/{maPhong}/amenities` | Admin | Đặt lại tiện nghi của phòng `{ "MaTienIchs": [...], "ApDungCaHang": false }` (true = áp cho mọi phòng cùng hạng) |
 
 ## Đặt phòng — `/api/bookings`
 
@@ -146,7 +147,10 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | PATCH | `/api/promotions/{ma}` | Admin | Bật / tắt `{ "KichHoat": true \| false }` |
 | DELETE | `/api/promotions/{ma}` | Admin | Xoá mã chưa dùng (đã dùng → 409, nên tắt) |
 | GET / POST | `/api/pricing-rules` | Admin | Quy tắc giá theo mùa, cuối tuần, lễ |
+| PUT | `/api/pricing-rules/{id}` | Admin | Sửa quy tắc (giữ trạng thái bật/tắt; hoá đơn đã lập không đổi) |
 | PATCH | `/api/pricing-rules/{id}` | Admin | `{ "KichHoat": true \| false }` |
+| GET / POST | `/api/amenities` | Admin | Danh mục tiện nghi (kèm các phòng đang có) / thêm tiện nghi `{ "TenTienIch", "Icon": "fa-wifi" }` |
+| PUT / DELETE | `/api/amenities/{id}` | Admin | Sửa / xoá tiện nghi (xoá thì gỡ khỏi mọi phòng) |
 | DELETE | `/api/pricing-rules/{id}` | Admin | Xoá quy tắc |
 
 ## Vận hành

@@ -82,6 +82,7 @@ namespace QLKSan
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();
             builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+            builder.Services.AddScoped<IAmenityService, AmenityService>();
             builder.Services.AddScoped<IRoomTypeService, RoomTypeService>();
             builder.Services.AddScoped<IRoomTypeImageService, RoomTypeImageService>();
             builder.Services.AddScoped<ICustomerService, CustomerService>();

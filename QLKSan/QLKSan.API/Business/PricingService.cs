@@ -15,6 +15,7 @@ namespace QLKSan.Business
     {
         Task<List<QuyTacGia>> GetRulesAsync();
         Task<QuyTacGia> AddRuleAsync(PricingRuleRequest request);
+        Task<QuyTacGia> UpdateRuleAsync(string maQuyTac, PricingRuleRequest request);
         Task<QuyTacGia> SetRuleActiveAsync(string maQuyTac, bool kichHoat);
         Task DeleteRuleAsync(string maQuyTac);
 
@@ -40,7 +41,7 @@ namespace QLKSan.Business
                 .OrderByDescending(q => q.KichHoat).ThenByDescending(q => q.UuTien).ThenBy(q => q.MaQuyTac)
                 .ToListAsync();
 
-        public async Task<QuyTacGia> AddRuleAsync(PricingRuleRequest request)
+        private async Task ValidateRuleAsync(PricingRuleRequest request)
         {
             if (request.TuNgay != null && request.DenNgay != null && request.DenNgay.Value.Date < request.TuNgay.Value.Date)
                 throw new BusinessException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
@@ -48,6 +49,29 @@ namespace QLKSan.Business
                 throw new BusinessException($"Loại phòng '{request.MaLoai}' không tồn tại.");
             if (request.PhanTramDieuChinh == 0)
                 throw new BusinessException("Mức điều chỉnh phải khác 0%.");
+        }
+
+        // Sửa quy tắc (giữ nguyên trạng thái bật/tắt); hoá đơn đã lập không bị ảnh hưởng
+        public async Task<QuyTacGia> UpdateRuleAsync(string maQuyTac, PricingRuleRequest request)
+        {
+            var rule = await _context.QuyTacGias.FindAsync(maQuyTac)
+                ?? throw new NotFoundException($"Không tìm thấy quy tắc giá '{maQuyTac}'.");
+            await ValidateRuleAsync(request);
+            rule.TenQuyTac = request.TenQuyTac.Trim();
+            rule.MaLoai = string.IsNullOrWhiteSpace(request.MaLoai) ? null : request.MaLoai;
+            rule.TuNgay = request.TuNgay?.Date;
+            rule.DenNgay = request.DenNgay?.Date;
+            rule.CacThu = PricingCalculator.FormatThu(request.CacThu);
+            rule.PhanTramDieuChinh = request.PhanTramDieuChinh;
+            rule.UuTien = request.UuTien;
+            await _context.SaveChangesAsync();
+            await _context.Entry(rule).Reference(q => q.LoaiPhong).LoadAsync();
+            return rule;
+        }
+
+        public async Task<QuyTacGia> AddRuleAsync(PricingRuleRequest request)
+        {
+            await ValidateRuleAsync(request);
 
             var rule = new QuyTacGia
             {

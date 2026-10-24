@@ -119,6 +119,17 @@ namespace QLKSan.Controllers
             return NoContent();
         }
 
+        /// <summary>Đặt lại tiện nghi của phòng: body { "MaTienIchs": [...], "ApDungCaHang": false }. ApDungCaHang = áp cho mọi phòng cùng hạng.</summary>
+        [HttpPut("{maPhong}/amenities")]
+        [Authorize(Roles = AppRoles.Admin)]
+        [Audit("Gán tiện nghi phòng", "Phòng")]
+        public async Task<ActionResult<object>> SetAmenities(string maPhong, RoomAmenitiesRequest request,
+            [FromServices] IAmenityService amenityService)
+        {
+            var soPhong = await amenityService.SetRoomAmenitiesAsync(maPhong, request.MaTienIchs, request.ApDungCaHang);
+            return Ok(new { SoPhongDaCapNhat = soPhong });
+        }
+
         /// <summary>Xoá phòng.</summary>
         [HttpDelete("{maPhong}")]
         [Authorize(Roles = AppRoles.Admin)]

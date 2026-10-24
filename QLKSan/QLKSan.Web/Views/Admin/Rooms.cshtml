@@ -2,6 +2,8 @@
     ViewData["Title"] = "Quản lý Phòng";
     var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
     var roomTypes = ViewBag.RoomTypes as IEnumerable<QLKSan.Models.DTOs.RoomTypeDto>;
+    var amenities = ViewBag.Amenities as List<QLKSan.Models.DTOs.AmenityDto> ?? new List<QLKSan.Models.DTOs.AmenityDto>();
+    string IconOf(string icon) => string.IsNullOrEmpty(icon) ? "fas fa-check" : (icon.Contains(' ') ? icon : "fas " + icon);
 }
 
 <div class="page-header">
@@ -32,6 +34,7 @@
                     <th>Số phòng</th>
                     <th>Loại phòng</th>
                     <th>Trạng thái</th>
+                    <th>Tiện nghi</th>
                     <th>Thao tác</th>
                 </tr>
             </thead>
@@ -53,8 +56,17 @@
                             <td>@room.SoPhong</td>
                             <td>@(room.LoaiPhong?.TenLoai ?? "N/A")</td>
                             <td><span class="badge-status @statusClass">@room.TrangThai.GetDisplayName().ToUpper()</span></td>
+                            @{ var coTi = amenities.Where(a => a.MaPhongs.Contains(room.MaPhong)).ToList(); }
+                            <td class="amenity-icons">
+                                @foreach (var a in coTi) { <i class="@IconOf(a.Icon)" title="@a.TenTienIch"></i> }
+                                @if (!coTi.Any()) { <span class="text-muted small">—</span> }
+                            </td>
                             <td>
                                 <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" title="Tiện nghi"
+                                            data-room="@room.MaPhong" data-so="@room.SoPhong" data-loai="@(room.LoaiPhong?.TenLoai)" data-ti="@string.Join(",", coTi.Select(a => a.MaTienIch))" onclick="openAmenities(this)">
+                                        <i class="fas fa-wifi"></i>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-outline-primary" 
                                             onclick="editRoom('@room.MaPhong', '@room.SoPhong', '@room.MaLoai')">
                                         <i class="fas fa-pen"></i>
@@ -72,7 +84,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="5" class="text-center text-muted p-4">Chưa có phòng nào trong hệ thống.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted p-4">Chưa có phòng nào trong hệ thống.</td></tr>
                 }
             </tbody>
         </table>
@@ -154,8 +166,58 @@
     </div>
 </div>
 
+<!-- Gán tiện nghi cho phòng -->
+<div class="modal fade" id="amenityModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="amTitle">Tiện nghi phòng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="SetRoomAmenities" method="post">
+                <input type="hidden" name="maPhong" id="amPhong" />
+                <div class="modal-body">
+                    @if (!amenities.Any())
+                    {
+                        <p class="text-muted small">Chưa có tiện nghi nào. <a asp-action="Amenities">Thêm tiện nghi</a></p>
+                    }
+                    <div class="row g-2">
+                        @foreach (var a in amenities)
+                        {
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input am-check" type="checkbox" name="maTienIchs" value="@a.MaTienIch" id="am-@a.MaTienIch">
+                                    <label class="form-check-label" for="am-@a.MaTienIch"><i class="@IconOf(a.Icon) text-gold me-1"></i>@a.TenTienIch</label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" name="apDungCaHang" value="true" id="amCaHang">
+                        <label class="form-check-label" for="amCaHang">Áp dụng cho mọi phòng cùng hạng <span id="amLoai" class="text-muted"></span></label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold">Lưu tiện nghi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
+        function openAmenities(btn) {
+            var co = (btn.getAttribute('data-ti') || '').split(',');
+            document.getElementById('amPhong').value = btn.getAttribute('data-room');
+            document.getElementById('amTitle').textContent = 'Tiện nghi phòng ' + btn.getAttribute('data-so');
+            document.getElementById('amLoai').textContent = '(' + (btn.getAttribute('data-loai') || '') + ')';
+            document.getElementById('amCaHang').checked = false;
+            document.querySelectorAll('.am-check').forEach(function (c) { c.checked = co.indexOf(c.value) >= 0; });
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('amenityModal')).show();
+        }
+
     function editRoom(ma, so, loai) {
         document.getElementById('editRoomMaPhong').value = ma;
         document.getElementById('editRoomSoPhong').value = so;

@@ -22,12 +22,15 @@ namespace QLKSan.Controllers
         private readonly IPricingRuleApiClient _pricingApi;
         private readonly IAuditLogApiClient _auditApi;
         private readonly ISettingsApiClient _settingsApi;
+        private readonly IAmenityApiClient _amenityApi;
         private readonly HotelInfoProvider _hotelInfo;
 
         public AdminController(IDashboardApiClient dashboardApi, IRoomTypeApiClient roomTypeApi, IRoomApiClient roomApi,
             IServiceApiClient serviceApi, IStaffApiClient staffApi, IPromotionApiClient promotionApi, IReviewApiClient reviewApi,
-            IPricingRuleApiClient pricingApi, IAuditLogApiClient auditApi, ISettingsApiClient settingsApi, HotelInfoProvider hotelInfo)
+            IPricingRuleApiClient pricingApi, IAuditLogApiClient auditApi, ISettingsApiClient settingsApi, HotelInfoProvider hotelInfo,
+            IAmenityApiClient amenityApi)
         {
+            _amenityApi = amenityApi;
             _auditApi = auditApi;
             _settingsApi = settingsApi;
             _hotelInfo = hotelInfo;
@@ -135,8 +138,34 @@ namespace QLKSan.Controllers
         {
             ViewBag.Rooms = await _roomApi.GetAllAsync();
             ViewBag.RoomTypes = await _roomTypeApi.GetAllAsync();
+            ViewBag.Amenities = await _amenityApi.GetAllAsync();
             return View();
         }
+
+        [HttpPost]
+        public Task<IActionResult> SetRoomAmenities(string maPhong, List<string> maTienIchs, bool apDungCaHang)
+            => RunAsync(() => _roomApi.SetAmenitiesAsync(maPhong, new RoomAmenitiesRequest { MaTienIchs = maTienIchs ?? new List<string>(), ApDungCaHang = apDungCaHang }),
+                apDungCaHang ? "Đã cập nhật tiện nghi cho mọi phòng cùng hạng." : $"Đã cập nhật tiện nghi phòng {maPhong}.", "Rooms");
+
+        // ===== TIỆN NGHI =====
+        [HttpGet]
+        public async Task<IActionResult> Amenities()
+        {
+            ViewBag.Rooms = await _roomApi.GetAllAsync();
+            return View(await _amenityApi.GetAllAsync());
+        }
+
+        [HttpPost]
+        public Task<IActionResult> AddAmenity(AmenityRequest model)
+            => RunAsync(() => _amenityApi.CreateAsync(model), $"Đã thêm tiện nghi \"{model.TenTienIch}\".", "Amenities");
+
+        [HttpPost]
+        public Task<IActionResult> EditAmenity(string maTienIch, AmenityRequest model)
+            => RunAsync(() => _amenityApi.UpdateAsync(maTienIch, model), "Đã cập nhật tiện nghi.", "Amenities");
+
+        [HttpPost]
+        public Task<IActionResult> DeleteAmenity(string maTienIch)
+            => RunAsync(() => _amenityApi.DeleteAsync(maTienIch), "Đã xoá tiện nghi.", "Amenities");
 
         [HttpPost]
         public Task<IActionResult> AddRoom(string soPhong, string maLoai)
@@ -274,6 +303,17 @@ namespace QLKSan.Controllers
             }
 
             return RunAsync(() => _pricingApi.CreateAsync(rule), $"Đã thêm quy tắc giá \"{rule.TenQuyTac}\".", "Pricing");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> EditPricingRule(string id, PricingRuleRequest rule)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return Task.FromResult<IActionResult>(RedirectToAction("Pricing"));
+            }
+            return RunAsync(() => _pricingApi.UpdateAsync(id, rule), $"Đã cập nhật quy tắc {id}.", "Pricing");
         }
 
         [HttpPost]

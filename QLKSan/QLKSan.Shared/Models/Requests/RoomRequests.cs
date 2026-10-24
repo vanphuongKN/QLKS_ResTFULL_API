@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using QLKSan.Enums;
 
@@ -52,5 +53,25 @@ namespace QLKSan.Models.Requests
     {
         [Required(ErrorMessage = "Vui lòng chọn trạng thái phòng.")]
         public RoomStatus? TrangThai { get; set; }
+    }
+
+    // POST / PUT /api/amenities: tiện nghi phòng (Icon là tên biểu tượng Font Awesome, vd fa-wifi)
+    public class AmenityRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập tên tiện nghi.")]
+        [StringLength(50)]
+        public string TenTienIch { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập biểu tượng.")]
+        [RegularExpression(@"^(fa[srb]? )?fa-[a-z0-9-]+$", ErrorMessage = "Biểu tượng phải là tên Font Awesome, ví dụ fa-wifi.")]
+        [StringLength(50)]
+        public string Icon { get; set; }
+    }
+
+    // PUT /api/rooms/{id}/amenities: đặt lại tiện nghi của phòng (ApDungCaHang = áp cho mọi phòng cùng hạng)
+    public class RoomAmenitiesRequest
+    {
+        public List<string> MaTienIchs { get; set; } = new List<string>();
+        public bool ApDungCaHang { get; set; }
     }
 }

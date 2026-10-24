@@ -27,7 +27,13 @@ namespace QLKSan.Mappings
         }
 
         public static AmenityDto ToDto(this TienIch entity)
-            => new AmenityDto { MaTienIch = entity.MaTienIch, TenTienIch = entity.TenTienIch, Icon = entity.Icon };
+            => new AmenityDto
+            {
+                MaTienIch = entity.MaTienIch,
+                TenTienIch = entity.TenTienIch,
+                Icon = entity.Icon,
+                MaPhongs = entity.PhongTienIchs?.Select(p => p.MaPhong).OrderBy(p => p).ToList() ?? new List<string>()
+            };
 
         public static RoomTypeImageDto ToDto(this HinhAnhLoaiPhong entity)
             => new RoomTypeImageDto { MaHinhAnh = entity.MaHinhAnh, DuongDan = entity.DuongDan, ThuTu = entity.ThuTu };

@@ -18,6 +18,7 @@ namespace QLKSan.ApiClients
         Task UpdateAsync(string maPhong, RoomRequest request);
         Task DeleteAsync(string maPhong);
         Task UpdateStatusAsync(string maPhong, RoomStatus trangThai);
+        Task SetAmenitiesAsync(string maPhong, RoomAmenitiesRequest request);
     }
 
     // /api/rooms
@@ -57,5 +58,7 @@ namespace QLKSan.ApiClients
 
         public Task UpdateStatusAsync(string maPhong, RoomStatus trangThai)
             => HttpPatchAsync($"api/rooms/{Uri.EscapeDataString(maPhong)}", new UpdateRoomStatusRequest { TrangThai = trangThai });
+        public Task SetAmenitiesAsync(string maPhong, RoomAmenitiesRequest request)
+            => HttpPutAsync($"api/rooms/{Uri.EscapeDataString(maPhong)}/amenities", request);
     }
 }
