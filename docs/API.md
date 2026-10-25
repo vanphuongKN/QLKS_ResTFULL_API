@@ -95,6 +95,12 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | POST | `/{id}/check-in` | FrontDesk | Nhận phòng (đúng ngày) |
 | POST | `/{id}/services` | FrontDesk | Gọi dịch vụ cho khách đang ở |
 
+## Quầy lễ tân — `/api/front-desk`
+
+| Phương thức | Đường dẫn | Quyền | Mô tả |
+|---|---|---|---|
+| GET | `/today` | FrontDesk | Màn hình đầu ca: khách đến / khách đi (kể cả quá hạn trả) / đang lưu trú hôm nay, phiếu sắp đến, phòng trống tối nay, việc buồng phòng chưa xong. Mỗi phiếu kèm VIP, sở thích, hạn chế, giờ đến, yêu cầu riêng, trạng thái phòng |
+
 ## Hoá đơn — `/api/invoices`
 
 | Phương thức | Đường dẫn | Quyền | Mô tả |

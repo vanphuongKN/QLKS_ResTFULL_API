@@ -1,40 +1,175 @@
+@model QLKSan.Models.DTOs.FrontDeskTodayDto
+@using QLKSan.Enums
+@using QLKSan.Models.DTOs
 <style>
-    .rc-card { border: 1px solid #eae8e2; border-radius: 12px; padding: 14px; height: 100%; display: flex; flex-direction: column; background: #fff; transition: box-shadow .2s; }
+    .rc-card { border: 1px solid #eae8e2; border-radius: 12px; padding: 12px; height: 100%; display: flex; flex-direction: column; background: #fff; transition: box-shadow .2s; }
     .rc-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.07); }
-    .rc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 10px; }
-    .rc-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .rc-number { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 700; color: var(--navy); line-height: 1.1; }
-    .rc-type { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-bottom: 4px; }
-    .rc-guest { font-size: .78rem; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rc-actions { margin-top: auto; padding-top: 12px; display: flex; gap: 6px; }
-    .rc-actions { flex-wrap: wrap; }
-    .rc-actions .btn { flex: 1 1 70px; font-size: .75rem; padding: 5px 6px; border-radius: 6px; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+    .rc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
+    .rc-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .8rem; }
+    .rc-number { font-family: 'Cormorant Garamond', serif; font-size: 1.45rem; font-weight: 700; color: var(--navy); line-height: 1.1; }
+    .rc-type { font-size: .68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rc-guest { font-size: .76rem; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rc-actions { margin-top: auto; padding-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .rc-actions .btn { flex: 1 1 70px; font-size: .72rem; padding: 4px 6px; border-radius: 6px; text-transform: none; letter-spacing: 0; white-space: nowrap; }
     .rc-available .rc-icon { background: #e8f5e9; color: #2e7d32; }
     .rc-occupied .rc-icon { background: #ffebee; color: #c62828; }
     .rc-booked .rc-icon { background: #e3f2fd; color: #1565c0; }
     .rc-cleaning .rc-icon { background: #fff8e1; color: #f57f17; }
     .rc-maintenance .rc-icon { background: #f1f3f5; color: #6c757d; }
-    .badge-filter { cursor: pointer; }
+    .room-card-wrapper.hidden-by-filter { display: none !important; }
 </style>
 @{
-    ViewData["Title"] = "Dashboard Lễ Tân";
-    var rooms = ViewBag.Rooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
-    var onlineBookings = ViewBag.OnlineBookings as IEnumerable<QLKSan.Models.DTOs.BookingDto>;
+    ViewData["Title"] = "Quầy lễ tân";
+    var d = Model;
+    var rooms = ViewBag.Rooms as IEnumerable<RoomDto> ?? Enumerable.Empty<RoomDto>();
+    var thu = new[] { "Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy" };
+    var quaHan = d.KhachDi.Count(k => k.QuaHanTra);
+
+    (string Css, string Nhan, string Icon) Phong(RoomStatus t) => t switch
+    {
+        RoomStatus.Available => ("badge-available", "Trống", "fa-door-open"),
+        RoomStatus.Occupied => ("badge-occupied", "Đang ở", "fa-bed"),
+        RoomStatus.Booked => ("badge-booked", "Đã đặt", "fa-calendar-check"),
+        RoomStatus.Maintenance => ("badge-maintenance", "Bảo trì", "fa-tools"),
+        _ => ("badge-cleaning", "Đang dọn", "fa-broom")
+    };
+
+    var tabs = new[]
+    {
+        ("den", "Khách đến", d.KhachDen, "Không có khách đến hôm nay."),
+        ("di", "Khách đi", d.KhachDi, "Không có khách trả phòng hôm nay."),
+        ("dango", "Đang lưu trú", d.DangO, "Chưa có khách nào đang lưu trú."),
+        ("sapden", "Sắp đến", d.SapDen, "Không có phiếu nào sắp đến.")
+    };
+    var viec = new[]
+    {
+        (d.PhieuChoDuyet, "Phiếu đặt chờ duyệt", "fa-hourglass-half", "#sapden", d.PhieuChoDuyet > 0 ? "warn" : ""),
+        (quaHan, "Khách quá hạn trả phòng", "fa-clock", "#di", quaHan > 0 ? "danger" : ""),
+        (d.SuCoBuongPhong, "Sự cố khi dọn phòng", "fa-triangle-exclamation", Url.Action("Tasks", "Housekeeping"), d.SuCoBuongPhong > 0 ? "danger" : ""),
+        (d.PhongDangDon, "Phòng đang dọn", "fa-broom", Url.Action("Tasks", "Housekeeping"), ""),
+        (d.ViecBuongPhongChuaXong, "Việc buồng phòng chưa xong", "fa-list-check", Url.Action("Tasks", "Housekeeping"), ""),
+        (d.PhongBaoTri, "Phòng đang bảo trì", "fa-screwdriver-wrench", Url.Action("Status", "Room"), d.PhongBaoTri > 0 ? "danger" : "")
+    };
+}
+
+@functions {
+    // Lý do chưa nhận phòng được (phòng chưa sẵn sàng) — hiện cảnh báo và gợi ý đổi phòng
+    static string PhongChuaSanSang(QLKSan.Models.DTOs.FrontDeskStayDto k) => k.TrangThaiPhong switch
+    {
+        QLKSan.Enums.RoomStatus.Cleaning => "Phòng đang dọn",
+        QLKSan.Enums.RoomStatus.Occupied => "Phòng còn khách ở",
+        QLKSan.Enums.RoomStatus.Maintenance => "Phòng đang bảo trì",
+        _ => null
+    };
+}
+
+@{
+    // Một dòng phiếu: phòng | khách + thông tin chăm sóc | trạng thái + thao tác (theo danh sách)
+    async Task StayRow(FrontDeskStayDto k, string tab)
+    {
+        var chuaNhan = k.TrangThai is BookingStatus.Pending or BookingStatus.Approved;
+        var canhBaoPhong = chuaNhan && tab == "den" ? PhongChuaSanSang(k) : null;
+        <div class="stay-row @(k.DaXuLy ? "is-done" : "") @(k.QuaHanTra ? "is-late" : "") @(k.HanChe ? "is-restricted" : "")">
+            <div class="stay-room">
+                <span class="stay-room-no">@(k.SoPhong ?? "—")</span>
+                <small>@FormatHelper.TenHangPhong(k.TenLoaiPhong)</small>
+            </div>
+            <div class="stay-main">
+                <div class="stay-guest">
+                    @if (!string.IsNullOrEmpty(k.MaKhachHang))
+                    {
+                        <a asp-action="CustomerDetails" asp-route-id="@k.MaKhachHang">@k.HoTenKhachHang</a>
+                    }
+                    else { <span>@k.HoTenKhachHang</span> }
+                    @if (k.LaVIP) { <span class="vip-badge"><i class="fas fa-crown me-1"></i>VIP</span> }
+                    @if (k.HanChe) { <span class="restrict-badge" title="@k.LyDoHanChe"><i class="fas fa-ban me-1"></i>Hạn chế</span> }
+                </div>
+                <div class="stay-meta">
+                    <span>#@k.MaDatPhong</span>
+                    <span><i class="fas fa-calendar"></i>@k.NgayNhan.ToString("dd/MM") → @k.NgayTra.ToString("dd/MM") · @k.SoDem đêm</span>
+                    <span><i class="fas fa-user-group"></i>@k.SoKhach khách</span>
+                    @if (!string.IsNullOrEmpty(k.SDT)) { <span><i class="fas fa-phone"></i>@k.SDT</span> }
+                </div>
+                <div class="stay-notes">
+                    @if (k.HanChe && !string.IsNullOrEmpty(k.LyDoHanChe)) { <span class="note-danger"><i class="fas fa-ban"></i>@k.LyDoHanChe</span> }
+                    @if (!string.IsNullOrEmpty(k.GioDenDuKien) && chuaNhan) { <span><i class="fas fa-clock"></i>Đến @k.GioDenDuKien</span> }
+                    @if (!string.IsNullOrEmpty(k.YeuCauDacBiet)) { <span class="note-gold" title="@k.YeuCauDacBiet"><i class="fas fa-comment-dots"></i>@k.YeuCauDacBiet</span> }
+                    @if (!string.IsNullOrEmpty(k.SoThich)) { <span title="@k.SoThich"><i class="fas fa-heart"></i>@k.SoThich</span> }
+                    @if (!string.IsNullOrEmpty(k.MaKhuyenMai)) { <span><i class="fas fa-tag"></i>@k.MaKhuyenMai</span> }
+                    @if (k.TienCoc > 0) { <span><i class="fas fa-wallet"></i>Cọc @FormatHelper.ToVND(k.TienCoc)</span> }
+                    @if (canhBaoPhong != null) { <span class="note-danger"><i class="fas fa-triangle-exclamation"></i>@canhBaoPhong — đổi phòng khác hoặc chờ buồng phòng</span> }
+                </div>
+            </div>
+            <div class="stay-actions">
+                @if (tab == "den" && k.DaXuLy)
+                {
+                    <span class="badge-status badge-available">Đã nhận @k.NgayCheckInThucTe?.ToString("HH:mm")</span>
+                }
+                else if (tab == "di" && k.DaXuLy)
+                {
+                    <span class="badge-status badge-muted">Đã trả @k.NgayCheckOutThucTe?.ToString("HH:mm")</span>
+                }
+                else if (k.QuaHanTra)
+                {
+                    <span class="badge-status badge-occupied">Quá hạn trả</span>
+                }
+                else if (chuaNhan)
+                {
+                    <span class="badge-status @(k.TrangThai == BookingStatus.Pending ? "badge-pending" : "badge-booked")">@(k.TrangThai == BookingStatus.Pending ? "Chờ duyệt" : "Đã xác nhận")</span>
+                }
+
+                <div class="stay-btns">
+                    @if (chuaNhan)
+                    {
+                        @if (k.TrangThai == BookingStatus.Pending)
+                        {
+                            <form asp-action="ApproveBooking" method="post">
+                                <input type="hidden" name="id" value="@k.MaDatPhong" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-check me-1"></i>Duyệt</button>
+                            </form>
+                        }
+                        @if (tab == "den")
+                        {
+                            <form asp-action="CheckInOnlineBooking" method="post">
+                                <input type="hidden" name="id" value="@k.MaDatPhong" />
+                                <button type="submit" class="btn btn-sm btn-gold" disabled="@(canhBaoPhong != null)"><i class="fas fa-key me-1"></i>Nhận phòng</button>
+                            </form>
+                        }
+                        <a asp-action="ChangeRoom" asp-route-id="@k.MaDatPhong" class="btn btn-sm @(canhBaoPhong != null ? "btn-outline-danger" : "btn-outline-secondary")"><i class="fas fa-right-left me-1"></i>Đổi phòng</a>
+                        <form asp-action="CancelBooking" method="post" onsubmit="return confirmCancelBooking(this)">
+                            <input type="hidden" name="id" value="@k.MaDatPhong" />
+                            <input type="hidden" name="lyDo" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="@(k.TrangThai == BookingStatus.Pending ? "Từ chối" : "Huỷ phiếu")"><i class="fas fa-times"></i></button>
+                        </form>
+                    }
+                    else if (k.TrangThai == BookingStatus.CheckedIn)
+                    {
+                        <a href="@Url.Action("Index", "Service", new { maPhong = k.MaPhong })" class="btn btn-sm btn-outline-navy"><i class="fas fa-mug-hot me-1"></i>Dịch vụ</a>
+                        <a href="@Url.Action("Process", "Checkout", new { maPhong = k.MaPhong })" class="btn btn-sm @(tab == "di" ? "btn-gold" : "btn-outline-secondary")"><i class="fas fa-sign-out-alt me-1"></i>Trả phòng</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 }
 
 <div class="page-header">
     <div>
-        <p class="page-label">Hoạt động thời gian thực</p>
-        <h2>Dashboard Lễ Tân</h2>
+        <p class="page-label">Quầy lễ tân</p>
+        <h2>@thu[(int)d.Ngay.DayOfWeek], @d.Ngay.ToString("dd/MM/yyyy")</h2>
+        <p class="page-desc">Cập nhật lúc @d.NgayCapNhat.ToString("HH:mm") · @d.TongSoPhong phòng</p>
     </div>
-    <a asp-action="WalkIn" class="btn-gold">
-        <i class="fas fa-plus me-2"></i>Khách vãng lai (Walk-In)
-    </a>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <form method="get" class="fd-search" role="search">
+            <input type="search" name="search" class="form-control form-control-sm" placeholder="Tìm phiếu đặt phòng…" title="Mã phiếu, tên khách hoặc số phòng" aria-label="Tìm phiếu đặt phòng" />
+        </form>
+        <a asp-action="WalkIn" class="btn-gold"><i class="fas fa-user-plus me-2"></i>Nhận khách vãng lai</a>
+    </div>
 </div>
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success mb-3 d-flex justify-content-between align-items-center">
+    <div class="alert alert-success mb-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span>@TempData["SuccessMessage"]</span>
         @if (TempData["PrintInvoiceId"] is string printId)
         {
@@ -47,358 +182,191 @@
     <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
 }
 
-<div class="row g-4">
-    <!-- Left: Rooms Grid -->
-    <div class="col-lg-8">
-        <div class="card p-4 h-100">
-            <h6 class="fw-bold mb-4"><i class="fas fa-building me-2 text-navy"></i>Trạng thái phòng</h6>
-            
-            <div class="d-flex gap-3 mb-4 flex-wrap" id="roomStatusFilters">
-                <div class="d-flex align-items-center gap-2"><span class="badge-status badge-filter badge-all px-3 active" data-filter="all" onclick="filterRooms('all')">Tất cả</span></div>
-                <div class="d-flex align-items-center gap-2"><span class="badge-status badge-filter badge-available px-3" data-filter="Available" onclick="filterRooms('Available')">Trống</span></div>
-                <div class="d-flex align-items-center gap-2"><span class="badge-status badge-filter badge-occupied px-3" data-filter="Occupied" onclick="filterRooms('Occupied')">Đang ở</span></div>
-                <div class="d-flex align-items-center gap-2"><span class="badge-status badge-filter badge-cleaning px-3" data-filter="Cleaning" onclick="filterRooms('Cleaning')">Đang dọn</span></div>
-                <div class="d-flex align-items-center gap-2"><span class="badge-status badge-filter badge-booked px-3" data-filter="Booked" onclick="filterRooms('Booked')">Đã đặt</span></div>
-                <div class="d-flex align-items-center gap-2"><span class="badge-status badge-filter badge-maintenance px-3" data-filter="Maintenance" onclick="filterRooms('Maintenance')">Bảo trì</span></div>
-            </div>
+<div class="kpi-grid mb-4">
+    <a href="#den" class="kpi-card kpi-card--dark kpi-link" data-tab-link="den">
+        <span class="kpi-label">Khách đến</span>
+        <div class="kpi-value">@d.SoKhachDen</div>
+        <span class="kpi-sub">Đã nhận @d.SoKhachDenDaNhan · còn @(d.SoKhachDen - d.SoKhachDenDaNhan)</span>
+    </a>
+    <a href="#di" class="kpi-card kpi-link" data-tab-link="di">
+        <span class="kpi-label">Khách đi</span>
+        <div class="kpi-value">@d.SoKhachDi</div>
+        <span class="kpi-sub">Đã trả @d.SoKhachDiDaTra · còn @(d.SoKhachDi - d.SoKhachDiDaTra)@(quaHan > 0 ? $" · {quaHan} quá hạn" : "")</span>
+    </a>
+    <a href="#dango" class="kpi-card kpi-link" data-tab-link="dango">
+        <span class="kpi-label">Đang lưu trú</span>
+        <div class="kpi-value">@d.DangO.Count</div>
+        <span class="kpi-sub">@d.PhongCoKhach / @d.TongSoPhong phòng có khách</span>
+    </a>
+    <a href="#rooms" class="kpi-card kpi-link">
+        <span class="kpi-label">Trống tối nay</span>
+        <div class="kpi-value">@d.PhongTrong</div>
+        <span class="kpi-sub">Đang dọn @d.PhongDangDon · bảo trì @d.PhongBaoTri</span>
+    </a>
+</div>
 
-            <div class="row g-3">
-                @if (rooms != null)
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="card h-100">
+            <div class="fd-tabs" role="tablist">
+                @foreach (var (key, ten, ds, _) in tabs)
                 {
-                    foreach (var room in rooms)
-                    {
-                        var statusClass = room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "badge-available"
-                                         : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "badge-occupied"
-                                         : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "badge-booked"
-                                         : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "badge-maintenance"
-                                         : "badge-cleaning";
-
-                        var statusLabel = room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "Trống"
-                                         : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "Đang ở"
-                                         : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "Đã đặt"
-                                         : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "Bảo trì"
-                                         : "Đang dọn";
-
-                        <div class="col-xl-3 col-sm-4 col-6 room-card-wrapper" data-status="@room.TrangThai">
-                            <div class="rc-card rc-@room.TrangThai.ToString().ToLower()">
-                                <div class="rc-top">
-                                    <div class="rc-icon"><i class="fas @(room.TrangThai == QLKSan.Enums.RoomStatus.Available ? "fa-door-open" : room.TrangThai == QLKSan.Enums.RoomStatus.Occupied ? "fa-bed" : room.TrangThai == QLKSan.Enums.RoomStatus.Booked ? "fa-calendar-check" : room.TrangThai == QLKSan.Enums.RoomStatus.Maintenance ? "fa-tools" : "fa-broom")"></i></div>
-                                    <span class="badge-status @statusClass">@statusLabel</span>
-                                </div>
-                                <div class="rc-number">@room.SoPhong</div>
-                                <div class="rc-type">@(room.LoaiPhong?.TenLoai ?? "—")</div>
-                                @if (room.TrangThai == QLKSan.Enums.RoomStatus.Occupied && room.DangLuuTru != null)
-                                {
-                                    <div class="rc-guest" title="@room.DangLuuTru.KhachHang?.HoTen"><i class="fas fa-user me-1"></i>@room.DangLuuTru.KhachHang?.HoTen</div>
-                                }
-                                else if (room.TrangThai == QLKSan.Enums.RoomStatus.Booked && room.DatPhongHienTai != null)
-                                {
-                                    <div class="rc-guest"><i class="fas fa-sign-in-alt me-1"></i>Đến @room.DatPhongHienTai.NgayCheckInDuKien.ToString("dd/MM")</div>
-                                }
-
-                                <div class="rc-actions">
-                                    @if (room.TrangThai == QLKSan.Enums.RoomStatus.Occupied)
-                                    {
-                                        <a href="@Url.Action("Index", "Service")?maPhong=@room.MaPhong" class="btn btn-sm btn-outline-navy">Dịch vụ</a>
-                                        <a href="@Url.Action("Process", "Checkout")?maPhong=@room.MaPhong" class="btn btn-sm btn-gold">Trả phòng</a>
-                                    }
-                                    else if (room.TrangThai == QLKSan.Enums.RoomStatus.Available)
-                                    {
-                                        <a href="@Url.Action("WalkIn", new { maPhong = room.MaPhong })" class="btn btn-sm btn-outline-success w-100">Nhận khách</a>
-                                    }
-                                    else
-                                    {
-                                        <a href="@Url.Action("Details", "Room", new { id = room.MaPhong })" class="btn btn-sm btn-light w-100 text-muted">Xem chi tiết</a>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
+                    <button type="button" role="tab" data-tab="@key" aria-controls="tab-@key">@ten <span>@ds.Count</span></button>
                 }
             </div>
+            @foreach (var (key, _, ds, rong) in tabs)
+            {
+                <div class="fd-panel" id="tab-@key" role="tabpanel" data-panel="@key" hidden>
+                    @if (!ds.Any())
+                    {
+                        <p class="text-muted small p-4 mb-0">@rong</p>
+                    }
+                    else if (key == "sapden")
+                    {
+                        foreach (var g in ds.GroupBy(x => x.NgayNhan.Date))
+                        {
+                            <div class="stay-day">@thu[(int)g.Key.DayOfWeek], @g.Key.ToString("dd/MM/yyyy") <span>@g.Count() phiếu</span></div>
+                            foreach (var k in g) { await StayRow(k, key); }
+                        }
+                    }
+                    else
+                    {
+                        foreach (var k in ds) { await StayRow(k, key); }
+                    }
+                </div>
+            }
         </div>
     </div>
 
-    <!-- Right: Online Bookings (Pending) -->
-    <div class="col-lg-4">
-        <div class="card p-0 h-100" style="overflow:hidden">
-            <div class="p-4 border-bottom bg-light">
-                <h6 class="fw-bold mb-0"><i class="fas fa-laptop me-2 text-gold"></i>Xử lý Đặt phòng Online</h6>
+    <div class="col-xl-4">
+        <div class="card p-4 mb-4">
+            <h6 class="dash-title mb-3">Việc cần làm</h6>
+            <div class="task-list">
+                @foreach (var (so, ten, icon, url, muc) in viec)
+                {
+                    <a href="@url" class="task-row @(so == 0 ? "is-zero" : muc)" data-tab-link="@(url.StartsWith("#") ? url.Substring(1) : null)">
+                        <i class="fas @icon"></i><span>@ten</span><strong>@so</strong>
+                    </a>
+                }
             </div>
-            
-            <div class="p-0">
-                @if (onlineBookings != null && onlineBookings.Any())
-                {
-                    foreach (var booking in onlineBookings)
-                    {
-                        <div class="p-3 border-bottom hover-bg-light">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <strong class="text-navy">Phiếu #@booking.MaDatPhong</strong>
-                                    <span class="badge-status @(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "badge-pending" : "badge-booked") ms-2">
-                                        @(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "Chờ duyệt" : "Đã duyệt")
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <p class="mb-1 text-dark fw-semibold">
-                                <i class="fas fa-user text-muted me-2"></i>Khách: @(booking.KhachHang?.Ho) @(booking.KhachHang?.Ten)
-                                @if (booking.KhachHang?.LaVIP == true) { <span class="vip-badge"><i class="fas fa-crown me-1"></i>VIP</span> }
-                            </p>
-                            
-                            <div class="d-flex justify-content-between small text-muted mb-3">
-                                <span><i class="fas fa-sign-in-alt me-1"></i>@booking.NgayCheckInDuKien.ToString("dd/MM")</span>
-                                <span><i class="fas fa-sign-out-alt me-1"></i>@booking.NgayCheckOutDuKien.ToString("dd/MM")</span>
-                                <span><i class="fas fa-door-open me-1"></i>Phòng: @(booking.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong ?? "Chưa rõ")</span>
-                            </div>
-                            @if (!string.IsNullOrEmpty(booking.MaKhuyenMai))
-                            {
-                                <p class="small mb-3"><i class="fas fa-tag text-success me-1"></i>Mã khuyến mãi khách chọn: <strong class="text-success">@booking.MaKhuyenMai</strong></p>
-                            }
-                            @if (!string.IsNullOrEmpty(booking.KhachHang?.SoThich))
-                            {
-                                <p class="small mb-1"><i class="fas fa-heart text-gold me-1"></i>Sở thích: @booking.KhachHang.SoThich</p>
-                            }
-                            @if (!string.IsNullOrEmpty(booking.GioDenDuKien))
-                            {
-                                <p class="small mb-1"><i class="fas fa-clock text-muted me-1"></i>Giờ đến dự kiến: <strong>@booking.GioDenDuKien</strong></p>
-                            }
-                            @if (!string.IsNullOrEmpty(booking.YeuCauDacBiet))
-                            {
-                                <p class="small mb-3 p-2 rounded" style="background:#fff8e6"><i class="fas fa-comment-dots text-gold me-1"></i>@booking.YeuCauDacBiet</p>
-                            }
-
-                            <div class="d-flex gap-2">
-                                @if (booking.TrangThai == QLKSan.Enums.BookingStatus.Pending)
-                                {
-                                    <form asp-action="ApproveBooking" method="post" class="flex-fill">
-                                        <input type="hidden" name="id" value="@booking.MaDatPhong" />
-                                        <button type="submit" class="btn btn-sm btn-outline-primary w-100">
-                                            <i class="fas fa-check me-1"></i>Duyệt
-                                        </button>
-                                    </form>
-                                }
-                                <a asp-action="ChangeRoom" asp-route-id="@booking.MaDatPhong" class="btn btn-sm btn-outline-secondary flex-fill" title="Đổi phòng đã xếp">
-                                    <i class="fas fa-right-left me-1"></i>Đổi phòng
-                                </a>
-                                <form asp-action="CheckInOnlineBooking" method="post" class="flex-fill">
-                                    <input type="hidden" name="id" value="@booking.MaDatPhong" />
-                                    <button type="submit" class="btn btn-sm btn-gold w-100">
-                                        <i class="fas fa-key me-1"></i>Nhận phòng
-                                    </button>
-                                </form>
-                                <form asp-action="CancelBooking" method="post" class="flex-fill" onsubmit="return confirmCancelBooking(this)">
-                                    <input type="hidden" name="id" value="@booking.MaDatPhong" />
-                                    <input type="hidden" name="lyDo" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                                        <i class="fas fa-times me-1"></i>@(booking.TrangThai == QLKSan.Enums.BookingStatus.Pending ? "Từ chối" : "Huỷ")
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="p-5 text-center text-muted">
-                        <i class="fas fa-check-circle mb-3" style="font-size:2.5rem; opacity:0.3"></i>
-                        <p>Không có yêu cầu chờ xử lý.</p>
-                    </div>
-                }
+        </div>
+        <div class="card p-4">
+            <h6 class="dash-title mb-3">Tra cứu nhanh</h6>
+            <div class="fd-links">
+                <a asp-controller="Room" asp-action="Timeline"><i class="fas fa-stream"></i>Lịch phòng</a>
+                <a asp-action="BookingHistory"><i class="fas fa-history"></i>Lịch sử đặt phòng</a>
+                <a asp-action="Customers"><i class="fas fa-users"></i>Khách hàng</a>
+                <a asp-controller="Room" asp-action="Guests"><i class="fas fa-id-card"></i>Sổ lưu trú</a>
             </div>
         </div>
     </div>
 </div>
 
-@{
-    var bookings = ViewBag.Bookings as IEnumerable<QLKSan.Models.DTOs.BookingDto>;
-}
-
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card p-0 mb-4 shadow-sm">
-            <div class="d-flex justify-content-between align-items-center p-4 border-bottom flex-wrap gap-3" style="background: #fafafa">
-                <div class="d-flex align-items-center gap-2">
-                    <h6 class="fw-bold mb-0" style="letter-spacing:1px;color:#2A3B4C">
-                        <i class="fas fa-history me-2 text-gold"></i>LỊCH SỬ ĐẶT PHÒNG HỆ THỐNG
-                    </h6>
-                    <span class="badge bg-light text-muted border py-1 px-2" style="font-size:0.75rem">Tổng số: @(bookings?.Count() ?? 0) giao dịch</span>
-                </div>
-                
-                <div class="d-flex gap-2">
-                    <form method="get" class="d-flex gap-2">
-                        <input type="text" name="search" value="@ViewBag.Search" class="form-control" style="width:280px;font-size:0.85rem;border-color:#eaddc4" placeholder="Mã đơn, tên khách, số phòng...">
-                        <button type="submit" class="btn-gold px-3 border-0 py-1" style="border-radius:4px;color:#fff;font-size:0.85rem">
-                            <i class="fas fa-search"></i> Tìm kiếm
-                        </button>
-                        @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+<div class="card p-4" id="rooms">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h6 class="dash-title mb-0">Sơ đồ phòng</h6>
+        <div class="filter-chips" id="roomStatusFilters">
+            <button type="button" class="active" data-filter="all">Tất cả <span>@rooms.Count()</span></button>
+            @foreach (var t in new[] { RoomStatus.Available, RoomStatus.Occupied, RoomStatus.Cleaning, RoomStatus.Booked, RoomStatus.Maintenance })
+            {
+                <button type="button" data-filter="@t">@Phong(t).Nhan <span>@rooms.Count(r => r.TrangThai == t)</span></button>
+            }
+        </div>
+    </div>
+    <div class="row g-3">
+        @foreach (var room in rooms)
+        {
+            var p = Phong(room.TrangThai);
+            <div class="col-xxl-2 col-xl-3 col-md-4 col-6 room-card-wrapper" data-status="@room.TrangThai">
+                <div class="rc-card rc-@room.TrangThai.ToString().ToLower()">
+                    <div class="rc-top">
+                        <div class="rc-icon"><i class="fas @p.Icon"></i></div>
+                        <span class="badge-status @p.Css">@p.Nhan</span>
+                    </div>
+                    <div class="rc-number">@room.SoPhong</div>
+                    <div class="rc-type">@FormatHelper.TenHangPhong(room.LoaiPhong?.TenLoai)</div>
+                    @if (room.TrangThai == RoomStatus.Occupied && room.DangLuuTru != null)
+                    {
+                        <div class="rc-guest" title="@room.DangLuuTru.KhachHang?.HoTen"><i class="fas fa-user me-1"></i>@room.DangLuuTru.KhachHang?.HoTen</div>
+                    }
+                    else if (room.DatPhongHienTai != null)
+                    {
+                        <div class="rc-guest"><i class="fas fa-sign-in-alt me-1"></i>Khách đến @room.DatPhongHienTai.NgayCheckInDuKien.ToString("dd/MM")</div>
+                    }
+                    <div class="rc-actions">
+                        @if (room.TrangThai == RoomStatus.Occupied)
                         {
-                            <a href="@Url.Action("Index", "Reception")" class="btn btn-sm btn-outline-secondary d-flex align-items-center" style="border-radius:4px;font-size:0.85rem">Xóa lọc</a>
+                            <a href="@Url.Action("Index", "Service", new { maPhong = room.MaPhong })" class="btn btn-sm btn-outline-navy">Dịch vụ</a>
+                            <a href="@Url.Action("Process", "Checkout", new { maPhong = room.MaPhong })" class="btn btn-sm btn-gold">Trả phòng</a>
                         }
-                    </form>
-                </div>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
-                    <thead style="background:#fafafa">
-                        <tr>
-                            <th class="text-muted small fw-normal py-3 ps-4" style="font-size:0.7rem;letter-spacing:0.5px;width:120px">MÃ ĐƠN</th>
-                            <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">KHÁCH HÀNG</th>
-                            <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">PHÒNG NGHỈ</th>
-                            <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">NGÀY LƯU TRÚ</th>
-                            <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">TIỀN CỌC</th>
-                            <th class="text-muted small fw-normal py-3" style="font-size:0.7rem;letter-spacing:0.5px">TRẠNG THÁI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (bookings != null && bookings.Any())
+                        else if (room.TrangThai == RoomStatus.Available)
                         {
-                            foreach (var p in bookings)
-                            {
-                                var detail = p.ChiTietDatPhongs?.FirstOrDefault();
-                                var room = detail?.Phong;
-                                var customer = p.KhachHang;
-                                var phone = customer?.SDT ?? "N/A";
-                                
-                                // Badge styling based on booking state
-                                var badgeClass = "badge-status badge-available"; // default
-                                var statusLabel = p.TrangThai.ToString();
-                                
-                                if (p.TrangThai == QLKSan.Enums.BookingStatus.Pending)
-                                {
-                                    badgeClass = "badge-status badge-pending";
-                                    statusLabel = "Chờ duyệt";
-                                }
-                                else if (p.TrangThai == QLKSan.Enums.BookingStatus.Approved)
-                                {
-                                    badgeClass = "badge-status badge-booked";
-                                    statusLabel = "Đã duyệt";
-                                }
-                                else if (p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn)
-                                {
-                                    badgeClass = "badge-status badge-occupied";
-                                    statusLabel = "Đang ở";
-                                }
-                                else if (p.TrangThai == QLKSan.Enums.BookingStatus.CheckedOut || p.TrangThai == QLKSan.Enums.BookingStatus.Completed)
-                                {
-                                    badgeClass = "badge-status badge-available";
-                                    statusLabel = "Hoàn thành";
-                                }
-                                else if (p.TrangThai == QLKSan.Enums.BookingStatus.Cancelled)
-                                {
-                                    badgeClass = "badge-status badge-muted";
-                                    statusLabel = "Đã hủy";
-                                }
-
-                                <tr>
-                                    <td class="ps-4 py-3">
-                                        <strong class="text-navy" style="font-size:0.85rem">#@p.MaDatPhong</strong>
-                                        <small class="d-block text-muted" style="font-size:0.65rem">Đặt: @p.NgayDat.ToString("dd/MM/yyyy")</small>
-                                    </td>
-                                    <td class="py-3">
-                                        @if (customer != null)
-                                        {
-                                            <strong class="d-block text-navy" style="font-size:0.9rem">@customer.Ho @customer.Ten</strong>
-                                            <small class="text-muted d-block" style="font-size:0.7rem">
-                                                <i class="fas fa-id-card me-1"></i>CCCD: @customer.CCCD_Passport | <i class="fas fa-phone me-1"></i>SĐT: @phone
-                                            </small>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Khách vãng lai</span>
-                                        }
-                                    </td>
-                                    <td class="py-3">
-                                        @if (room != null)
-                                        {
-                                            <strong class="d-block text-navy" style="font-size:0.9rem">Phòng @room.SoPhong</strong>
-                                            <small class="text-gold" style="font-size:0.75rem">@(room.LoaiPhong?.TenLoai ?? "Premium Room")</small>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Chưa chỉ định</span>
-                                        }
-                                    </td>
-                                    <td class="py-3">
-                                        <div style="font-size:0.8rem">
-                                            <span class="text-navy fw-semibold">Check-In:</span> @p.NgayCheckInDuKien.ToString("dd/MM/yyyy")
-                                        </div>
-                                        <div style="font-size:0.8rem">
-                                            <span class="text-muted">Check-Out:</span> @p.NgayCheckOutDuKien.ToString("dd/MM/yyyy")
-                                        </div>
-                                    </td>
-                                    <td class="py-3 fw-bold text-navy" style="font-size:0.85rem">
-                                        @p.TienCoc.ToString("N0") ₫
-                                    </td>
-                                    <td class="py-3">
-                                        <span class="badge @badgeClass px-3 py-1" style="font-size:0.7rem;font-weight:600;letter-spacing:0.5px">
-                                            @statusLabel.ToUpper()
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
+                            <a href="@Url.Action("WalkIn", new { maPhong = room.MaPhong })" class="btn btn-sm btn-outline-success">Nhận khách</a>
                         }
                         else
                         {
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="fas fa-folder-open mb-3" style="font-size:2.5rem; opacity:0.3"></i>
-                                    <p class="mb-0">Không tìm thấy lịch sử đặt phòng nào phù hợp.</p>
-                                </td>
-                            </tr>
+                            <a href="@Url.Action("Details", "Room", new { id = room.MaPhong })" class="btn btn-sm btn-light text-muted">Chi tiết</a>
                         }
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
-        </div>
+        }
     </div>
 </div>
 
-<style>
-    .hover-shadow:hover { box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; transform: translateY(-2px); }
-    .transition-all { transition: all 0.2s ease-in-out; }
-    .hover-bg-light:hover { background-color: #f8f9fa; }
-    .badge-filter { cursor: pointer; opacity: 0.5; transition: all 0.2s ease; }
-    .badge-filter:hover { opacity: 0.8; }
-    .badge-filter.active { opacity: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: scale(1.05); }
-    .badge-all { background: #2A3B4C; color: #fff; border: 1px solid #2A3B4C; }
-    .room-card-wrapper { transition: all 0.3s ease; }
-    .room-card-wrapper.hidden-by-filter { display: none !important; }
-</style>
-
 @section Scripts {
     <script>
-        function filterRooms(status) {
-            // Update active button
-            document.querySelectorAll('.badge-filter').forEach(function(btn) {
-                btn.classList.remove('active');
+        (function () {
+            // Thẻ danh sách: nhớ thẻ đang xem (theo trình duyệt), hỗ trợ #den / #di / #dango / #sapden
+            var KEY = 'fd-tab';
+            function show(tab) {
+                var ok = false;
+                document.querySelectorAll('.fd-tabs [data-tab]').forEach(function (b) {
+                    var on = b.getAttribute('data-tab') === tab;
+                    ok = ok || on;
+                    b.classList.toggle('active', on);
+                    b.setAttribute('aria-selected', on);
+                });
+                if (!ok) return false;
+                document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== tab; });
+                try { localStorage.setItem(KEY, tab); } catch (e) { }
+                return true;
+            }
+            document.querySelectorAll('.fd-tabs [data-tab]').forEach(function (b) {
+                b.addEventListener('click', function () { show(b.getAttribute('data-tab')); });
             });
-            document.querySelector('.badge-filter[data-filter="' + status + '"]').classList.add('active');
+            document.querySelectorAll('[data-tab-link]').forEach(function (a) {
+                var tab = a.getAttribute('data-tab-link');
+                if (!tab) return;
+                a.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    show(tab);
+                    document.querySelector('.fd-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+            var start = location.hash.substring(1), saved = null;
+            try { saved = localStorage.getItem(KEY); } catch (e) { }
+            if (!show(start) && !show(saved)) show('den');
 
-            // Filter room cards
-            document.querySelectorAll('.room-card-wrapper').forEach(function(card) {
-                if (status === 'all') {
-                    card.classList.remove('hidden-by-filter');
-                } else {
-                    if (card.getAttribute('data-status') === status) {
-                        card.classList.remove('hidden-by-filter');
-                    } else {
-                        card.classList.add('hidden-by-filter');
-                    }
-                }
+            // Lọc sơ đồ phòng theo trạng thái
+            document.querySelectorAll('#roomStatusFilters [data-filter]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var f = b.getAttribute('data-filter');
+                    document.querySelectorAll('#roomStatusFilters [data-filter]').forEach(function (x) { x.classList.toggle('active', x === b); });
+                    document.querySelectorAll('.room-card-wrapper').forEach(function (c) {
+                        c.classList.toggle('hidden-by-filter', f !== 'all' && c.getAttribute('data-status') !== f);
+                    });
+                });
             });
+        })();
+
+        // Lễ tân phải nhập lý do khi từ chối/huỷ phiếu đặt phòng
+        function confirmCancelBooking(form) {
+            var lyDo = prompt('Nhập lý do từ chối/huỷ phiếu đặt phòng:', '');
+            if (lyDo === null) return false;
+            if (!lyDo.trim()) { alert('Vui lòng nhập lý do.'); return false; }
+            form.querySelector('input[name=lyDo]').value = lyDo;
+            return true;
         }
     </script>
 }
-
-<script>
-    // Lễ tân phải nhập lý do khi từ chối/huỷ phiếu đặt phòng
-    function confirmCancelBooking(form) {
-        var lyDo = prompt('Nhập lý do từ chối/huỷ phiếu đặt phòng:', '');
-        if (lyDo === null) return false;
-        if (!lyDo.trim()) { alert('Vui lòng nhập lý do.'); return false; }
-        form.querySelector('input[name=lyDo]').value = lyDo;
-        return true;
-    }
-</script>

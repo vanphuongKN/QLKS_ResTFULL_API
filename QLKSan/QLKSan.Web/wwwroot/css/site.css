@@ -929,3 +929,50 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
 .table-tools .tt-pager button:disabled { opacity: .4; }
 .flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--gold); border-color: var(--gold); }
 .flatpickr-input[readonly] { background-color: var(--white); }
+
+/* ============================================
+   QUẦY LỄ TÂN (màn hình đầu ca)
+   ============================================ */
+.kpi-link { text-decoration: none; color: inherit; transition: box-shadow .2s, transform .2s; }
+.kpi-link:hover { box-shadow: 0 6px 18px rgba(10,25,47,.1); transform: translateY(-1px); color: inherit; }
+.fd-search input { width: 260px; }
+.fd-tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--border-light); overflow-x: auto; }
+.fd-tabs button { border: none; background: none; padding: 16px 12px 13px; font-size: 0.86rem; font-weight: 600; color: var(--text-muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+.fd-tabs button span { display: inline-block; min-width: 22px; margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--light-gray); font-size: 0.72rem; color: var(--text-dark); }
+.fd-tabs button.active { color: var(--navy); border-bottom-color: var(--gold); }
+.fd-tabs button.active span { background: var(--navy); color: var(--gold); }
+.stay-day { padding: 10px 20px; background: var(--light-gray); font-size: 0.74rem; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--navy); }
+.stay-day span { color: var(--text-muted); font-weight: 600; margin-left: 6px; text-transform: none; letter-spacing: 0; }
+.stay-row { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: start; padding: 14px 20px; border-bottom: 1px solid var(--border-light); border-left: 3px solid transparent; }
+.stay-row:last-child { border-bottom: none; }
+.stay-row.is-done { opacity: .62; }
+.stay-row.is-late { border-left-color: var(--danger); }
+.stay-row.is-restricted { border-left-color: var(--warning); }
+.stay-room { text-align: center; }
+.stay-room-no { display: block; font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; color: var(--navy); line-height: 1.05; }
+.stay-room small { display: block; font-size: 0.64rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; line-height: 1.25; }
+.stay-main { min-width: 0; }
+.stay-guest { font-weight: 700; color: var(--navy); font-size: 0.95rem; }
+.stay-guest a { color: inherit; text-decoration: none; }
+.stay-guest a:hover { color: var(--gold); }
+.stay-meta, .stay-notes { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
+.stay-meta i, .stay-notes i { margin-right: 5px; opacity: .75; }
+.stay-notes span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stay-notes .note-gold { background: #fff8e6; color: var(--text-dark); padding: 1px 8px; border-radius: 4px; max-width: 340px; }
+.stay-notes .note-danger { color: var(--danger); font-weight: 600; white-space: normal; }
+.stay-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.stay-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.stay-btns form { margin: 0; }
+.stay-btns .btn { font-size: 0.74rem; padding: 4px 10px; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.restrict-badge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: rgba(245,127,23,.12); color: var(--warning); font-size: 0.62rem; font-weight: 700; letter-spacing: .5px; vertical-align: middle; }
+.fd-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fd-links a { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.82rem; color: var(--text-dark); text-decoration: none; }
+.fd-links a i { color: var(--gold); }
+.fd-links a:hover { border-color: var(--gold); color: var(--navy); }
+@media (max-width: 767.98px) {
+    .fd-search, .fd-search input { width: 100%; }
+    .stay-row { grid-template-columns: 56px 1fr; padding: 12px 14px; }
+    .stay-actions { grid-column: 1 / -1; align-items: flex-start; }
+    .stay-btns { justify-content: flex-start; }
+    .stay-notes .note-gold { max-width: 100%; }
+}

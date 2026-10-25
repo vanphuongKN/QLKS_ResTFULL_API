@@ -78,6 +78,7 @@ namespace QLKSan
             builder.Services.AddScoped<IHousekeepingService, HousekeepingService>();
             builder.Services.AddScoped<IAdminService, AdminService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IFrontDeskService, FrontDeskService>();
             builder.Services.AddScoped<IPromotionService, PromotionService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();

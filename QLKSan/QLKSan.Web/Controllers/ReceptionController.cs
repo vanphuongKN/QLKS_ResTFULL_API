@@ -13,22 +13,24 @@ namespace QLKSan.Controllers
         private readonly IRoomApiClient _roomApi;
         private readonly IBookingApiClient _bookingApi;
         private readonly ICustomerApiClient _customerApi;
+        private readonly IFrontDeskApiClient _frontDeskApi;
 
-        public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi)
+        public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi, IFrontDeskApiClient frontDeskApi)
         {
             _roomApi = roomApi;
             _bookingApi = bookingApi;
             _customerApi = customerApi;
+            _frontDeskApi = frontDeskApi;
         }
 
+        // Màn hình đầu ca: khách đến / đi / đang ở hôm nay, phiếu sắp đến, sơ đồ phòng.
+        // Tìm phiếu (search) chuyển sang trang Lịch sử đặt phòng
         [HttpGet]
         public async Task<IActionResult> Index(string search = null)
         {
-            ViewBag.Search = search;
+            if (!string.IsNullOrWhiteSpace(search)) return RedirectToAction(nameof(BookingHistory), new { search });
             ViewBag.Rooms = await _roomApi.GetAllAsync();
-            ViewBag.OnlineBookings = await _bookingApi.GetOnlineAsync();
-            ViewBag.Bookings = await _bookingApi.GetAllAsync(search);
-            return View();
+            return View(await _frontDeskApi.GetTodayAsync());
         }
 
         // Đổi phòng đã xếp cho phiếu chưa nhận phòng: liệt kê phòng trống đủ sức chứa trong đúng khoảng ngày của phiếu
