@@ -88,11 +88,13 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/timeline?tuNgay&denNgay` | Cashier | Lịch phòng |
 | GET | `/{maDatPhong}` | Đăng nhập | Chi tiết phiếu (khách chỉ xem phiếu của mình) |
 | POST | `/` | Customer | Đặt online. Body có `MaLoai` (tự xếp phòng) **hoặc** `MaPhong`, cùng `CheckIn`, `CheckOut`, `SoNguoi`, `MaKhuyenMai`, `YeuCauDacBiet`, `GioDenDuKien`. Còn phòng thì phiếu ở trạng thái Đã duyệt; hết phòng trả 409 |
-| POST | `/walk-in` | FrontDesk | Nhận khách vãng lai và check-in ngay |
+| POST | `/walk-in` | FrontDesk | Nhận khách vãng lai và check-in ngay; cọc tự tính theo chính sách, thu bằng `PhuongThucCoc` (ghi sổ cọc) |
+| POST | `/front-desk` | FrontDesk | Lễ tân đặt phòng cho ngày tới: thông tin khách (nhận diện theo CCCD), `MaLoai` hoặc `MaPhong`, `CheckIn`, `CheckOut`, `SoNguoi`, `NguonDat` (Điện thoại / Email / Tại quầy / Đại lý), `GioDenDuKien`, `YeuCauDacBiet`, `MaKhuyenMai`, `TienCoc` + `PhuongThucCoc`. Phiếu ở trạng thái Đã duyệt |
+| POST | `/{id}/deposits` | FrontDesk | Thu thêm cọc / đảm bảo `{ "SoTien", "PhuongThuc", "GhiChu" }` cho phiếu chưa trả phòng |
 | POST | `/{id}/approve` | FrontDesk | Duyệt phiếu chờ duyệt |
 | POST | `/{id}/change-room` | FrontDesk | Đổi phòng đã xếp `{ "MaPhong": ... }` (chỉ phiếu chưa nhận phòng) |
-| POST | `/{id}/cancel` | FrontDesk, Customer | Huỷ/từ chối `{ "LyDo": ... }`. Khách chỉ huỷ được trước ngày nhận phòng |
-| POST | `/{id}/check-in` | FrontDesk | Nhận phòng (đúng ngày) |
+| POST | `/{id}/cancel` | FrontDesk, Customer | Huỷ/từ chối `{ "LyDo": ..., "HoanCoc": false }`. Khách chỉ huỷ được trước ngày nhận phòng; lễ tân chọn hoàn cọc (ghi dòng hoàn vào sổ cọc) hoặc giữ cọc |
+| POST | `/{id}/check-in` | FrontDesk | Nhận phòng (đúng ngày). Body tuỳ chọn `{ "SoLuongKhach", "TienCoc", "PhuongThucCoc" }`: số khách thực tế, cọc thu thêm |
 | POST | `/{id}/services` | FrontDesk | Gọi dịch vụ cho khách đang ở |
 
 ## Quầy lễ tân — `/api/front-desk`
@@ -121,6 +123,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/{maKhachHang}/points` | Cashier | Lịch sử điểm (tích / đổi / hoàn tiền / điều chỉnh); tổng các dòng = số điểm hiện có |
 | POST | `/{maKhachHang}/point-adjustments` | Admin | Cộng / trừ điểm thủ công `{ "SoDiem": ±n, "LyDo" }` |
 | GET | `/by-cccd/{cccd}` | Cashier | Tìm theo CCCD/Passport |
+| GET | `/lookup?q` | FrontDesk | Tra khách cũ theo đúng số CCCD/Passport hoặc SĐT (≥ 6 ký tự, tối đa 5 hồ sơ, kèm VIP / hạn chế / sở thích / ghi chú nội bộ) |
 | GET | `/me` | Customer | Hồ sơ của tôi (hạng, quyền lợi, điểm, tiến độ lên hạng; không gồm ghi chú nội bộ) |
 | PUT | `/me/contact` | Customer | Sửa SĐT, email, địa chỉ, quốc gia, sở thích lưu trú |
 | GET | `/me/points` | Customer | Lịch sử điểm của tôi |

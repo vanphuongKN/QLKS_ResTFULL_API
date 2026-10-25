@@ -275,7 +275,34 @@ namespace QLKSan.Data
                         GiaTri NVARCHAR(MAX) NOT NULL,
                         NgayCapNhat DATETIME NOT NULL CONSTRAINT DF_CauHinh_NgayCapNhat DEFAULT GETDATE(),
                         MaNhanVien VARCHAR(10) NULL
-                    );")
+                    );"),
+
+            // L2: kênh đặt phòng + sổ tiền cọc (thu / hoàn, phương thức, người thu); cọc đang có được ghi một dòng đầu kỳ
+            ("28. Thêm PhieuDatPhong.NguonDat", @"
+                IF COL_LENGTH('PhieuDatPhong', 'NguonDat') IS NULL
+                BEGIN
+                    ALTER TABLE PhieuDatPhong ADD NguonDat NVARCHAR(30) NULL;
+                    EXEC('UPDATE PhieuDatPhong SET NguonDat = CASE WHEN MaDatPhong LIKE ''PDP%'' THEN N''Online'' ELSE N''Vãng lai'' END;');
+                END"),
+            ("29. Tạo bảng GiaoDichCoc", @"
+                IF OBJECT_ID('GiaoDichCoc', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE GiaoDichCoc (
+                        MaGiaoDichCoc INT IDENTITY(1,1) PRIMARY KEY,
+                        MaDatPhong VARCHAR(10) NOT NULL CONSTRAINT FK_GiaoDichCoc_PhieuDat FOREIGN KEY REFERENCES PhieuDatPhong(MaDatPhong),
+                        LoaiGiaoDich NVARCHAR(20) NOT NULL CONSTRAINT DF_GiaoDichCoc_Loai DEFAULT N'Thu',
+                        SoTien DECIMAL(18,0) NOT NULL CHECK (SoTien >= 0),
+                        PhuongThuc NVARCHAR(50) NULL,
+                        ThoiGian DATETIME NOT NULL CONSTRAINT DF_GiaoDichCoc_ThoiGian DEFAULT GETDATE(),
+                        MaNhanVien VARCHAR(10) NULL CONSTRAINT FK_GiaoDichCoc_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        GhiChu NVARCHAR(255) NULL
+                    );
+                    CREATE INDEX IX_GiaoDichCoc_PhieuDat ON GiaoDichCoc(MaDatPhong);
+                    CREATE INDEX IX_GiaoDichCoc_ThoiGian ON GiaoDichCoc(ThoiGian);
+                    INSERT INTO GiaoDichCoc (MaDatPhong, LoaiGiaoDich, SoTien, PhuongThuc, ThoiGian, MaNhanVien, GhiChu)
+                    SELECT MaDatPhong, N'Thu', TienCoc, N'Không rõ', ISNULL(NgayCheckInThucTe, NgayDat), MaNhanVien, N'Tiền cọc có trước khi ghi sổ cọc'
+                    FROM PhieuDatPhong WHERE TienCoc > 0;
+                END")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

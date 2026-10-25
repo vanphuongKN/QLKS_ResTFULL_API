@@ -34,6 +34,7 @@ namespace QLKSan.Data
         public DbSet<LichSuDiem> LichSuDiems { get; set; }
         public DbSet<NhatKyThaoTac> NhatKyThaoTacs { get; set; }
         public DbSet<CauHinh> CauHinhs { get; set; }
+        public DbSet<GiaoDichCoc> GiaoDichCocs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -176,6 +177,12 @@ namespace QLKSan.Data
 
             // PaymentType converter (ThanhToan.LoaiGiaoDich)
             modelBuilder.Entity<ThanhToan>()
+                .Property(t => t.LoaiGiaoDich)
+                .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.PaymentType, string>(
+                    v => v == QLKSan.Enums.PaymentType.Refund ? "Hoàn" : "Thu",
+                    v => v == "Hoàn" ? QLKSan.Enums.PaymentType.Refund : QLKSan.Enums.PaymentType.Payment));
+
+            modelBuilder.Entity<GiaoDichCoc>()
                 .Property(t => t.LoaiGiaoDich)
                 .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.PaymentType, string>(
                     v => v == QLKSan.Enums.PaymentType.Refund ? "Hoàn" : "Thu",

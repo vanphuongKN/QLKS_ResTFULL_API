@@ -60,9 +60,28 @@ namespace QLKSan.Models.DTOs
         public string YeuCauDacBiet { get; set; }
         public string GioDenDuKien { get; set; }
 
+        // Kênh đặt phòng (Online, Điện thoại, Email, Tại quầy, Đại lý, Vãng lai)
+        public string NguonDat { get; set; }
+
+        // Sổ tiền cọc của phiếu (thu / hoàn); TienCoc = tổng thu - tổng hoàn
+        public List<DepositDto> GiaoDichCocs { get; set; } = new List<DepositDto>();
+
         public CustomerSummaryDto KhachHang { get; set; }
         public List<BookingRoomDto> ChiTietDatPhongs { get; set; } = new List<BookingRoomDto>();
         public List<ServiceUsageDto> SuDungDichVus { get; set; } = new List<ServiceUsageDto>();
         public InvoiceDto HoaDon { get; set; }
+    }
+
+    // Một lần thu / hoàn tiền cọc
+    public class DepositDto
+    {
+        public int MaGiaoDichCoc { get; set; }
+        public PaymentType LoaiGiaoDich { get; set; }
+        public decimal SoTien { get; set; }
+        public string PhuongThuc { get; set; }
+        public DateTime ThoiGian { get; set; }
+        public string MaNhanVien { get; set; }
+        public string TenNhanVien { get; set; }
+        public string GhiChu { get; set; }
     }
 }

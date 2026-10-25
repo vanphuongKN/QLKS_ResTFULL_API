@@ -19,13 +19,16 @@ namespace QLKSan.Business
         private readonly IRoomAvailabilityService _availability;
         private readonly HotelPolicy _policy;
         private readonly IPricingService _pricing;
+        private readonly IPromotionService _promotions;
 
-        public ReceptionService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPricingService pricing)
+        public ReceptionService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPricingService pricing,
+            IPromotionService promotions)
         {
             _context = context;
             _availability = availability;
             _policy = policy.Value;
             _pricing = pricing;
+            _promotions = promotions;
         }
 
         public async Task<IEnumerable<Phong>> GetAllRoomsAsync()
@@ -93,7 +96,7 @@ namespace QLKSan.Business
             await _context.SaveChangesAsync();
         }
 
-        public async Task CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien)
+        public async Task CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien, CheckInBookingRequest request = null)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -116,7 +119,7 @@ namespace QLKSan.Business
 
                 // Phòng phải trống và đã dọn sạch
                 var maPhong = booking.ChiTietDatPhongs.FirstOrDefault()?.MaPhong;
-                var room = await _context.Phongs.FindAsync(maPhong)
+                var room = await _context.Phongs.Include(p => p.LoaiPhong).FirstOrDefaultAsync(p => p.MaPhong == maPhong)
                     ?? throw new BusinessException("Phiếu đặt không gắn với phòng nào.");
                 if (room.TrangThai != RoomStatus.Available)
                 {
@@ -128,6 +131,19 @@ namespace QLKSan.Business
                         _ => "chưa sẵn sàng"
                     };
                     throw new ConflictException($"Phòng {room.SoPhong} {lyDo}, chưa thể nhận phòng.");
+                }
+
+                // Số khách thực tế khi nhận phòng (có thể khác lúc đặt) và tiền cọc / đảm bảo thu tại quầy
+                if (request?.SoLuongKhach is int soKhach && soKhach != booking.SoLuongKhach)
+                {
+                    if (room.LoaiPhong != null && soKhach > room.LoaiPhong.SoNguoiToiDa)
+                        throw new BusinessException($"Phòng {room.SoPhong} chỉ chứa tối đa {room.LoaiPhong.SoNguoiToiDa} khách.");
+                    booking.SoLuongKhach = soKhach;
+                }
+                if (request != null && request.TienCoc > 0)
+                {
+                    ValidateDeposit(request.TienCoc, request.PhuongThucCoc);
+                    RecordDeposit(booking, PaymentType.Payment, request.TienCoc, request.PhuongThucCoc, maNhanVien, "Cọc khi nhận phòng");
                 }
 
                 booking.TrangThai = BookingStatus.CheckedIn;
@@ -145,7 +161,7 @@ namespace QLKSan.Business
             }
         }
 
-        public async Task CancelBookingAsync(string maDatPhong, string lyDo, string nguoiHuy, bool laKhachHang)
+        public async Task CancelBookingAsync(string maDatPhong, string lyDo, string nguoiHuy, bool laKhachHang, bool hoanCoc = false, string maNhanVien = null)
         {
             var booking = await _context.PhieuDatPhongs.FindAsync(maDatPhong)
                 ?? throw new NotFoundException($"Không tìm thấy phiếu đặt phòng '{maDatPhong}'.");
@@ -160,6 +176,24 @@ namespace QLKSan.Business
             booking.TrangThai = BookingStatus.Cancelled;
             booking.GhiChu = BookingNotes.Append(booking.GhiChu,
                 $"[{hanhDong} {DateTime.Now:dd/MM/yyyy HH:mm} - {nguoiHuy}] {(string.IsNullOrWhiteSpace(lyDo) ? "Không ghi lý do" : lyDo.Trim())}");
+
+            // Tiền cọc: lễ tân chọn hoàn lại (ghi dòng hoàn vào sổ cọc, cùng phương thức lần thu gần nhất) hoặc giữ theo chính sách
+            if (booking.TienCoc > 0)
+            {
+                if (hoanCoc && !laKhachHang)
+                {
+                    var phuongThuc = await _context.GiaoDichCocs
+                        .Where(g => g.MaDatPhong == maDatPhong && g.LoaiGiaoDich == PaymentType.Payment)
+                        .OrderByDescending(g => g.ThoiGian).Select(g => g.PhuongThuc).FirstOrDefaultAsync();
+                    var soTien = booking.TienCoc;
+                    RecordDeposit(booking, PaymentType.Refund, soTien, phuongThuc ?? PaymentMethods.TienMat, maNhanVien, "Hoàn cọc khi huỷ phiếu");
+                    booking.GhiChu = BookingNotes.Append(booking.GhiChu, $"[Hoàn cọc {soTien:N0}đ]");
+                }
+                else
+                {
+                    booking.GhiChu = BookingNotes.Append(booking.GhiChu, $"[Giữ cọc {booking.TienCoc:N0}đ theo chính sách huỷ]");
+                }
+            }
 
             // Phòng tự được giải phóng vì phòng trống được tính theo phiếu đang hiệu lực
             await _context.SaveChangesAsync();
@@ -195,27 +229,10 @@ namespace QLKSan.Business
                 // Không được trùng với phiếu đã đặt trước trong khoảng hôm nay → ngày trả
                 await _availability.EnsureAvailableAsync(room.MaPhong, today, ngayTra);
 
-                // 2. Resolve Customer
-                var customer = await GetCustomerByCccdAsync(model.CCCD_Passport);
-                if (customer == null)
-                {
-                    customer = new KhachHang
-                    {
-                        MaKhachHang = await IdGenerator.NextAsync(_context.KhachHangs.Select(k => k.MaKhachHang), "KH", 4),
-                        Ho = model.Ho,
-                        Ten = model.Ten,
-                        CCCD_Passport = model.CCCD_Passport,
-                        NgaySinh = DateTime.Now.AddYears(-25)
-                    };
-                    _context.KhachHangs.Add(customer);
-
-                    _context.LienHeDiaChis.Add(new LienHeDiaChi
-                    {
-                        MaLienHe = await IdGenerator.NextAsync(_context.LienHeDiaChis.Select(l => l.MaLienHe), "LH", 4),
-                        MaKhachHang = customer.MaKhachHang,
-                        SDT = model.SDT
-                    });
-                }
+                // 2. Resolve Customer (CCCD đã có hồ sơ thì dùng hồ sơ đó)
+                var phuongThucCoc = string.IsNullOrWhiteSpace(model.PhuongThucCoc) ? PaymentMethods.TienMat : model.PhuongThucCoc;
+                ValidateDeposit(1, phuongThucCoc);
+                var customer = await ResolveCustomerAsync(model.Ho, model.Ten, model.CCCD_Passport, model.SDT, null);
 
                 // 3. Create Booking (PhieuDatPhong) — cọc theo % tiền phòng dự kiến (đã áp dụng giá mùa/cuối tuần)
                 var soDem = BillingCalculator.TinhSoDem(today, ngayTra);
@@ -233,9 +250,11 @@ namespace QLKSan.Business
                     NgayCheckInThucTe = DateTime.Now,
                     SoLuongKhach = model.SoNguoi,
                     TrangThai = BookingStatus.CheckedIn,
-                    TienCoc = tienCoc
+                    NguonDat = BookingSources.VangLai
                 };
                 _context.PhieuDatPhongs.Add(booking);
+                if (tienCoc > 0)
+                    RecordDeposit(booking, PaymentType.Payment, tienCoc, phuongThucCoc, maNhanVien, $"Cọc {_policy.PhanTramTienCocVangLai}% khách vãng lai");
 
                 // 4. Create Booking Detail (ChiTietDatPhong)
                 _context.ChiTietDatPhongs.Add(new ChiTietDatPhong
@@ -326,8 +345,152 @@ namespace QLKSan.Business
                 .Include(p => p.ChiTietDatPhongs).ThenInclude(c => c.Phong).ThenInclude(r => r.LoaiPhong)
                 .Include(p => p.SuDungDichVus).ThenInclude(s => s.DichVu)
                 .Include(p => p.HoaDon).ThenInclude(h => h.ThanhToans)
+                .Include(p => p.GiaoDichCocs).ThenInclude(g => g.NhanVien)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(p => p.MaDatPhong == maDatPhong);
         }
+
+        public async Task<string> CreateFrontDeskBookingAsync(FrontDeskBookingRequest r, string maNhanVien)
+        {
+            var checkIn = r.CheckIn.Date;
+            var checkOut = r.CheckOut.Date;
+            if (string.IsNullOrWhiteSpace(r.MaLoai) == string.IsNullOrWhiteSpace(r.MaPhong))
+                throw new BusinessException("Vui lòng chọn một hạng phòng hoặc một phòng cụ thể.");
+            if (checkIn < DateTime.Today)
+                throw new BusinessException("Ngày nhận phòng không được ở trong quá khứ.");
+            if (checkOut <= checkIn)
+                throw new BusinessException("Ngày trả phòng phải sau ngày nhận phòng.");
+            if (!BookingSources.QuaQuay.Contains(r.NguonDat))
+                throw new BusinessException("Nguồn đặt phòng không hợp lệ.");
+            ValidateDeposit(r.TienCoc, r.PhuongThucCoc);
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var room = string.IsNullOrWhiteSpace(r.MaLoai)
+                    ? await _availability.ReserveRoomAsync(r.MaPhong, checkIn, checkOut, r.SoNguoi)
+                    : await _availability.ReserveRoomOfTypeAsync(r.MaLoai, checkIn, checkOut, r.SoNguoi);
+                var maKhuyenMai = string.IsNullOrWhiteSpace(r.MaKhuyenMai) ? null
+                    : (await _promotions.ValidateForStayAsync(r.MaKhuyenMai.Trim(), room.MaLoai, (checkOut - checkIn).Days)).MaKhuyenMai;
+                var customer = await ResolveCustomerAsync(r.Ho, r.Ten, r.CCCD_Passport, r.SDT, r.Email);
+
+                var booking = new PhieuDatPhong
+                {
+                    MaDatPhong = await IdGenerator.NextAsync(_context.PhieuDatPhongs.Select(p => p.MaDatPhong), "DP", 4),
+                    MaKhachHang = customer.MaKhachHang,
+                    MaNhanVien = maNhanVien,
+                    NgayDat = DateTime.Now,
+                    NgayCheckInDuKien = checkIn,
+                    NgayCheckOutDuKien = checkOut,
+                    SoLuongKhach = r.SoNguoi,
+                    TrangThai = BookingStatus.Approved,
+                    NguonDat = r.NguonDat,
+                    MaKhuyenMai = maKhuyenMai,
+                    YeuCauDacBiet = Clean(r.YeuCauDacBiet),
+                    GioDenDuKien = Clean(r.GioDenDuKien)
+                };
+                _context.PhieuDatPhongs.Add(booking);
+                _context.ChiTietDatPhongs.Add(new ChiTietDatPhong
+                {
+                    MaCTDP = await IdGenerator.NextAsync(_context.ChiTietDatPhongs.Select(c => c.MaCTDP), "CT", 4),
+                    MaDatPhong = booking.MaDatPhong,
+                    MaPhong = room.MaPhong,
+                    HinhThucThue = RentalType.Daily,
+                    GiaThueThucTe = room.LoaiPhong.GiaThueNgay
+                });
+                if (r.TienCoc > 0)
+                    RecordDeposit(booking, PaymentType.Payment, r.TienCoc, r.PhuongThucCoc, maNhanVien, "Cọc khi đặt phòng");
+
+                // Không đổi Phong.TrangThai: phòng chỉ bị giữ trong khoảng ngày của phiếu
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return booking.MaDatPhong;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task AddDepositAsync(string maDatPhong, DepositRequest request, string maNhanVien)
+        {
+            var booking = await _context.PhieuDatPhongs.FindAsync(maDatPhong)
+                ?? throw new NotFoundException($"Không tìm thấy phiếu đặt phòng '{maDatPhong}'.");
+            if (booking.TrangThai is not (BookingStatus.Pending or BookingStatus.Approved or BookingStatus.CheckedIn))
+                throw new ConflictException("Chỉ thu cọc cho phiếu chưa trả phòng.");
+            ValidateDeposit(request.SoTien, request.PhuongThuc);
+            // Hoá đơn chưa thanh toán sẽ lấy lại tiền cọc mới khi lễ tân mở màn hình trả phòng
+            RecordDeposit(booking, PaymentType.Payment, request.SoTien, request.PhuongThuc, maNhanVien, Clean(request.GhiChu) ?? "Thu thêm cọc");
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<KhachHang>> FindCustomersAsync(string q)
+        {
+            q = q?.Trim();
+            if (string.IsNullOrEmpty(q) || q.Length < 6) return new List<KhachHang>();
+            return await _context.KhachHangs
+                .Include(k => k.LienHeDiaChis)
+                .Include(k => k.PhieuDatPhongs)
+                .Where(k => k.CCCD_Passport == q || k.LienHeDiaChis.Any(l => l.SDT == q))
+                .OrderBy(k => k.Ten)
+                .Take(5)
+                .AsSplitQuery()
+                .ToListAsync();
+        }
+
+        // CCCD đã có hồ sơ thì dùng hồ sơ đó (bổ sung liên hệ nếu hồ sơ chưa có); chưa có thì tạo khách mới kèm liên hệ
+        private async Task<KhachHang> ResolveCustomerAsync(string ho, string ten, string cccd, string sdt, string email)
+        {
+            var customer = await _context.KhachHangs.Include(k => k.LienHeDiaChis).FirstOrDefaultAsync(k => k.CCCD_Passport == cccd);
+            if (customer == null)
+            {
+                customer = new KhachHang
+                {
+                    MaKhachHang = await IdGenerator.NextAsync(_context.KhachHangs.Select(k => k.MaKhachHang), "KH", 4),
+                    Ho = ho.Trim(),
+                    Ten = ten.Trim(),
+                    CCCD_Passport = cccd,
+                    NgaySinh = DateTime.Now.AddYears(-25)
+                };
+                _context.KhachHangs.Add(customer);
+            }
+            if (customer.LienHeDiaChis == null || customer.LienHeDiaChis.Count == 0)
+            {
+                _context.LienHeDiaChis.Add(new LienHeDiaChi
+                {
+                    MaLienHe = await IdGenerator.NextAsync(_context.LienHeDiaChis.Select(l => l.MaLienHe), "LH", 4),
+                    MaKhachHang = customer.MaKhachHang,
+                    SDT = sdt,
+                    Email = Clean(email)
+                });
+            }
+            return customer;
+        }
+
+        private static void ValidateDeposit(decimal soTien, string phuongThuc)
+        {
+            if (soTien > 0 && !PaymentMethods.TaiQuay.Contains(phuongThuc))
+                throw new BusinessException("Vui lòng chọn phương thức thu cọc (tiền mặt, thẻ tín dụng hoặc chuyển khoản).");
+        }
+
+        // Ghi một dòng sổ cọc và cập nhật tổng cọc của phiếu (thu cộng, hoàn trừ)
+        private void RecordDeposit(PhieuDatPhong booking, PaymentType loai, decimal soTien, string phuongThuc, string maNhanVien, string ghiChu)
+        {
+            _context.GiaoDichCocs.Add(new GiaoDichCoc
+            {
+                MaDatPhong = booking.MaDatPhong,
+                LoaiGiaoDich = loai,
+                SoTien = soTien,
+                PhuongThuc = phuongThuc,
+                ThoiGian = DateTime.Now,
+                MaNhanVien = maNhanVien,
+                GhiChu = ghiChu
+            });
+            booking.TienCoc += loai == PaymentType.Refund ? -soTien : soTien;
+        }
+
+        private static string Clean(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
         public async Task<IEnumerable<KhachHang>> GetAllCustomersAsync(string search = null)
         {

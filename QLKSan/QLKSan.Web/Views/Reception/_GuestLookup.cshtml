@@ -1,0 +1,90 @@
+@* Tra khách cũ theo CCCD / SĐT: điền sẵn họ tên, liên hệ và cảnh báo VIP / hạn chế / ghi chú nội bộ.
+   Trang dùng phải có các ô id: Ho, Ten, SDT, CCCD_Passport (Email nếu có). Nhập CCCD đủ số cũng tự tra. *@
+<div class="guest-lookup mb-3">
+    <label class="form-label-upper" for="glQuery">Tra khách cũ</label>
+    <div class="d-flex gap-2">
+        <input type="search" id="glQuery" class="form-control" placeholder="Nhập đúng số CCCD/Passport hoặc số điện thoại" autocomplete="off" />
+        <button type="button" id="glBtn" class="btn btn-outline-navy text-nowrap"><i class="fas fa-search me-1"></i>Tra cứu</button>
+    </div>
+    <div id="glResults" class="gl-results"></div>
+</div>
+<div id="glCare" class="guest-care mb-3" hidden></div>
+
+<script>
+    // Chạy sau khi trang tải xong: các ô Ho / Ten / CCCD_Passport nằm sau khối tra cứu
+    document.addEventListener('DOMContentLoaded', function () {
+        var url = '@Url.Action("LookupGuest", "Reception")';
+        var $ = function (id) { return document.getElementById(id); };
+        var results = $('glResults'), care = $('glCare');
+
+        function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+        function setVal(id, v) { var i = $(id); if (i && v) i.value = v; }
+
+        // Bảng chăm sóc: VIP, hạn chế, sở thích, ghi chú nội bộ; cảnh báo khi tên đã nhập khác hồ sơ
+        function showCare(k, tenDaNhap) {
+            care.innerHTML = '';
+            var head = el('div', 'guest-care-head');
+            head.appendChild(el('strong', null, k.ho + ' ' + k.ten));
+            if (k.laVIP) head.appendChild(el('span', 'vip-badge', 'VIP'));
+            if (k.hanChe) head.appendChild(el('span', 'restrict-badge', 'Hạn chế'));
+            head.appendChild(el('small', 'text-muted ms-auto', (k.hang ? 'Hạng ' + k.hang + ' · ' : '') + k.soLanDatPhong + ' lần lưu trú · ' + k.maKhachHang));
+            care.appendChild(head);
+            if (k.hanChe) care.appendChild(el('div', 'note-danger', 'Khách đang bị hạn chế: ' + (k.lyDoHanChe || 'không ghi lý do') + '. Cân nhắc trước khi nhận đặt phòng.'));
+            if (k.soThich) care.appendChild(el('div', null, '♥ Sở thích: ' + k.soThich));
+            if (k.ghiChuNoiBo) care.appendChild(el('div', 'text-muted', 'Ghi chú nội bộ: ' + k.ghiChuNoiBo));
+            if (tenDaNhap && tenDaNhap.toLowerCase() !== (k.ho + ' ' + k.ten).toLowerCase())
+                care.appendChild(el('div', 'note-danger', 'Tên đã nhập "' + tenDaNhap + '" khác hồ sơ. Phiếu sẽ gắn với hồ sơ đang lưu theo CCCD này.'));
+            care.hidden = false;
+        }
+
+        function use(k) {
+            setVal('CCCD_Passport', k.cccd); setVal('Ho', k.ho); setVal('Ten', k.ten); setVal('SDT', k.sdt); setVal('Email', k.email);
+            results.innerHTML = '';
+            showCare(k, null);
+        }
+
+        function lookup(q, tuDong) {
+            q = (q || '').trim();
+            if (q.length < 6) { results.textContent = 'Nhập tối thiểu 6 chữ số.'; return; }
+            fetch(url + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (list) {
+                    results.innerHTML = '';
+                    if (!list.length) {
+                        if (!tuDong) results.appendChild(el('small', 'text-muted', 'Không có hồ sơ khớp — khách mới, hệ thống sẽ tạo hồ sơ khi lưu.'));
+                        care.hidden = true;
+                        return;
+                    }
+                    // Nhập CCCD đủ số và khớp đúng một hồ sơ: điền ngay
+                    if (tuDong && list.length === 1) {
+                        var tenCu = (($('Ho') || {}).value || '').trim() + ' ' + (($('Ten') || {}).value || '').trim();
+                        use(list[0]);
+                        showCare(list[0], tenCu.trim());
+                        return;
+                    }
+                    list.forEach(function (k) {
+                        var row = el('div', 'gl-item');
+                        var info = el('div');
+                        info.appendChild(el('strong', null, k.ho + ' ' + k.ten));
+                        if (k.laVIP) info.appendChild(el('span', 'vip-badge', 'VIP'));
+                        if (k.hanChe) info.appendChild(el('span', 'restrict-badge', 'Hạn chế'));
+                        info.appendChild(el('div', 'small text-muted', 'CCCD ' + k.cccd + (k.sdt ? ' · ' + k.sdt : '') + ' · ' + k.soLanDatPhong + ' lần lưu trú'));
+                        var btn = el('button', 'btn btn-sm btn-gold', 'Dùng hồ sơ này');
+                        btn.type = 'button';
+                        btn.addEventListener('click', function () { use(k); });
+                        row.appendChild(info); row.appendChild(btn);
+                        results.appendChild(row);
+                    });
+                });
+        }
+
+        $('glBtn').addEventListener('click', function () { lookup($('glQuery').value, false); });
+        $('glQuery').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); lookup(this.value, false); } });
+        var cccd = $('CCCD_Passport');
+        var daTra = null;
+        if (cccd) cccd.addEventListener('change', function () {
+            var v = this.value.trim();
+            if (/^[0-9]{9,12}$/.test(v) && v !== daTra) { daTra = v; lookup(v, true); }
+        });
+    });
+</script>

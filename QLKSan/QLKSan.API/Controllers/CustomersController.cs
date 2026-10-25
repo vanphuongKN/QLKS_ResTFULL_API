@@ -75,6 +75,15 @@ namespace QLKSan.Controllers
             return Created($"/api/customers/{maKhachHang}/points", row.ToDto());
         }
 
+        /// <summary>Lễ tân tra khách cũ theo đúng số CCCD/Passport hoặc số điện thoại (tối thiểu 6 ký tự, tối đa 5 hồ sơ, kèm VIP / hạn chế / sở thích).</summary>
+        [HttpGet("lookup")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> Lookup([FromQuery] string q)
+        {
+            var customers = await _receptionService.FindCustomersAsync(q);
+            return Ok(customers.Select(k => k.ToDto().WithMembership(_loyalty)));
+        }
+
         /// <summary>Tìm khách hàng theo số CCCD/Passport.</summary>
         [HttpGet("by-cccd/{cccd}")]
         [Authorize(Roles = AppRoles.Cashier)]

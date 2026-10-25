@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using QLKSan.Business;
 using QLKSan.Common;
 using QLKSan.Mappings;
@@ -93,6 +94,32 @@ namespace QLKSan.Controllers
             return CreatedAtAction(nameof(GetById), new { maDatPhong }, created.ToDto());
         }
 
+        /// <summary>
+        /// Lễ tân đặt phòng cho ngày tới (khách gọi điện, email, đến quầy, đại lý): theo hạng phòng (MaLoai, tự xếp phòng) hoặc đích danh (MaPhong).
+        /// Khách nhận diện theo CCCD (chưa có hồ sơ thì tạo mới). Phiếu được xác nhận ngay; TienCoc &gt; 0 thì ghi vào sổ cọc.
+        /// </summary>
+        [HttpPost("front-desk")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Đặt phòng qua quầy", "Phiếu đặt phòng")]
+        public async Task<ActionResult<BookingDto>> CreateAtFrontDesk(FrontDeskBookingRequest request)
+        {
+            var maDatPhong = await _receptionService.CreateFrontDeskBookingAsync(request, User.GetMaNhanVien());
+
+            var created = await _receptionService.GetBookingByIdAsync(maDatPhong);
+            return CreatedAtAction(nameof(GetById), new { maDatPhong }, created.ToDto());
+        }
+
+        /// <summary>Thu thêm tiền cọc / đảm bảo cho phiếu chưa trả phòng (ghi vào sổ cọc, trừ vào hoá đơn khi trả phòng).</summary>
+        [HttpPost("{maDatPhong}/deposits")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Thu tiền cọc", "Phiếu đặt phòng")]
+        public async Task<ActionResult<BookingDto>> AddDeposit(string maDatPhong, DepositRequest request)
+        {
+            await _receptionService.AddDepositAsync(maDatPhong, request, User.GetMaNhanVien());
+            var booking = await _receptionService.GetBookingByIdAsync(maDatPhong);
+            return booking.ToDto();
+        }
+
         /// <summary>Lễ tân đổi phòng đã xếp cho phiếu chưa nhận phòng (phòng mới phải trống trong khoảng ngày và đủ sức chứa).</summary>
         [HttpPost("{maDatPhong}/change-room")]
         [Authorize(Roles = AppRoles.FrontDesk)]
@@ -147,17 +174,20 @@ namespace QLKSan.Controllers
             }
 
             var nguoiHuy = laKhachHang ? "Khách hàng" : $"Nhân viên {User.Identity?.Name}";
-            await _receptionService.CancelBookingAsync(maDatPhong, request?.LyDo, nguoiHuy, laKhachHang);
+            await _receptionService.CancelBookingAsync(maDatPhong, request?.LyDo, nguoiHuy, laKhachHang, request?.HoanCoc ?? false,
+                laKhachHang ? null : User.GetMaNhanVien());
             return NoContent();
         }
 
-        /// <summary>Check-in cho phiếu đặt online (chuyển phòng sang Đang ở).</summary>
+        /// <summary>
+        /// Nhận phòng cho phiếu đã đặt (chuyển phòng sang Đang ở). Body tuỳ chọn: số khách thực tế, tiền cọc thu thêm và phương thức.
+        /// </summary>
         [HttpPost("{maDatPhong}/check-in")]
         [Authorize(Roles = AppRoles.FrontDesk)]
         [Audit("Nhận phòng", "Phiếu đặt phòng")]
-        public async Task<IActionResult> CheckIn(string maDatPhong)
+        public async Task<IActionResult> CheckIn(string maDatPhong, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CheckInBookingRequest request = null)
         {
-            await _receptionService.CheckInOnlineBookingAsync(maDatPhong, User.GetMaNhanVien());
+            await _receptionService.CheckInOnlineBookingAsync(maDatPhong, User.GetMaNhanVien(), request);
             return NoContent();
         }
 

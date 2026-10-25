@@ -15,11 +15,15 @@ namespace QLKSan.Business
         // Phòng trống trong khoảng [checkIn, checkOut) và đủ sức chứa
         Task<List<Phong>> GetAvailableRoomsAsync(DateTime checkIn, DateTime checkOut, int? soNguoi = null);
 
-        // Ném BusinessException nếu phòng đã có phiếu trùng lịch
-        Task EnsureAvailableAsync(string maPhong, DateTime checkIn, DateTime checkOut);
+        // Ném ConflictException nếu phòng đã có phiếu trùng lịch (boQuaMaDatPhong: bỏ qua chính phiếu đang gia hạn / đổi ngày)
+        Task EnsureAvailableAsync(string maPhong, DateTime checkIn, DateTime checkOut, string boQuaMaDatPhong = null);
 
         // Khoá dòng Phong trong transaction hiện tại để 2 người không đặt cùng phòng cùng lúc
         Task LockRoomAsync(string maPhong);
+
+        // Giữ một phòng đích danh / phòng trống đầu tiên của hạng cho khoảng ngày (gọi trong transaction; đã khoá phòng)
+        Task<Phong> ReserveRoomAsync(string maPhong, DateTime checkIn, DateTime checkOut, int soNguoi);
+        Task<Phong> ReserveRoomOfTypeAsync(string maLoai, DateTime checkIn, DateTime checkOut, int soNguoi);
     }
 
     // Phòng trống được xác định theo KHOẢNG NGÀY từ các phiếu đặt đang hiệu lực,
@@ -64,10 +68,11 @@ namespace QLKSan.Business
                 .ToList();
         }
 
-        public async Task EnsureAvailableAsync(string maPhong, DateTime checkIn, DateTime checkOut)
+        public async Task EnsureAvailableAsync(string maPhong, DateTime checkIn, DateTime checkOut, string boQuaMaDatPhong = null)
         {
             var today = DateTime.Today;
             var conflict = (await LoadActiveBookingsAsync(maPhong))
+                .Where(b => b.MaDatPhong != boQuaMaDatPhong)
                 .Where(b => Overlaps(b.CheckIn, NgayTraHieuLuc(b.TrangThai, b.CheckOut, today), checkIn, checkOut))
                 .OrderBy(b => b.CheckIn)
                 .FirstOrDefault();
@@ -85,6 +90,51 @@ namespace QLKSan.Business
         {
             await _context.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT MaPhong FROM Phong WITH (UPDLOCK, HOLDLOCK) WHERE MaPhong = {maPhong}");
+        }
+
+        public async Task<Phong> ReserveRoomAsync(string maPhong, DateTime checkIn, DateTime checkOut, int soNguoi)
+        {
+            // Khoá phòng để hai khách không đặt trùng lịch cùng lúc
+            await LockRoomAsync(maPhong);
+
+            var room = await _context.Phongs.Include(p => p.LoaiPhong).FirstOrDefaultAsync(p => p.MaPhong == maPhong)
+                ?? throw new BusinessException("Phòng không tồn tại.");
+            if (room.TrangThai == RoomStatus.Maintenance)
+                throw new ConflictException("Phòng đang bảo trì, vui lòng chọn phòng khác.");
+            if (room.LoaiPhong != null && soNguoi > room.LoaiPhong.SoNguoiToiDa)
+                throw new BusinessException($"Số lượng khách ({soNguoi}) vượt quá sức chứa tối đa của {room.LoaiPhong.TenLoai} ({room.LoaiPhong.SoNguoiToiDa} người lớn).");
+
+            await EnsureAvailableAsync(maPhong, checkIn, checkOut);
+            return room;
+        }
+
+        // Xếp phòng trống đầu tiên của hạng (theo số phòng); lễ tân có thể đổi phòng trước khi nhận khách
+        public async Task<Phong> ReserveRoomOfTypeAsync(string maLoai, DateTime checkIn, DateTime checkOut, int soNguoi)
+        {
+            var loai = await _context.LoaiPhongs.FindAsync(maLoai)
+                ?? throw new BusinessException("Hạng phòng không tồn tại.");
+            if (soNguoi > loai.SoNguoiToiDa)
+                throw new BusinessException($"Số lượng khách ({soNguoi}) vượt quá sức chứa tối đa của {loai.TenLoai} ({loai.SoNguoiToiDa} người lớn).");
+
+            var candidates = await _context.Phongs.Include(p => p.LoaiPhong)
+                .Where(p => p.MaLoai == maLoai && p.TrangThai != RoomStatus.Maintenance)
+                .OrderBy(p => p.SoPhong)
+                .ToListAsync();
+            foreach (var room in candidates)
+            {
+                // Khoá từng phòng trước khi kiểm tra để hai yêu cầu đồng thời không cùng nhận một phòng
+                await LockRoomAsync(room.MaPhong);
+                try
+                {
+                    await EnsureAvailableAsync(room.MaPhong, checkIn, checkOut);
+                    return room;
+                }
+                catch (ConflictException)
+                {
+                    // Phòng này đã có khách trong khoảng ngày: thử phòng tiếp theo cùng hạng
+                }
+            }
+            throw new ConflictException($"{loai.TenLoai} đã hết phòng trong khoảng ngày đã chọn. Vui lòng chọn ngày hoặc hạng phòng khác.");
         }
 
         private record ActiveBooking(string MaDatPhong, string MaPhong, DateTime CheckIn, DateTime CheckOut, BookingStatus TrangThai);

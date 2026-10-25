@@ -68,6 +68,7 @@ namespace QLKSan.Models.DTOs
         public string YeuCauDacBiet { get; set; }
         public decimal TienCoc { get; set; }
         public string MaKhuyenMai { get; set; }
+        public string NguonDat { get; set; }
 
         // Đã nhận phòng (danh sách đến) / đã trả phòng (danh sách đi)
         public bool DaXuLy { get; set; }

@@ -17,8 +17,11 @@ namespace QLKSan.ApiClients
         Task<BookingDto> CreateAsync(BookRoomRequest request);
         Task<BookingDto> WalkInAsync(CheckInRequest request);
         Task ApproveAsync(string maDatPhong);
-        Task CheckInAsync(string maDatPhong);
-        Task CancelAsync(string maDatPhong, string lyDo);
+        Task CheckInAsync(string maDatPhong, CheckInBookingRequest request = null);
+        Task CancelAsync(string maDatPhong, string lyDo, bool hoanCoc = false);
+        // Lễ tân đặt phòng cho ngày tới (điện thoại / email / tại quầy / đại lý)
+        Task<BookingDto> CreateAtFrontDeskAsync(FrontDeskBookingRequest request);
+        Task<BookingDto> AddDepositAsync(string maDatPhong, DepositRequest request);
         Task ChangeRoomAsync(string maDatPhong, string maPhong);
         Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request);
     }
@@ -39,8 +42,15 @@ namespace QLKSan.ApiClients
         public Task<BookingDto> CreateAsync(BookRoomRequest request) => HttpPostAsync<BookingDto>("api/bookings", request);
         public Task<BookingDto> WalkInAsync(CheckInRequest request) => HttpPostAsync<BookingDto>("api/bookings/walk-in", request);
         public Task ApproveAsync(string maDatPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/approve");
-        public Task CheckInAsync(string maDatPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/check-in");
-        public Task CancelAsync(string maDatPhong, string lyDo) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/cancel", new CancelBookingRequest { LyDo = lyDo });
+        public Task CheckInAsync(string maDatPhong, CheckInBookingRequest request = null)
+            => request == null
+                ? HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/check-in")
+                : HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/check-in", request);
+        public Task CancelAsync(string maDatPhong, string lyDo, bool hoanCoc = false)
+            => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/cancel", new CancelBookingRequest { LyDo = lyDo, HoanCoc = hoanCoc });
+        public Task<BookingDto> CreateAtFrontDeskAsync(FrontDeskBookingRequest request) => HttpPostAsync<BookingDto>("api/bookings/front-desk", request);
+        public Task<BookingDto> AddDepositAsync(string maDatPhong, DepositRequest request)
+            => HttpPostAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/deposits", request);
         public Task ChangeRoomAsync(string maDatPhong, string maPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/change-room", new ChangeRoomRequest { MaPhong = maPhong });
 
         public Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request)
@@ -60,6 +70,8 @@ namespace QLKSan.ApiClients
         Task<List<PointHistoryDto>> GetPointHistoryAsync(string maKhachHang);
         Task AdjustPointsAsync(string maKhachHang, PointAdjustmentRequest request);
         Task<List<PointHistoryDto>> GetMyPointHistoryAsync();
+        // Lễ tân tra khách cũ theo đúng số CCCD/Passport hoặc SĐT
+        Task<List<CustomerDto>> LookupAsync(string q);
     }
 
     public class CustomerApiClient : ApiClientBase, ICustomerApiClient
@@ -83,6 +95,7 @@ namespace QLKSan.ApiClients
         public Task AdjustPointsAsync(string maKhachHang, PointAdjustmentRequest request)
             => HttpPostAsync($"api/customers/{Uri.EscapeDataString(maKhachHang)}/point-adjustments", request);
         public Task<List<PointHistoryDto>> GetMyPointHistoryAsync() => HttpGetAsync<List<PointHistoryDto>>("api/customers/me/points");
+        public Task<List<CustomerDto>> LookupAsync(string q) => HttpGetAsync<List<CustomerDto>>($"api/customers/lookup?q={Uri.EscapeDataString(q ?? "")}");
     }
 
     // ===== /api/invoices =====

@@ -37,5 +37,9 @@ namespace QLKSan.Models.Requests
         [Required(ErrorMessage = "Vui lòng nhập số lượng khách.")]
         [Range(1, 10, ErrorMessage = "Số lượng khách phải từ 1 đến 10.")]
         public int SoNguoi { get; set; } = 1;
+
+        // Phương thức thu tiền cọc (cọc tính tự động theo chính sách)
+        [StringLength(50)]
+        public string PhuongThucCoc { get; set; } = "Tiền mặt";
     }
 }

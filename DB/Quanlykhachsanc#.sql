@@ -187,7 +187,7 @@ CREATE TABLE KhuyenMai (
 
 -- 5. NHÓM GIAO DỊCH
 CREATE TABLE PhieuDatPhong (
-    MaDatPhong VARCHAR(10) PRIMARY KEY,             -- PDP...: đặt online, DP...: khách vãng lai
+    MaDatPhong VARCHAR(10) PRIMARY KEY,             -- PDP...: đặt online, DP...: lễ tân tạo (vãng lai / đặt qua quầy)
     MaKhachHang VARCHAR(10) NOT NULL,
     MaNhanVien VARCHAR(10) NULL,                    -- nhân viên check-in
     NgayDat DATETIME DEFAULT GETDATE(),
@@ -202,6 +202,7 @@ CREATE TABLE PhieuDatPhong (
     MaKhuyenMai VARCHAR(10) NULL,                   -- mã khách chọn khi đặt online, áp dụng lúc lập hoá đơn
     YeuCauDacBiet NVARCHAR(500) NULL,               -- yêu cầu riêng của khách khi đặt online
     GioDenDuKien NVARCHAR(30) NULL,                 -- khung giờ dự kiến đến
+    NguonDat NVARCHAR(30) NULL,                     -- Online | Điện thoại | Email | Tại quầy | Đại lý | Vãng lai
     CONSTRAINT FK_PhieuDat_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
     CONSTRAINT FK_PhieuDat_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
 );
@@ -334,6 +335,22 @@ CREATE TABLE LichSuDiem (
     CONSTRAINT FK_LichSuDiem_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
 );
 CREATE INDEX IX_LichSuDiem_KhachHang ON LichSuDiem(MaKhachHang, ThoiGian);
+
+-- Sổ tiền cọc: mỗi lần thu / hoàn cọc một dòng (PhieuDatPhong.TienCoc = tổng thu - tổng hoàn); dùng tổng hợp tiền theo ca
+CREATE TABLE GiaoDichCoc (
+    MaGiaoDichCoc INT IDENTITY(1,1) PRIMARY KEY,
+    MaDatPhong VARCHAR(10) NOT NULL,
+    LoaiGiaoDich NVARCHAR(20) NOT NULL DEFAULT N'Thu',    -- Thu | Hoàn
+    SoTien DECIMAL(18,0) NOT NULL CHECK (SoTien >= 0),
+    PhuongThuc NVARCHAR(50) NULL,
+    ThoiGian DATETIME NOT NULL DEFAULT GETDATE(),
+    MaNhanVien VARCHAR(10) NULL,
+    GhiChu NVARCHAR(255) NULL,
+    CONSTRAINT FK_GiaoDichCoc_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong),
+    CONSTRAINT FK_GiaoDichCoc_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
+);
+CREATE INDEX IX_GiaoDichCoc_PhieuDat ON GiaoDichCoc(MaDatPhong);
+CREATE INDEX IX_GiaoDichCoc_ThoiGian ON GiaoDichCoc(ThoiGian);
 
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,
@@ -640,6 +657,12 @@ FROM (
 -- Khách VIP mẫu (lễ tân thấy sở thích / ghi chú khi khách đến)
 UPDATE KhachHang SET LaVIP = 1, SoThich = N'Gối mềm, tầng cao, không dùng hoa có mùi', GhiChuNoiBo = N'Khách quen, thường đặt Suite dịp kỷ niệm.'
 WHERE MaKhachHang = 'KH04';
+
+-- Kênh đặt phòng và sổ tiền cọc của dữ liệu mẫu (cọc khách vãng lai thu bằng tiền mặt lúc nhận phòng)
+UPDATE PhieuDatPhong SET NguonDat = CASE WHEN MaDatPhong LIKE 'PDP%' THEN N'Online' ELSE N'Vãng lai' END;
+INSERT INTO GiaoDichCoc (MaDatPhong, LoaiGiaoDich, SoTien, PhuongThuc, ThoiGian, MaNhanVien, GhiChu)
+SELECT MaDatPhong, N'Thu', TienCoc, N'Tiền mặt', ISNULL(NgayCheckInThucTe, NgayDat), MaNhanVien, N'Cọc 50% khách vãng lai'
+FROM PhieuDatPhong WHERE TienCoc > 0;
 GO
 
 /* =====================================================================

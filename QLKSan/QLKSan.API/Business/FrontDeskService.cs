@@ -117,6 +117,7 @@ namespace QLKSan.Business
                 YeuCauDacBiet = p.YeuCauDacBiet,
                 TienCoc = p.TienCoc,
                 MaKhuyenMai = p.MaKhuyenMai,
+                NguonDat = p.NguonDat,
                 DaXuLy = daXuLy,
                 QuaHanTra = p.TrangThai == BookingStatus.CheckedIn && p.NgayCheckOutDuKien.Date < today
             };

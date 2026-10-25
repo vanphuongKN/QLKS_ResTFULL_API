@@ -117,11 +117,49 @@ namespace QLKSan.Models.Entities
         [StringLength(30)]
         public string? GioDenDuKien { get; set; }
 
+        // Kênh đặt phòng: Online, Điện thoại, Email, Tại quầy, Đại lý, Vãng lai (BookingSources)
+        [StringLength(30)]
+        public string? NguonDat { get; set; }
+
         public KhachHang KhachHang { get; set; }
         public NhanVien NhanVien { get; set; }
         public HoaDon HoaDon { get; set; }
         public ICollection<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
         public ICollection<SuDungDichVu> SuDungDichVus { get; set; }
+        public ICollection<GiaoDichCoc> GiaoDichCocs { get; set; }
+    }
+
+    // Sổ tiền cọc: mỗi lần thu / hoàn cọc một dòng (phương thức, người thu) — PhieuDatPhong.TienCoc = tổng thu - tổng hoàn.
+    // Tách khỏi ThanhToan (gắn hoá đơn) để báo cáo doanh thu không đổi; dùng cho tổng hợp tiền theo ca
+    public class GiaoDichCoc
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaGiaoDichCoc { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("PhieuDatPhong")]
+        public string MaDatPhong { get; set; }
+
+        public PaymentType LoaiGiaoDich { get; set; } = PaymentType.Payment;
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal SoTien { get; set; }
+
+        [StringLength(50)]
+        public string PhuongThuc { get; set; }
+
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
+        [StringLength(255)]
+        public string? GhiChu { get; set; }
+
+        public PhieuDatPhong PhieuDatPhong { get; set; }
+        public NhanVien? NhanVien { get; set; }
     }
 
     public class ChiTietDatPhong

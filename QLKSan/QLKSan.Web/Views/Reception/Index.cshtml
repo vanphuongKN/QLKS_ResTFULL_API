@@ -97,6 +97,7 @@
                     @if (!string.IsNullOrEmpty(k.SoThich)) { <span title="@k.SoThich"><i class="fas fa-heart"></i>@k.SoThich</span> }
                     @if (!string.IsNullOrEmpty(k.MaKhuyenMai)) { <span><i class="fas fa-tag"></i>@k.MaKhuyenMai</span> }
                     @if (k.TienCoc > 0) { <span><i class="fas fa-wallet"></i>Cọc @FormatHelper.ToVND(k.TienCoc)</span> }
+                    @if (!string.IsNullOrEmpty(k.NguonDat) && k.NguonDat != BookingSources.Online) { <span class="note-source"><i class="fas fa-phone-volume"></i>@k.NguonDat</span> }
                     @if (canhBaoPhong != null) { <span class="note-danger"><i class="fas fa-triangle-exclamation"></i>@canhBaoPhong — đổi phòng khác hoặc chờ buồng phòng</span> }
                 </div>
             </div>
@@ -130,17 +131,13 @@
                         }
                         @if (tab == "den")
                         {
-                            <form asp-action="CheckInOnlineBooking" method="post">
-                                <input type="hidden" name="id" value="@k.MaDatPhong" />
-                                <button type="submit" class="btn btn-sm btn-gold" disabled="@(canhBaoPhong != null)"><i class="fas fa-key me-1"></i>Nhận phòng</button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-gold" disabled="@(canhBaoPhong != null)" data-fd-modal="checkInModal"
+                                    data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong" data-sokhach="@k.SoKhach" data-coc="@k.TienCoc.ToString("0")"><i class="fas fa-key me-1"></i>Nhận phòng</button>
                         }
                         <a asp-action="ChangeRoom" asp-route-id="@k.MaDatPhong" class="btn btn-sm @(canhBaoPhong != null ? "btn-outline-danger" : "btn-outline-secondary")"><i class="fas fa-right-left me-1"></i>Đổi phòng</a>
-                        <form asp-action="CancelBooking" method="post" onsubmit="return confirmCancelBooking(this)">
-                            <input type="hidden" name="id" value="@k.MaDatPhong" />
-                            <input type="hidden" name="lyDo" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="@(k.TrangThai == BookingStatus.Pending ? "Từ chối" : "Huỷ phiếu")"><i class="fas fa-times"></i></button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" title="Thu cọc" data-fd-modal="depositModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang"><i class="fas fa-wallet"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="@(k.TrangThai == BookingStatus.Pending ? "Từ chối" : "Huỷ phiếu")" data-fd-modal="cancelModal"
+                                data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-coc="@k.TienCoc.ToString("0")" data-tuchoi="@(k.TrangThai == BookingStatus.Pending ? "1" : "0")"><i class="fas fa-times"></i></button>
                     }
                     else if (k.TrangThai == BookingStatus.CheckedIn)
                     {
@@ -163,6 +160,7 @@
         <form method="get" class="fd-search" role="search">
             <input type="search" name="search" class="form-control form-control-sm" placeholder="Tìm phiếu đặt phòng…" title="Mã phiếu, tên khách hoặc số phòng" aria-label="Tìm phiếu đặt phòng" />
         </form>
+        <a asp-action="NewBooking" class="btn btn-outline-gold"><i class="fas fa-calendar-plus me-2"></i>Đặt phòng</a>
         <a asp-action="WalkIn" class="btn-gold"><i class="fas fa-user-plus me-2"></i>Nhận khách vãng lai</a>
     </div>
 </div>
@@ -314,8 +312,97 @@
     </div>
 </div>
 
+<!-- Hộp thoại quầy: nhận phòng (số khách thực tế, cọc thêm), thu cọc, huỷ / từ chối (lý do, hoàn cọc) -->
+<div class="modal fade fd-modal" id="checkInModal" tabindex="-1" aria-labelledby="ciTitle">
+    <div class="modal-dialog">
+        <form asp-action="CheckInOnlineBooking" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="ciTitle">Nhận phòng</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" data-field="id" />
+                <p class="mb-3" data-field="tieuDe"></p>
+                <div class="row g-3">
+                    <div class="col-4">
+                        <label class="form-label fw-semibold" for="ciSoKhach">Số khách</label>
+                        <input type="number" name="soLuongKhach" id="ciSoKhach" class="form-control" min="1" max="10" data-field="sokhach" />
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label fw-semibold" for="ciCoc">Thu thêm cọc / đảm bảo</label>
+                        <div class="input-group">
+                            <input type="number" name="tienCoc" id="ciCoc" class="form-control" min="0" step="1000" value="0" />
+                            <select name="phuongThucCoc" class="form-select" aria-label="Phương thức">
+                                @foreach (var pt in PaymentMethods.TaiQuay) { <option>@pt</option> }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2" data-field="cocHienCo"></small>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold"><i class="fas fa-key me-1"></i>Xác nhận nhận phòng</button></div>
+        </form>
+    </div>
+</div>
+<div class="modal fade fd-modal" id="depositModal" tabindex="-1" aria-labelledby="dpTitle">
+    <div class="modal-dialog">
+        <form asp-action="AddDeposit" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="dpTitle">Thu tiền cọc</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" data-field="id" />
+                <p class="mb-3" data-field="tieuDe"></p>
+                <div class="row g-3">
+                    <div class="col-7"><label class="form-label fw-semibold" for="dpSoTien">Số tiền</label><input type="number" name="soTien" id="dpSoTien" class="form-control" min="1000" step="1000" required /></div>
+                    <div class="col-5"><label class="form-label fw-semibold" for="dpPt">Phương thức</label><select name="phuongThuc" id="dpPt" class="form-select">@foreach (var pt in PaymentMethods.TaiQuay) { <option>@pt</option> }</select></div>
+                    <div class="col-12"><label class="form-label fw-semibold" for="dpGhiChu">Ghi chú</label><input name="ghiChu" id="dpGhiChu" class="form-control" maxlength="255" placeholder="VD: Đảm bảo phát sinh minibar" /></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Thu cọc</button></div>
+        </form>
+    </div>
+</div>
+<div class="modal fade fd-modal" id="cancelModal" tabindex="-1" aria-labelledby="cnTitle">
+    <div class="modal-dialog">
+        <form asp-action="CancelBooking" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="cnTitle">Huỷ phiếu đặt phòng</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" data-field="id" />
+                <p class="mb-3" data-field="tieuDe"></p>
+                <label class="form-label fw-semibold" for="cnLyDo">Lý do</label>
+                <textarea name="lyDo" id="cnLyDo" class="form-control" rows="2" maxlength="200" required></textarea>
+                <div class="form-check mt-3" data-field="hoanCocBox" hidden>
+                    <input class="form-check-input" type="checkbox" name="hoanCoc" value="true" id="cnHoanCoc" />
+                    <label class="form-check-label" for="cnHoanCoc" data-field="hoanCocText"></label>
+                    <small class="d-block text-muted">Không chọn: giữ cọc theo chính sách huỷ (ghi chú vào phiếu).</small>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn btn-danger">Xác nhận</button></div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        (function () {
+            // Mở hộp thoại quầy, điền dữ liệu của phiếu từ data-* của nút
+            var vnd = function (v) { return new Intl.NumberFormat('vi-VN').format(v) + ' ₫'; };
+            document.querySelectorAll('[data-fd-modal]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var m = document.getElementById(b.getAttribute('data-fd-modal'));
+                    var f = function (name) { return m.querySelector('[data-field="' + name + '"]'); };
+                    var coc = parseInt(b.getAttribute('data-coc') || '0', 10);
+                    f('id').value = b.getAttribute('data-id');
+                    f('tieuDe').textContent = '#' + b.getAttribute('data-id') + ' · ' + b.getAttribute('data-ten') + (b.getAttribute('data-phong') ? ' · phòng ' + b.getAttribute('data-phong') : '');
+                    if (f('sokhach')) f('sokhach').value = b.getAttribute('data-sokhach');
+                    if (f('cocHienCo')) f('cocHienCo').textContent = coc > 0 ? 'Đã thu cọc ' + vnd(coc) + '.' : 'Phiếu chưa có tiền cọc.';
+                    if (f('hoanCocBox')) {
+                        f('hoanCocBox').hidden = coc <= 0;
+                        m.querySelector('[name=hoanCoc]').checked = false;
+                        f('hoanCocText').textContent = 'Hoàn lại tiền cọc ' + vnd(coc);
+                        m.querySelector('.modal-title').textContent = b.getAttribute('data-tuchoi') === '1' ? 'Từ chối phiếu đặt phòng' : 'Huỷ phiếu đặt phòng';
+                    }
+                    bootstrap.Modal.getOrCreateInstance(m).show();
+                });
+            });
+        })();
+
         (function () {
             // Thẻ danh sách: nhớ thẻ đang xem (theo trình duyệt), hỗ trợ #den / #di / #dango / #sapden
             var KEY = 'fd-tab';
@@ -360,13 +447,5 @@
             });
         })();
 
-        // Lễ tân phải nhập lý do khi từ chối/huỷ phiếu đặt phòng
-        function confirmCancelBooking(form) {
-            var lyDo = prompt('Nhập lý do từ chối/huỷ phiếu đặt phòng:', '');
-            if (lyDo === null) return false;
-            if (!lyDo.trim()) { alert('Vui lòng nhập lý do.'); return false; }
-            form.querySelector('input[name=lyDo]').value = lyDo;
-            return true;
-        }
     </script>
 }

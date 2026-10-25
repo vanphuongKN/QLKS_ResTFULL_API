@@ -17,13 +17,24 @@ namespace QLKSan.Business
 
         // Đổi phòng đã xếp cho phiếu chưa nhận phòng; giá theo hạng của phòng mới
         Task ChangeRoomAsync(string maDatPhong, string maPhongMoi);
-        Task CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien);
+        // request (tuỳ chọn): số khách thực tế, tiền cọc thu thêm khi nhận phòng
+        Task CheckInOnlineBookingAsync(string maDatPhong, string maNhanVien, CheckInBookingRequest request = null);
 
-        // Huỷ/từ chối phiếu chưa nhận phòng. laKhachHang = true: áp dụng chính sách khách tự huỷ (trước ngày nhận phòng)
-        Task CancelBookingAsync(string maDatPhong, string lyDo, string nguoiHuy, bool laKhachHang);
+        // Huỷ/từ chối phiếu chưa nhận phòng. laKhachHang = true: áp dụng chính sách khách tự huỷ (trước ngày nhận phòng).
+        // hoanCoc (lễ tân): hoàn toàn bộ tiền cọc đã thu, ghi vào sổ cọc
+        Task CancelBookingAsync(string maDatPhong, string lyDo, string nguoiHuy, bool laKhachHang, bool hoanCoc = false, string maNhanVien = null);
+
+        // Lễ tân đặt phòng cho ngày tới (điện thoại, email, tại quầy, đại lý); phiếu được xác nhận ngay. Trả về mã phiếu
+        Task<string> CreateFrontDeskBookingAsync(FrontDeskBookingRequest request, string maNhanVien);
+
+        // Thu thêm tiền cọc cho phiếu chưa trả phòng
+        Task AddDepositAsync(string maDatPhong, DepositRequest request, string maNhanVien);
 
         // Walk-in Check-in
         Task<KhachHang> GetCustomerByCccdAsync(string cccd);
+
+        // Tra khách cũ theo đúng số CCCD/Passport hoặc số điện thoại (tối đa 5 hồ sơ)
+        Task<List<KhachHang>> FindCustomersAsync(string q);
 
         // Trả về mã phiếu đặt phòng vừa tạo
         Task<string> ProcessCheckInAsync(CheckInRequest model, string maNhanVien);

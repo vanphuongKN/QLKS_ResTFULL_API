@@ -976,3 +976,22 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
     .stay-btns { justify-content: flex-start; }
     .stay-notes .note-gold { max-width: 100%; }
 }
+
+/* Đặt phòng qua quầy / tra khách cũ / hộp thoại quầy */
+.validation-box.validation-summary-valid { display: none; }
+.validation-box ul { margin: 0; padding-left: 18px; }
+.rt-pick { width: 100%; text-align: left; border: 1px solid var(--border-light); background: var(--white); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; transition: border-color .2s, box-shadow .2s; }
+.rt-pick:hover:not(:disabled) { border-color: var(--gold); }
+.rt-pick.selected { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-light); }
+.rt-pick.is-full { opacity: .5; }
+.rt-pick-name { font-weight: 700; color: var(--navy); }
+.rt-pick-meta { font-size: 0.78rem; color: var(--text-muted); }
+.rt-pick-price { font-size: 0.86rem; color: var(--gold); font-weight: 600; margin-top: 4px; }
+.gl-results:empty { display: none; }
+.gl-results { margin-top: 8px; font-size: 0.85rem; }
+.gl-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px; margin-bottom: 6px; }
+.guest-care { border: 1px solid var(--gold); background: #fffaf0; border-radius: 10px; padding: 12px 14px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }
+.guest-care-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--navy); }
+.guest-care .note-danger, .fd-modal .note-danger { color: var(--danger); font-weight: 600; }
+.deposit-box { background: var(--light-gray); border-radius: 10px; padding: 12px 14px; }
+.stay-notes .note-source { color: var(--navy); }

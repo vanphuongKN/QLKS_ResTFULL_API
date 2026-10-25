@@ -14,13 +14,16 @@ namespace QLKSan.Controllers
         private readonly IBookingApiClient _bookingApi;
         private readonly ICustomerApiClient _customerApi;
         private readonly IFrontDeskApiClient _frontDeskApi;
+        private readonly IRoomTypeApiClient _roomTypeApi;
 
-        public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi, IFrontDeskApiClient frontDeskApi)
+        public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi, IFrontDeskApiClient frontDeskApi,
+            IRoomTypeApiClient roomTypeApi)
         {
             _roomApi = roomApi;
             _bookingApi = bookingApi;
             _customerApi = customerApi;
             _frontDeskApi = frontDeskApi;
+            _roomTypeApi = roomTypeApi;
         }
 
         // Màn hình đầu ca: khách đến / đi / đang ở hôm nay, phiếu sắp đến, sơ đồ phòng.
@@ -77,13 +80,15 @@ namespace QLKSan.Controllers
             return RedirectToAction("Index");
         }
 
-        // Check-in phòng online (mã nhân viên lấy từ JWT phía API)
+        // Nhận phòng cho phiếu đã đặt (mã nhân viên lấy từ JWT phía API); kèm số khách thực tế và cọc thu thêm nếu có
         [HttpPost]
-        public async Task<IActionResult> CheckInOnlineBooking(string id)
+        public async Task<IActionResult> CheckInOnlineBooking(string id, int? soLuongKhach, decimal tienCoc = 0, string phuongThucCoc = null)
         {
             try
             {
-                await _bookingApi.CheckInAsync(id);
+                var request = soLuongKhach == null && tienCoc <= 0 ? null
+                    : new CheckInBookingRequest { SoLuongKhach = soLuongKhach, TienCoc = tienCoc, PhuongThucCoc = phuongThucCoc };
+                await _bookingApi.CheckInAsync(id, request);
                 TempData["SuccessMessage"] = "Khách đã nhận phòng thành công.";
             }
             catch (ApiException ex)
@@ -93,13 +98,13 @@ namespace QLKSan.Controllers
             return RedirectToAction("Index");
         }
 
-        // Từ chối phiếu chờ duyệt / huỷ phiếu đã duyệt
+        // Từ chối phiếu chờ duyệt / huỷ phiếu đã duyệt; hoanCoc: hoàn toàn bộ tiền cọc đã thu
         [HttpPost]
-        public async Task<IActionResult> CancelBooking(string id, string lyDo)
+        public async Task<IActionResult> CancelBooking(string id, string lyDo, bool hoanCoc = false)
         {
             try
             {
-                await _bookingApi.CancelAsync(id, lyDo);
+                await _bookingApi.CancelAsync(id, lyDo, hoanCoc);
                 TempData["SuccessMessage"] = $"Đã huỷ/từ chối phiếu đặt phòng {id}.";
             }
             catch (ApiException ex)
@@ -107,6 +112,104 @@ namespace QLKSan.Controllers
                 TempData["ErrorMessage"] = "Không thể huỷ phiếu. " + ex.UserMessage;
             }
             return RedirectToAction("Index");
+        }
+
+        // Thu thêm tiền cọc / đảm bảo cho phiếu chưa trả phòng
+        [HttpPost]
+        public async Task<IActionResult> AddDeposit(string id, decimal soTien, string phuongThuc, string ghiChu)
+        {
+            try
+            {
+                await _bookingApi.AddDepositAsync(id, new DepositRequest { SoTien = soTien, PhuongThuc = phuongThuc, GhiChu = ghiChu });
+                TempData["SuccessMessage"] = $"Đã thu cọc {soTien:N0}đ cho phiếu {id}.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể thu cọc. " + ex.UserMessage;
+            }
+            return RedirectToAction("Index");
+        }
+
+        // --- ĐẶT PHÒNG QUA QUẦY (điện thoại / email / tại quầy / đại lý) ---
+
+        [HttpGet]
+        public IActionResult NewBooking()
+        {
+            return View(new FrontDeskBookingRequest { NguonDat = Enums.BookingSources.DienThoai, PhuongThucCoc = Enums.PaymentMethods.TienMat });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> NewBooking(FrontDeskBookingRequest model)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var booking = await _bookingApi.CreateAtFrontDeskAsync(model);
+                    var phong = booking.ChiTietDatPhongs.FirstOrDefault()?.Phong?.SoPhong;
+                    TempData["SuccessMessage"] = $"Đã tạo phiếu {booking.MaDatPhong} cho {model.Ho} {model.Ten}: phòng {phong}, "
+                        + $"{booking.NgayCheckInDuKien:dd/MM} → {booking.NgayCheckOutDuKien:dd/MM}"
+                        + (booking.TienCoc > 0 ? $", đã thu cọc {booking.TienCoc:N0}đ." : ".");
+                    return Redirect(Url.Action(nameof(Index)) + (booking.NgayCheckInDuKien.Date == DateTime.Today ? "#den" : "#sapden"));
+                }
+                catch (ApiException ex)
+                {
+                    ModelState.AddModelError("", ex.UserMessage);
+                }
+            }
+            return View(model);
+        }
+
+        // Hạng phòng còn trống cho khoảng ngày (JSON cho trang đặt phòng)
+        [HttpGet]
+        public async Task<IActionResult> AvailableRoomTypes(DateTime checkIn, DateTime checkOut, int soNguoi = 1)
+        {
+            if (checkOut.Date <= checkIn.Date || checkIn.Date < DateTime.Today) return Json(Array.Empty<object>());
+            try
+            {
+                var list = await _roomTypeApi.GetAvailableAsync(checkIn.Date, checkOut.Date, soNguoi);
+                return Json(list.Select(x => new
+                {
+                    maLoai = x.LoaiPhong.MaLoai,
+                    tenLoai = FormatHelper.TenHangPhong(x.LoaiPhong.TenLoai),
+                    soNguoiToiDa = x.LoaiPhong.SoNguoiToiDa,
+                    soPhongTrong = x.SoPhongTrong,
+                    soDem = x.BaoGia?.SoDem ?? 0,
+                    tongTien = x.BaoGia?.TongTien ?? 0,
+                    giaTrungBinh = x.BaoGia?.GiaTrungBinhDem ?? x.LoaiPhong.GiaThueNgay
+                }));
+            }
+            catch (ApiException ex)
+            {
+                return BadRequest(new { error = ex.UserMessage });
+            }
+        }
+
+        // Tra khách cũ theo CCCD/SĐT (JSON cho form đặt phòng / nhận khách vãng lai); chỉ trả thông tin lễ tân cần
+        [HttpGet]
+        public async Task<IActionResult> LookupGuest(string q)
+        {
+            var list = await _customerApi.LookupAsync(q);
+            return Json(list.Select(k =>
+            {
+                var lienHe = k.LienHeDiaChis.FirstOrDefault();
+                return new
+                {
+                    maKhachHang = k.MaKhachHang,
+                    ho = k.Ho,
+                    ten = k.Ten,
+                    cccd = k.CCCD_Passport,
+                    sdt = lienHe?.SDT,
+                    email = lienHe?.Email,
+                    laVIP = k.LaVIP,
+                    hanChe = k.HanChe,
+                    lyDoHanChe = k.LyDoHanChe,
+                    soThich = k.SoThich,
+                    ghiChuNoiBo = k.GhiChuNoiBo,
+                    hang = k.ThanhVien?.Hang,
+                    soLanDatPhong = k.SoLanDatPhong
+                };
+            }));
         }
 
         // --- WALK-IN CHECK-IN (Khách vãng lai) ---
