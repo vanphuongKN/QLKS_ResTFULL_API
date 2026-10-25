@@ -2,10 +2,11 @@
 @using QLKSan.Models.DTOs
 @{
     ViewData["Title"] = "Buồng phòng";
-    var cleaningRooms = ViewBag.CleaningRooms as IEnumerable<RoomDto> ?? Enumerable.Empty<RoomDto>();
     var tasks = ViewBag.Tasks as IEnumerable<HousekeepingTaskDto> ?? Enumerable.Empty<HousekeepingTaskDto>();
+    var board = ViewBag.Board as List<HousekeepingRoomDto> ?? new List<HousekeepingRoomDto>();
     var hkStaff = ViewBag.HousekeepingStaff as IEnumerable<StaffDto> ?? Enumerable.Empty<StaffDto>();
     int countAvailable = ViewBag.CountAvailable ?? 0;
+    int chuaSan = ViewBag.KhachDenPhongChuaSan ?? 0;
 
     int Dem(HousekeepingTaskStatus s) => tasks.Count(t => t.TrangThai == s);
     string BadgeClass(HousekeepingTaskStatus s) => s switch
@@ -16,6 +17,21 @@
         HousekeepingTaskStatus.Issue => "badge-occupied",
         _ => "badge-available"
     };
+    (string Css, string Nhan) Phong(RoomStatus t) => t switch
+    {
+        RoomStatus.Available => ("is-clean", "Sạch"),
+        RoomStatus.Cleaning => ("is-dirty", "Chưa dọn"),
+        RoomStatus.Occupied => ("is-occupied", "Có khách"),
+        RoomStatus.Maintenance => ("is-ooo", "Bảo trì"),
+        _ => ("is-clean", "Đã đặt")
+    };
+    (string Css, string Nhan) UuTien(int u) => u switch
+    {
+        1 => ("prio-1", "Gấp"),
+        2 => ("prio-2", "Cao"),
+        4 => ("prio-4", "Sự cố"),
+        _ => ("prio-3", "Thường")
+    };
     var stats = new[]
     {
         (Label: "Chưa giao", Value: Dem(HousekeepingTaskStatus.Unassigned), Icon: "fa-inbox", Css: "text-warning"),
@@ -23,23 +39,22 @@
         (Label: "Đang dọn", Value: Dem(HousekeepingTaskStatus.InProgress), Icon: "fa-broom", Css: "text-gold"),
         (Label: "Báo sự cố", Value: Dem(HousekeepingTaskStatus.Issue), Icon: "fa-exclamation-triangle", Css: "text-danger"),
     };
+    var tangCoViec = tasks.Where(t => t.TrangThai is HousekeepingTaskStatus.Unassigned or HousekeepingTaskStatus.Assigned).Select(t => t.Tang).Distinct().OrderBy(x => x).ToList();
 }
 
 <div class="page-header">
     <div>
         <p class="page-label">Buồng phòng</p>
         <h2>Công việc dọn phòng</h2>
-        <p class="page-desc">Việc dọn phòng được tạo tự động khi khách trả phòng. Hiện có @countAvailable phòng trống sẵn sàng đón khách.</p>
+        <p class="page-desc">Việc được tạo khi khách trả phòng, đổi phòng hoặc gửi yêu cầu buồng phòng; xếp theo ưu tiên khách sắp đến. Hiện có @countAvailable phòng sạch sẵn sàng đón khách.</p>
     </div>
 </div>
 
-@if (TempData["SuccessMessage"] != null)
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+@if (chuaSan > 0)
 {
-    <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div>
-}
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
+    <div class="alert alert-warning mb-3"><i class="fas fa-triangle-exclamation me-2"></i><strong>@chuaSan phòng</strong> có khách đến hôm nay nhưng chưa sạch — ưu tiên giao dọn trước.</div>
 }
 
 <div class="row g-3 mb-4">
@@ -57,109 +72,141 @@
     }
 </div>
 
-<!-- Phân công dọn phòng -->
+<!-- Sơ đồ buồng phòng theo tầng -->
+<div class="card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h5 class="text-navy fw-bold mb-0"><i class="fas fa-building text-gold me-2"></i>Sơ đồ buồng phòng</h5>
+        <div class="hk-legend">
+            <span class="is-clean">Sạch</span><span class="is-dirty">Chưa dọn</span><span class="is-occupied">Có khách</span><span class="is-ooo">Bảo trì</span>
+        </div>
+    </div>
+    @foreach (var tang in board.GroupBy(r => r.Tang))
+    {
+        <div class="hk-floor">
+            <div class="hk-floor-label">Tầng @tang.Key</div>
+            <div class="hk-rooms">
+                @foreach (var r in tang)
+                {
+                    var p = Phong(r.TrangThai);
+                    var v = r.ViecDangMo;
+                    <div class="hk-room @p.Css @(r.KhachDen != null && r.TrangThai != RoomStatus.Available ? "is-urgent" : "")">
+                        <div class="hk-room-top"><strong>@r.SoPhong</strong><span>@p.Nhan</span></div>
+                        <small class="hk-room-type">@FormatHelper.TenHangPhong(r.TenLoaiPhong)</small>
+                        @if (r.KhachDen != null)
+                        {
+                            <small class="hk-tag">@if (r.KhachDenVIP) { <i class="fas fa-crown text-gold me-1"></i> }Đến @(r.GioDen ?? "hôm nay")</small>
+                        }
+                        @if (r.KhachDiHomNay) { <small class="hk-tag"><i class="fas fa-sign-out-alt me-1"></i>Đi hôm nay</small> }
+                        @if (v != null)
+                        {
+                            <small class="hk-task"><span class="badge-status @BadgeClass(v.TrangThai)">@v.TrangThai.GetDisplayName()</span> @(v.TenNhanVien ?? "")</small>
+                        }
+                        @if (r.TrangThai == RoomStatus.Cleaning)
+                        {
+                            <form asp-action="MarkClean" method="post" class="mt-1">
+                                <input type="hidden" name="maPhong" value="@r.MaPhong" />
+                                <button type="submit" class="btn btn-sm btn-link p-0 hk-clean-btn" title="Lễ tân xác nhận phòng đã dọn">Xác nhận đã dọn</button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Phân công dọn phòng (theo ưu tiên) -->
 <div class="card mb-4">
     <div class="card-body p-0">
         <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="text-navy fw-bold mb-0"><i class="fas fa-clipboard-list text-gold me-2"></i>Phân công dọn phòng (@tasks.Count())</h5>
-            <small class="text-muted">Giao việc cho nhân viên buồng phòng; nhân viên tự cập nhật khi bắt đầu / dọn xong</small>
+            <form asp-action="AssignBulk" method="post" id="bulkForm" class="d-flex gap-2 flex-wrap align-items-center">
+                @if (tangCoViec.Any())
+                {
+                    <select class="form-select form-select-sm w-auto" id="chonTang" aria-label="Chọn cả tầng">
+                        <option value="">Chọn cả tầng…</option>
+                        @foreach (var t in tangCoViec) { <option value="@t">Tầng @t</option> }
+                    </select>
+                }
+                <select name="maNhanVien" class="form-select form-select-sm w-auto" required aria-label="Nhân viên nhận việc">
+                    <option value="">-- Nhân viên --</option>
+                    @foreach (var nv in hkStaff) { <option value="@nv.MaNhanVien">@nv.TenNhanVien</option> }
+                </select>
+                <button type="submit" class="btn btn-sm btn-gold text-nowrap" id="bulkBtn" disabled>Giao việc đã chọn</button>
+            </form>
         </div>
-        <table class="table table-custom mb-0">
+        <table class="table table-custom mb-0" data-no-tools>
             <thead>
                 <tr>
+                    <th style="width:36px"></th>
                     <th>Phòng</th>
                     <th>Công việc</th>
+                    <th>Ưu tiên</th>
                     <th>Trạng thái</th>
                     <th>Nhân viên</th>
-                    <th style="min-width:280px">Giao việc</th>
+                    <th style="min-width:260px">Giao việc</th>
                 </tr>
             </thead>
             <tbody>
-                @if (tasks.Any())
+                @if (!tasks.Any())
                 {
-                    foreach (var t in tasks)
-                    {
-                        var coTheGiao = t.TrangThai == HousekeepingTaskStatus.Unassigned || t.TrangThai == HousekeepingTaskStatus.Assigned;
-                        <tr>
-                            <td class="nowrap"><strong>Phòng @t.SoPhong</strong><br /><small class="text-muted">@t.TenLoaiPhong</small></td>
-                            <td>@t.LoaiCongViec<br /><small class="text-muted">Tạo lúc @t.ThoiGianTao.ToString("dd/MM HH:mm")</small></td>
-                            <td>
-                                <span class="badge-status @BadgeClass(t.TrangThai)">@t.TrangThai.GetDisplayName()</span>
-                                @if (!string.IsNullOrEmpty(t.GhiChu))
-                                {
-                                    <br /><small class="text-danger">@t.GhiChu</small>
-                                }
-                            </td>
-                            <td>@(t.TenNhanVien ?? "—")</td>
-                            <td>
-                                @if (coTheGiao)
-                                {
-                                    <form asp-action="Assign" method="post" class="d-flex gap-2">
-                                        <input type="hidden" name="maPhanCong" value="@t.MaPhanCong" />
-                                        <select name="maNhanVien" class="form-select form-select-sm" required>
-                                            <option value="">-- Chọn nhân viên --</option>
-                                            @foreach (var nv in hkStaff)
-                                            {
-                                                <option value="@nv.MaNhanVien" selected="@(nv.MaNhanVien == t.MaNhanVien)">@nv.TenNhanVien</option>
-                                            }
-                                        </select>
-                                        <button type="submit" class="btn btn-sm btn-gold text-nowrap">@(t.MaNhanVien == null ? "Giao" : "Giao lại")</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <small class="text-muted">@(t.TrangThai == HousekeepingTaskStatus.InProgress ? "Nhân viên đang dọn" : "Chờ xử lý sự cố (đổi trạng thái phòng khi sửa xong)")</small>
-                                }
-                            </td>
-                        </tr>
-                    }
+                    <tr><td colspan="7" class="text-center text-muted p-4">Không có công việc dọn phòng nào đang chờ.</td></tr>
                 }
-                else
+                @foreach (var t in tasks)
                 {
-                    <tr><td colspan="5" class="text-center text-muted p-4">Không có công việc dọn phòng nào đang chờ.</td></tr>
+                    var coTheGiao = t.TrangThai is HousekeepingTaskStatus.Unassigned or HousekeepingTaskStatus.Assigned;
+                    var u = UuTien(t.UuTien);
+                    <tr>
+                        <td>@if (coTheGiao) { <input type="checkbox" class="form-check-input" name="maPhanCongs" value="@t.MaPhanCong" form="bulkForm" data-tang="@t.Tang" aria-label="Chọn phòng @t.SoPhong" /> }</td>
+                        <td class="nowrap"><strong>Phòng @t.SoPhong</strong><br /><small class="text-muted">Tầng @t.Tang · @t.TenLoaiPhong</small></td>
+                        <td>@t.LoaiCongViec<br /><small class="text-muted">Tạo lúc @t.ThoiGianTao.ToString("dd/MM HH:mm")</small>
+                            @if (!string.IsNullOrEmpty(t.GhiChu)) { <br /><small class="@(t.TrangThai == HousekeepingTaskStatus.Issue ? "text-danger" : "text-dark")">@t.GhiChu</small> }
+                        </td>
+                        <td><span class="prio @u.Css">@u.Nhan</span>@if (!string.IsNullOrEmpty(t.LyDoUuTien)) { <br /><small class="text-muted">@t.LyDoUuTien</small> }</td>
+                        <td><span class="badge-status @BadgeClass(t.TrangThai)">@t.TrangThai.GetDisplayName()</span></td>
+                        <td>@(t.TenNhanVien ?? "—")</td>
+                        <td>
+                            @if (coTheGiao)
+                            {
+                                <form asp-action="Assign" method="post" class="d-flex gap-2">
+                                    <input type="hidden" name="maPhanCong" value="@t.MaPhanCong" />
+                                    <select name="maNhanVien" class="form-select form-select-sm" required aria-label="Nhân viên">
+                                        <option value="">-- Chọn nhân viên --</option>
+                                        @foreach (var nv in hkStaff)
+                                        {
+                                            <option value="@nv.MaNhanVien" selected="@(nv.MaNhanVien == t.MaNhanVien)">@nv.TenNhanVien</option>
+                                        }
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-gold text-nowrap">@(t.MaNhanVien == null ? "Giao" : "Giao lại")</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <small class="text-muted">@(t.TrangThai == HousekeepingTaskStatus.InProgress ? "Nhân viên đang dọn" : "Chờ xử lý sự cố (đổi trạng thái phòng khi sửa xong)")</small>
+                            }
+                        </td>
+                    </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Phòng đang chờ dọn: lễ tân xác nhận nhanh khi đã kiểm tra phòng -->
-<h5 class="text-navy fw-bold mb-3"><i class="fas fa-door-closed text-gold me-2"></i>Phòng chờ dọn (@cleaningRooms.Count())</h5>
-<div class="row g-3 mb-5">
-    @if (cleaningRooms.Any())
-    {
-        foreach (var room in cleaningRooms)
-        {
-            var lastBooking = room.LanDatGanNhat;
-            var lastCustomer = lastBooking?.KhachHang?.HoTen;
-            <div class="col-md-6 col-xl-4">
-                <div class="card p-3 h-100">
-                    <div class="d-flex gap-3 align-items-center mb-3">
-                        <div class="d-flex align-items-center justify-content-center fw-bold text-navy flex-shrink-0" style="width:50px;height:50px;background:#f1f5f9;border-radius:8px;font-size:1.1rem;border:1px solid #e2e8f0">@room.SoPhong</div>
-                        <div class="min-w-0">
-                            <div class="fw-bold text-navy">@(room.LoaiPhong?.TenLoai ?? "—")</div>
-                            <span class="badge-status badge-cleaning">Chờ dọn</span>
-                        </div>
-                    </div>
-                    <p class="text-muted small mb-3">
-                        <i class="fas fa-user me-2 text-gold"></i>@(string.IsNullOrWhiteSpace(lastCustomer) ? "Dọn theo lịch" : "Khách vừa trả: " + lastCustomer)
-                    </p>
-                    <form asp-action="MarkClean" method="post" class="mt-auto">
-                        <input type="hidden" name="maPhong" value="@room.MaPhong" />
-                        <button type="submit" class="btn btn-outline-gold btn-sm w-100 py-2">Xác nhận đã dọn xong</button>
-                    </form>
-                </div>
-            </div>
-        }
-    }
-    else
-    {
-        <div class="col-12">
-            <div class="card p-4 text-center">
-                <i class="fas fa-check-circle text-success mb-2" style="font-size:2.5rem"></i>
-                <h6 class="text-navy fw-bold mb-1">Không có phòng nào cần dọn</h6>
-                <p class="text-muted small mb-0">Tất cả phòng đã sạch và sẵn sàng đón khách.</p>
-            </div>
-        </div>
-    }
-</div>
+@section Scripts {
+    <script>
+        (function () {
+            var boxes = document.querySelectorAll('input[name=maPhanCongs]'), btn = document.getElementById('bulkBtn');
+            function cap() {
+                var n = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+                btn.disabled = n === 0;
+                btn.textContent = n ? 'Giao ' + n + ' việc đã chọn' : 'Giao việc đã chọn';
+            }
+            boxes.forEach(function (b) { b.addEventListener('change', cap); });
+            var tang = document.getElementById('chonTang');
+            if (tang) tang.addEventListener('change', function () {
+                boxes.forEach(function (b) { b.checked = tang.value !== '' && b.getAttribute('data-tang') === tang.value; });
+                cap();
+            });
+        })();
+    </script>
+}

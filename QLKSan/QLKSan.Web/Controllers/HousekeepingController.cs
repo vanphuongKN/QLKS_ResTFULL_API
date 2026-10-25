@@ -43,7 +43,26 @@ namespace QLKSan.Controllers
             ViewBag.CountOccupied = summary.SoPhongDangO;
             ViewBag.HousekeepingStaff = summary.NhanVienBuongPhong;
             ViewBag.Tasks = summary.CongViec;
+            ViewBag.Board = summary.Phong;
+            ViewBag.KhachDenPhongChuaSan = summary.KhachDenPhongChuaSan;
             return View();
+        }
+
+        // Giao nhiều việc đã chọn (vd: cả một tầng) cho một nhân viên
+        [HttpPost]
+        [Authorize(Roles = WebRoles.FrontDesk)]
+        public async Task<IActionResult> AssignBulk(List<string> maPhanCongs, string maNhanVien)
+        {
+            try
+            {
+                var n = await _housekeepingApi.AssignBulkAsync(maPhanCongs ?? new List<string>(), maNhanVien);
+                TempData["SuccessMessage"] = $"Đã giao {n} việc.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể giao việc. " + ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Tasks));
         }
 
         [HttpPost]

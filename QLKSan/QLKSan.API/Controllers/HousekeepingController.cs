@@ -30,7 +30,7 @@ namespace QLKSan.Controllers
         {
             var cleaningRooms = await _housekeepingService.GetRoomsNeedingCleaningAsync();
             var staff = await _housekeepingService.GetHousekeepingStaffAsync();
-            var tasks = await _housekeepingService.GetOpenTasksAsync();
+            var board = await _housekeepingService.GetBoardAsync();
 
             return new HousekeepingDto
             {
@@ -39,7 +39,9 @@ namespace QLKSan.Controllers
                 SoPhongTrong = await _housekeepingService.GetCountByStatusAsync(RoomStatus.Available),
                 SoPhongDangO = await _housekeepingService.GetCountByStatusAsync(RoomStatus.Occupied),
                 NhanVienBuongPhong = staff.Select(n => n.ToDto()).ToList(),
-                CongViec = tasks.Select(t => t.ToDto()).ToList()
+                CongViec = await _housekeepingService.PrioritizeAsync(await _housekeepingService.GetOpenTasksAsync()),
+                Phong = board,
+                KhachDenPhongChuaSan = board.Count(r => r.KhachDen != null && r.TrangThai != RoomStatus.Available)
             };
         }
 
@@ -48,7 +50,7 @@ namespace QLKSan.Controllers
         public async Task<ActionResult<IEnumerable<HousekeepingTaskDto>>> GetOpenTasks()
         {
             var tasks = await _housekeepingService.GetOpenTasksAsync();
-            return Ok(tasks.Select(t => t.ToDto()));
+            return Ok(await _housekeepingService.PrioritizeAsync(tasks));
         }
 
         /// <summary>Việc của nhân viên buồng phòng đang đăng nhập (việc đang làm + đã xong hôm nay).</summary>
@@ -57,7 +59,7 @@ namespace QLKSan.Controllers
         public async Task<ActionResult<IEnumerable<HousekeepingTaskDto>>> GetMyTasks()
         {
             var tasks = await _housekeepingService.GetTasksOfStaffAsync(User.GetMaNhanVien());
-            return Ok(tasks.Select(t => t.ToDto()));
+            return Ok(await _housekeepingService.PrioritizeAsync(tasks));
         }
 
         /// <summary>Nhân viên buồng phòng có thể giao việc.</summary>
@@ -77,6 +79,15 @@ namespace QLKSan.Controllers
         {
             var task = await _housekeepingService.AssignTaskAsync(maPhanCong, request.MaNhanVien);
             return task.ToDto();
+        }
+
+        /// <summary>Giao nhiều việc chưa bắt đầu cho một nhân viên (vd: giao cả tầng); trả về số việc đã giao.</summary>
+        [HttpPost("tasks/assign-bulk")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Giao việc buồng phòng theo nhóm", "Buồng phòng")]
+        public async Task<ActionResult<int>> AssignBulk(BulkAssignTaskRequest request)
+        {
+            return await _housekeepingService.AssignManyAsync(request.MaPhanCongs, request.MaNhanVien);
         }
 
         /// <summary>Nhân viên bắt đầu dọn phòng.</summary>

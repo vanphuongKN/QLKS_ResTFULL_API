@@ -117,7 +117,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
 | GET | `/?loc&maDatPhong` | FrontDesk | Sổ yêu cầu: `loc=mo` (mới / đang xử lý, giờ hẹn gần nhất trước), `xong` (hoàn thành / huỷ 7 ngày), trống: 30 ngày |
-| POST | `/` | FrontDesk | Ghi yêu cầu `{ "MaDatPhong", "MaPhong", "Loai", "NoiDung", "ThoiGianHen" }`; loại: Báo thức, Đặt xe / đưa đón, Nhắn gửi, Đồ thất lạc, Buồng phòng, Kỹ thuật, Khác |
+| POST | `/` | FrontDesk | Ghi yêu cầu `{ "MaDatPhong", "MaPhong", "Loai", "NoiDung", "ThoiGianHen" }`; loại: Báo thức, Đặt xe / đưa đón, Nhắn gửi, Đồ thất lạc, Buồng phòng, Kỹ thuật, Khác. Loại Buồng phòng tự tạo (hoặc gộp vào) việc buồng phòng của phòng; dọn xong thì yêu cầu tự hoàn thành |
 | PATCH | `/{id}` | FrontDesk | Đổi trạng thái `{ "TrangThai": "InProgress" \| "Done" \| "Cancelled", "KetQua" }` (huỷ phải có lý do; yêu cầu đã xong không đổi được) |
 
 ## Hoá đơn — `/api/invoices`
@@ -184,10 +184,11 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
-| GET | `/api/housekeeping` | Admin, Lễ tân, Buồng phòng | Tổng quan buồng phòng |
-| GET | `/api/housekeeping/tasks`, `/tasks/mine` | Như trên / Buồng phòng | Công việc dọn phòng |
+| GET | `/api/housekeeping` | Admin, Lễ tân, Buồng phòng | Tổng quan buồng phòng: sơ đồ mọi phòng theo tầng (trạng thái, việc đang mở, khách đến / đi hôm nay), việc theo ưu tiên, số phòng có khách đến mà chưa sạch |
+| GET | `/api/housekeeping/tasks`, `/tasks/mine` | Như trên / Buồng phòng | Công việc dọn phòng, sắp theo ưu tiên (`UuTien` 1 gấp: khách VIP đến hôm nay; 2 cao: khách đến hôm nay / yêu cầu của khách; 3 thường; 4 sự cố) kèm `LyDoUuTien`, `Tang` |
 | GET | `/api/housekeeping/staff` | FrontDesk | Nhân viên có thể giao việc |
 | POST | `/api/housekeeping/tasks/{id}/assign` | FrontDesk | Giao việc |
+| POST | `/api/housekeeping/tasks/assign-bulk` | FrontDesk | Giao nhiều việc chưa bắt đầu cho một nhân viên `{ "MaNhanVien", "MaPhanCongs": [...] }` (vd: cả tầng) |
 | POST | `/api/housekeeping/tasks/{id}/start` · `/complete` · `/issue` | Buồng phòng | Bắt đầu / dọn xong / báo sự cố |
 | POST | `/api/housekeeping/rooms/{maPhong}/clean` | FrontDesk | Xác nhận phòng đã dọn |
 | GET | `/api/dashboard` | Finance | Bảng điều khiển: công suất / khách đến / khách đi hôm nay, doanh thu thuần – ADR – RevPAR 30 ngày so với kỳ trước, công suất đã đặt 14 ngày tới, việc cần xử lý, đánh giá mới |

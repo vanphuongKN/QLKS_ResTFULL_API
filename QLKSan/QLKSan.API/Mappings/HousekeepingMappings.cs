@@ -23,7 +23,9 @@ namespace QLKSan.Mappings
                 ThoiGianGiao = entity.ThoiGianGiao,
                 ThoiGianBatDau = entity.ThoiGianBatDau,
                 ThoiGianHoanThanh = entity.ThoiGianHoanThanh,
-                GhiChu = entity.GhiChu
+                GhiChu = entity.GhiChu,
+                Tang = Business.HousekeepingTasks.TangCua(entity.Phong?.SoPhong),
+                MaYeuCau = entity.MaYeuCau
             };
         }
     }

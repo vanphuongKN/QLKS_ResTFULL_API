@@ -434,7 +434,9 @@ CREATE TABLE PhanCongDonPhong (
     ThoiGianBatDau DATETIME NULL,
     ThoiGianHoanThanh DATETIME NULL,
     GhiChu NVARCHAR(500) NULL,
+    MaYeuCau INT NULL,                                    -- yêu cầu khách (Buồng phòng) mà việc này xử lý
     CONSTRAINT FK_PCDP_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
+    CONSTRAINT FK_PCDP_YeuCauKhach FOREIGN KEY (MaYeuCau) REFERENCES YeuCauKhach(MaYeuCau),
     CONSTRAINT FK_PCDP_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien),
     CONSTRAINT FK_PCDP_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong)
 );

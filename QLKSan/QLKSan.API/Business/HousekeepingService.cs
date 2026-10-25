@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
+using QLKSan.Mappings;
+using QLKSan.Models.DTOs;
 using QLKSan.Models.Entities;
 
 namespace QLKSan.Business
@@ -112,6 +114,114 @@ namespace QLKSan.Business
             return task;
         }
 
+        public async Task<int> AssignManyAsync(IEnumerable<string> maPhanCongs, string maNhanVien)
+        {
+            var ids = maPhanCongs?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList() ?? new List<string>();
+            if (ids.Count == 0) throw new BusinessException("Vui lòng chọn ít nhất một việc.");
+            var staff = (await GetHousekeepingStaffAsync()).FirstOrDefault(s => s.MaNhanVien == maNhanVien)
+                ?? throw new BusinessException("Chỉ giao việc cho nhân viên buồng phòng đang làm việc.");
+            var tasks = await _context.PhanCongDonPhongs.Where(t => ids.Contains(t.MaPhanCong)).ToListAsync();
+            if (tasks.Count != ids.Count) throw new NotFoundException("Có công việc không tồn tại.");
+            if (tasks.Any(t => t.TrangThai is not (HousekeepingTaskStatus.Unassigned or HousekeepingTaskStatus.Assigned)))
+                throw new ConflictException("Chỉ giao (hoặc giao lại) được công việc chưa bắt đầu.");
+            foreach (var t in tasks)
+            {
+                t.MaNhanVien = staff.MaNhanVien;
+                t.TrangThai = HousekeepingTaskStatus.Assigned;
+                t.ThoiGianGiao = DateTime.Now;
+            }
+            await _context.SaveChangesAsync();
+            return tasks.Count;
+        }
+
+        private record KhachDen(string HoTen, bool LaVIP, string GioDen);
+
+        // Phiếu nhận phòng hôm nay chưa nhận: phòng → khách sắp đến (VIP, giờ đến)
+        private async Task<Dictionary<string, KhachDen>> KhachDenHomNayAsync()
+        {
+            var today = DateTime.Today;
+            var phieu = await _context.PhieuDatPhongs
+                .Include(p => p.KhachHang)
+                .Include(p => p.ChiTietDatPhongs)
+                .Where(p => (p.TrangThai == BookingStatus.Pending || p.TrangThai == BookingStatus.Approved)
+                         && p.NgayCheckInDuKien >= today && p.NgayCheckInDuKien < today.AddDays(1))
+                .ToListAsync();
+            return phieu
+                .Where(p => p.ChiTietDatPhongs.Any())
+                .GroupBy(p => p.ChiTietDatPhongs.First().MaPhong)
+                .ToDictionary(g => g.Key, g =>
+                {
+                    var p = g.First();
+                    return new KhachDen($"{p.KhachHang?.Ho} {p.KhachHang?.Ten}".Trim(), p.KhachHang?.LaVIP ?? false, p.GioDenDuKien);
+                });
+        }
+
+        private static void SetPriority(HousekeepingTaskDto dto, KhachDen den)
+        {
+            if (dto.TrangThai == HousekeepingTaskStatus.Issue)
+            {
+                dto.UuTien = 4;
+                dto.LyDoUuTien = "Chờ kỹ thuật xử lý sự cố";
+            }
+            else if (den != null)
+            {
+                dto.UuTien = den.LaVIP ? 1 : 2;
+                dto.LyDoUuTien = (den.LaVIP ? "Khách VIP" : "Khách") + " đến hôm nay" + (string.IsNullOrEmpty(den.GioDen) ? "" : " · " + den.GioDen);
+            }
+            else if (dto.MaYeuCau != null)
+            {
+                dto.UuTien = 2;
+                dto.LyDoUuTien = "Khách đang chờ (yêu cầu tại phòng)";
+            }
+        }
+
+        public async Task<List<HousekeepingTaskDto>> PrioritizeAsync(IEnumerable<PhanCongDonPhong> tasks)
+        {
+            var den = await KhachDenHomNayAsync();
+            return tasks.Select(t =>
+                {
+                    var dto = t.ToDto();
+                    SetPriority(dto, den.GetValueOrDefault(t.MaPhong));
+                    return dto;
+                })
+                .OrderBy(t => t.TrangThai == HousekeepingTaskStatus.Completed)
+                .ThenBy(t => t.UuTien)
+                .ThenBy(t => t.ThoiGianTao)
+                .ToList();
+        }
+
+        public async Task<List<HousekeepingRoomDto>> GetBoardAsync()
+        {
+            var today = DateTime.Today;
+            var rooms = await _context.Phongs.Include(p => p.LoaiPhong).ToListAsync();
+            var viec = (await PrioritizeAsync(await GetOpenTasksAsync())).GroupBy(t => t.MaPhong).ToDictionary(g => g.Key, g => g.First());
+            var den = await KhachDenHomNayAsync();
+            var phongDi = (await _context.ChiTietDatPhongs
+                    .Where(c => c.PhieuDatPhong.TrangThai == BookingStatus.CheckedIn && c.PhieuDatPhong.NgayCheckOutDuKien < today.AddDays(1))
+                    .Select(c => c.MaPhong).ToListAsync())
+                .ToHashSet();
+
+            return rooms.Select(p =>
+                {
+                    var k = den.GetValueOrDefault(p.MaPhong);
+                    return new HousekeepingRoomDto
+                    {
+                        MaPhong = p.MaPhong,
+                        SoPhong = p.SoPhong,
+                        Tang = HousekeepingTasks.TangCua(p.SoPhong),
+                        TenLoaiPhong = p.LoaiPhong?.TenLoai,
+                        TrangThai = p.TrangThai,
+                        KhachDen = k?.HoTen,
+                        GioDen = k?.GioDen,
+                        KhachDenVIP = k?.LaVIP ?? false,
+                        KhachDiHomNay = phongDi.Contains(p.MaPhong),
+                        ViecDangMo = viec.GetValueOrDefault(p.MaPhong)
+                    };
+                })
+                .OrderBy(r => r.Tang).ThenBy(r => r.SoPhong)
+                .ToList();
+        }
+
         public async Task<PhanCongDonPhong> StartTaskAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy)
         {
             var task = await FindTaskAsync(maPhanCong);
@@ -136,9 +246,10 @@ namespace QLKSan.Business
             task.ThoiGianBatDau ??= DateTime.Now;
             task.ThoiGianHoanThanh = DateTime.Now;
 
-            // Dọn xong: phòng sẵn sàng đón khách
+            // Dọn xong: phòng sẵn sàng đón khách; yêu cầu khách liên kết (nếu có) hoàn thành
             if (task.Phong.TrangThai == RoomStatus.Cleaning)
                 task.Phong.TrangThai = RoomStatus.Available;
+            await HousekeepingTasks.CompleteLinkedRequestAsync(_context, task, $"Buồng phòng đã xử lý ({task.NhanVien?.TenNhanVien ?? "quản lý"})");
 
             await _context.SaveChangesAsync();
             return task;

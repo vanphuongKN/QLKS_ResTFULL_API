@@ -378,7 +378,12 @@ namespace QLKSan.Data
                         ChiTiet NVARCHAR(MAX) NULL
                     );
                     CREATE INDEX IX_GiaoCa_KetThuc ON GiaoCa(KetThuc DESC);
-                END")
+                END"),
+
+            // B1: việc buồng phòng xử lý yêu cầu của khách
+            ("35. Thêm PhanCongDonPhong.MaYeuCau", @"
+                IF COL_LENGTH('PhanCongDonPhong', 'MaYeuCau') IS NULL
+                    ALTER TABLE PhanCongDonPhong ADD MaYeuCau INT NULL CONSTRAINT FK_PCDP_YeuCauKhach FOREIGN KEY REFERENCES YeuCauKhach(MaYeuCau);")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

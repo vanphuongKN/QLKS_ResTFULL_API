@@ -95,6 +95,18 @@ namespace QLKSan.Business
             };
             _context.YeuCauKhachs.Add(y);
             await _context.SaveChangesAsync();
+
+            // Yêu cầu buồng phòng tại một phòng: tạo việc (hoặc gộp vào việc đang mở của phòng) cho bộ phận buồng phòng
+            if (r.Loai == GuestRequestTypes.BuongPhong && maPhong != null)
+            {
+                var task = await HousekeepingTasks.EnsureOpenTaskAsync(_context, maPhong, maDatPhong, HousekeepingTasks.YeuCauKhach);
+                task.MaYeuCau ??= y.MaYeuCau;
+                var ghiChu = $"Yêu cầu #{y.MaYeuCau}: {y.NoiDung}";
+                task.GhiChu = string.IsNullOrEmpty(task.GhiChu) ? ghiChu : $"{task.GhiChu} | {ghiChu}";
+                y.TrangThai = GuestRequestStatus.InProgress;
+                y.KetQua = $"Đã chuyển buồng phòng ({task.MaPhanCong})";
+                await _context.SaveChangesAsync();
+            }
             return (await Query().FirstAsync(x => x.MaYeuCau == y.MaYeuCau)).ToDto();
         }
 

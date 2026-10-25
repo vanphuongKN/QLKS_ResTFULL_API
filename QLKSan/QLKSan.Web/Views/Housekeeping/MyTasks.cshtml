@@ -39,14 +39,14 @@
                 _ => ("bg-secondary", t.TrangThai.GetDisplayName())
             };
             <div class="col-lg-4 col-md-6">
-                <div class="card h-100 p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <small class="text-gold fw-bold text-uppercase" style="letter-spacing:1px">@t.TenLoaiPhong</small>
-                            <h4 class="text-navy fw-bold mb-0" style="font-family:'Cormorant Garamond', serif">Phòng @t.SoPhong</h4>
-                        </div>
+                <div class="card h-100 p-4 my-task @(t.UuTien == 1 ? "is-p1" : t.UuTien == 2 ? "is-p2" : "")">
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
                         <span class="badge @badge">@label</span>
+                        @if (t.UuTien <= 2) { <span class="prio @(t.UuTien == 1 ? "prio-1" : "prio-2")">@(t.UuTien == 1 ? "Gấp" : "Ưu tiên")</span> }
                     </div>
+                    <h4 class="text-navy fw-bold mb-0" style="font-family:'Cormorant Garamond', serif">Phòng @t.SoPhong <small class="text-muted fs-6">· tầng @t.Tang</small></h4>
+                    <small class="text-gold fw-bold text-uppercase d-block mb-2" style="letter-spacing:1px">@t.TenLoaiPhong</small>
+                    @if (!string.IsNullOrEmpty(t.LyDoUuTien)) { <p class="small fw-semibold mb-1 @(t.UuTien == 1 ? "text-danger" : "text-navy")"><i class="fas fa-bell me-2"></i>@t.LyDoUuTien</p> }
                     <p class="text-muted small mb-1"><i class="fas fa-broom me-2"></i>@t.LoaiCongViec</p>
                     <p class="text-muted small mb-3">
                         <i class="fas fa-clock me-2"></i>Giao lúc @(t.ThoiGianGiao?.ToString("HH:mm dd/MM") ?? "—")
@@ -57,7 +57,7 @@
                     </p>
                     @if (!string.IsNullOrEmpty(t.GhiChu))
                     {
-                        <p class="small text-danger mb-3"><i class="fas fa-sticky-note me-2"></i>@t.GhiChu</p>
+                        <p class="small mb-3 @(t.TrangThai == HousekeepingTaskStatus.Issue ? "text-danger" : "text-dark")"><i class="fas fa-sticky-note me-2"></i>@t.GhiChu</p>
                     }
 
                     <div class="mt-auto d-flex gap-2 flex-wrap">

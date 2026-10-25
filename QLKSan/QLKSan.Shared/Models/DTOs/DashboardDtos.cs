@@ -87,8 +87,12 @@ namespace QLKSan.Models.DTOs
         public int SoPhongDangO { get; set; }
         public List<StaffDto> NhanVienBuongPhong { get; set; } = new List<StaffDto>();
 
-        // Công việc dọn phòng chưa hoàn thành (chờ giao / đã giao / đang dọn / sự cố)
+        // Công việc dọn phòng chưa hoàn thành (chờ giao / đã giao / đang dọn / sự cố), theo mức ưu tiên
         public List<HousekeepingTaskDto> CongViec { get; set; } = new List<HousekeepingTaskDto>();
+
+        // Bảng buồng phòng theo tầng và số phòng có khách đến hôm nay mà phòng chưa sạch
+        public List<HousekeepingRoomDto> Phong { get; set; } = new List<HousekeepingRoomDto>();
+        public int KhachDenPhongChuaSan { get; set; }
     }
 
     // GET /api/audit-logs: một trang nhật ký thao tác kèm danh sách giá trị để lọc

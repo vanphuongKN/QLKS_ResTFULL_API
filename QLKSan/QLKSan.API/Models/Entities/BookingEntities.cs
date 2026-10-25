@@ -505,8 +505,13 @@ namespace QLKSan.Models.Entities
         [StringLength(500)]
         public string? GhiChu { get; set; }
 
+        // Yêu cầu khách (loại Buồng phòng) mà công việc này xử lý — dọn xong thì yêu cầu tự hoàn thành
+        [ForeignKey("YeuCauKhach")]
+        public int? MaYeuCau { get; set; }
+
         public Phong Phong { get; set; }
         public NhanVien? NhanVien { get; set; }
+        public YeuCauKhach? YeuCauKhach { get; set; }
     }
 
     public class LichSuGiaoDich

@@ -16,6 +16,23 @@ namespace QLKSan.Business
         public const string DonSauTraPhong = "Dọn sau trả phòng";
         public const string DonTheoYeuCau = "Dọn theo yêu cầu";
         public const string DonSauDoiPhong = "Dọn sau đổi phòng";
+        public const string YeuCauKhach = "Yêu cầu của khách";
+
+        // Tầng suy ra từ số phòng: bỏ 2 chữ số cuối (101 → 1, 1203 → 12)
+        public static int TangCua(string soPhong)
+            => soPhong != null && soPhong.Length > 2 && int.TryParse(soPhong[..^2], out var t) ? t : 0;
+
+        // Việc xử lý yêu cầu khách xong → yêu cầu tự chuyển Hoàn thành
+        public static async Task CompleteLinkedRequestAsync(ApplicationDbContext context, PhanCongDonPhong task, string ketQua)
+        {
+            if (task.MaYeuCau == null) return;
+            var y = await context.YeuCauKhachs.FindAsync(task.MaYeuCau.Value);
+            if (y == null || y.TrangThai is GuestRequestStatus.Done or GuestRequestStatus.Cancelled) return;
+            y.TrangThai = GuestRequestStatus.Done;
+            y.ThoiGianXuLy = DateTime.Now;
+            y.MaNhanVienXuLy = task.MaNhanVien ?? y.MaNhanVienXuLy;
+            y.KetQua = ketQua;
+        }
 
         // Công việc đang mở: chưa hoàn thành và chưa báo sự cố
         public static bool IsOpen(HousekeepingTaskStatus status)
@@ -60,6 +77,7 @@ namespace QLKSan.Business
                 task.TrangThai = HousekeepingTaskStatus.Completed;
                 task.ThoiGianHoanThanh = DateTime.Now;
                 task.GhiChu = string.IsNullOrEmpty(task.GhiChu) ? ghiChu : $"{task.GhiChu} | {ghiChu}";
+                await CompleteLinkedRequestAsync(context, task, ghiChu);
             }
         }
 

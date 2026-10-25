@@ -197,6 +197,7 @@ namespace QLKSan.ApiClients
         Task MarkCleanAsync(string maPhong);
         Task<List<HousekeepingTaskDto>> GetMyTasksAsync();
         Task AssignAsync(string maPhanCong, string maNhanVien);
+        Task<int> AssignBulkAsync(List<string> maPhanCongs, string maNhanVien);
         Task StartAsync(string maPhanCong);
         Task CompleteAsync(string maPhanCong);
         Task ReportIssueAsync(string maPhanCong, string ghiChu);
@@ -212,6 +213,9 @@ namespace QLKSan.ApiClients
 
         public Task AssignAsync(string maPhanCong, string maNhanVien)
             => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/assign", new AssignTaskRequest { MaNhanVien = maNhanVien });
+
+        public Task<int> AssignBulkAsync(List<string> maPhanCongs, string maNhanVien)
+            => HttpPostAsync<int>("api/housekeeping/tasks/assign-bulk", new BulkAssignTaskRequest { MaPhanCongs = maPhanCongs, MaNhanVien = maNhanVien });
 
         public Task StartAsync(string maPhanCong) => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/start");
         public Task CompleteAsync(string maPhanCong) => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/complete");

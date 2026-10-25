@@ -1047,3 +1047,33 @@ tr.guest-companion td { background: #fcfbf8; }
 .handover-card { border-left: 3px solid var(--gold); }
 .handover-note { white-space: pre-line; font-size: 0.88rem; }
 @media (max-width: 767.98px) { .req-row { grid-template-columns: 32px 1fr; padding: 12px 14px; } .req-icon { width: 32px; height: 32px; } .req-actions { grid-column: 1 / -1; justify-content: flex-start; } }
+
+/* Buồng phòng: sơ đồ theo tầng, mức ưu tiên */
+.hk-legend { display: flex; gap: 10px; font-size: 0.75rem; }
+.hk-legend span { padding: 2px 10px; border-radius: 999px; border-left: 4px solid; background: var(--light-gray); }
+.hk-floor { display: grid; grid-template-columns: 70px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border-light); }
+.hk-floor:first-of-type { border-top: none; }
+.hk-floor-label { font-weight: 700; color: var(--navy); font-size: 0.82rem; padding-top: 8px; }
+.hk-rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.hk-room { border: 1px solid var(--border-light); border-left: 4px solid; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; background: var(--white); }
+.hk-room-top { display: flex; justify-content: space-between; align-items: baseline; }
+.hk-room-top strong { font-family: 'Cormorant Garamond', serif; font-size: 1.25rem; color: var(--navy); }
+.hk-room-top span { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.hk-room-type { font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hk-tag { font-size: 0.72rem; color: var(--navy); }
+.hk-task { font-size: 0.7rem; color: var(--text-muted); }
+.hk-task .badge-status { font-size: 0.6rem; padding: 1px 6px; }
+.hk-clean-btn { font-size: 0.72rem; color: var(--gold); text-decoration: none; }
+.is-clean { border-left-color: var(--success) !important; } .hk-room.is-clean .hk-room-top span { color: var(--success); }
+.is-dirty { border-left-color: var(--warning) !important; } .hk-room.is-dirty .hk-room-top span { color: var(--warning); }
+.is-occupied { border-left-color: var(--info) !important; } .hk-room.is-occupied .hk-room-top span { color: var(--info); }
+.is-ooo { border-left-color: var(--danger) !important; } .hk-room.is-ooo .hk-room-top span { color: var(--danger); }
+.hk-room.is-urgent { box-shadow: 0 0 0 2px rgba(198,40,40,.35); }
+.prio { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; letter-spacing: .3px; }
+.prio-1 { background: rgba(198,40,40,.12); color: var(--danger); }
+.prio-2 { background: rgba(245,127,23,.14); color: var(--warning); }
+.prio-3 { background: var(--light-gray); color: var(--text-muted); }
+.prio-4 { background: rgba(108,117,125,.15); color: #495057; }
+.my-task.is-p1 { border-top: 3px solid var(--danger); }
+.my-task.is-p2 { border-top: 3px solid var(--warning); }
+@media (max-width: 575.98px) { .hk-floor { grid-template-columns: 1fr; gap: 6px; } .hk-rooms { grid-template-columns: repeat(2, 1fr); } }
