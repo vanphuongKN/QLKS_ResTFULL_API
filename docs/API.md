@@ -107,7 +107,18 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
-| GET | `/today` | FrontDesk | Màn hình đầu ca: khách đến / khách đi (kể cả quá hạn trả) / đang lưu trú hôm nay, phiếu sắp đến, phòng trống tối nay, việc buồng phòng chưa xong. Mỗi phiếu kèm VIP, sở thích, hạn chế, giờ đến, yêu cầu riêng, trạng thái phòng |
+| GET | `/today` | FrontDesk | Màn hình đầu ca: khách đến / khách đi (kể cả quá hạn trả) / đang lưu trú hôm nay, phiếu sắp đến, phòng trống tối nay, việc buồng phòng chưa xong, yêu cầu khách đang mở, bàn giao của ca gần nhất. Mỗi phiếu kèm VIP, sở thích, hạn chế, giờ đến, yêu cầu riêng, trạng thái phòng |
+| GET | `/shift` | FrontDesk | Ca hiện tại của người đăng nhập (từ lần chốt ca gần nhất trong 24 giờ hoặc từ 0h): tiền thu / chi theo phương thức (thanh toán, hoàn tiền hoá đơn, thu / hoàn cọc; không tính điểm thưởng), tiền mặt hệ thống, chi tiết giao dịch |
+| POST | `/shift/close` | FrontDesk | Chốt ca `{ "TienMatThucTe", "GhiChuBanGiao" }`: lưu tổng theo phương thức, tiền mặt hệ thống / thực tế, chênh lệch |
+| GET | `/shifts?soNgay` | FrontDesk | Các lần chốt ca / bàn giao gần đây (mặc định 7 ngày) |
+
+## Yêu cầu khách — `/api/guest-requests`
+
+| Phương thức | Đường dẫn | Quyền | Mô tả |
+|---|---|---|---|
+| GET | `/?loc&maDatPhong` | FrontDesk | Sổ yêu cầu: `loc=mo` (mới / đang xử lý, giờ hẹn gần nhất trước), `xong` (hoàn thành / huỷ 7 ngày), trống: 30 ngày |
+| POST | `/` | FrontDesk | Ghi yêu cầu `{ "MaDatPhong", "MaPhong", "Loai", "NoiDung", "ThoiGianHen" }`; loại: Báo thức, Đặt xe / đưa đón, Nhắn gửi, Đồ thất lạc, Buồng phòng, Kỹ thuật, Khác |
+| PATCH | `/{id}` | FrontDesk | Đổi trạng thái `{ "TrangThai": "InProgress" \| "Done" \| "Cancelled", "KetQua" }` (huỷ phải có lý do; yêu cầu đã xong không đổi được) |
 
 ## Hoá đơn — `/api/invoices`
 

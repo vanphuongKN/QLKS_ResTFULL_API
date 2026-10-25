@@ -340,7 +340,45 @@ namespace QLKSan.Data
                     ALTER TABLE HoaDon ADD TenCongTy NVARCHAR(200) NULL,
                                            MaSoThue VARCHAR(20) NULL,
                                            DiaChiCongTy NVARCHAR(300) NULL,
-                                           EmailHoaDon NVARCHAR(100) NULL;")
+                                           EmailHoaDon NVARCHAR(100) NULL;"),
+
+            // L5: sổ yêu cầu khách + chốt ca / bàn giao
+            ("33. Tạo bảng YeuCauKhach", @"
+                IF OBJECT_ID('YeuCauKhach', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE YeuCauKhach (
+                        MaYeuCau INT IDENTITY(1,1) PRIMARY KEY,
+                        MaDatPhong VARCHAR(10) NULL CONSTRAINT FK_YeuCauKhach_PhieuDat FOREIGN KEY REFERENCES PhieuDatPhong(MaDatPhong),
+                        MaPhong VARCHAR(10) NULL CONSTRAINT FK_YeuCauKhach_Phong FOREIGN KEY REFERENCES Phong(MaPhong),
+                        Loai NVARCHAR(30) NOT NULL,
+                        NoiDung NVARCHAR(500) NOT NULL,
+                        ThoiGianHen DATETIME NULL,
+                        TrangThai NVARCHAR(20) NOT NULL CONSTRAINT DF_YeuCauKhach_TrangThai DEFAULT N'Mới',
+                        MaNhanVienTao VARCHAR(10) NULL CONSTRAINT FK_YeuCauKhach_NVTao FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        ThoiGianTao DATETIME NOT NULL CONSTRAINT DF_YeuCauKhach_ThoiGianTao DEFAULT GETDATE(),
+                        MaNhanVienXuLy VARCHAR(10) NULL CONSTRAINT FK_YeuCauKhach_NVXuLy FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        ThoiGianXuLy DATETIME NULL,
+                        KetQua NVARCHAR(500) NULL
+                    );
+                    CREATE INDEX IX_YeuCauKhach_TrangThai ON YeuCauKhach(TrangThai, ThoiGianHen);
+                END"),
+            ("34. Tạo bảng GiaoCa", @"
+                IF OBJECT_ID('GiaoCa', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE GiaoCa (
+                        MaGiaoCa INT IDENTITY(1,1) PRIMARY KEY,
+                        MaNhanVien VARCHAR(10) NOT NULL CONSTRAINT FK_GiaoCa_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        BatDau DATETIME NOT NULL,
+                        KetThuc DATETIME NOT NULL,
+                        TongThuRong DECIMAL(18,0) NOT NULL,
+                        TienMatHeThong DECIMAL(18,0) NOT NULL,
+                        TienMatThucTe DECIMAL(18,0) NOT NULL,
+                        ChenhLech DECIMAL(18,0) NOT NULL,
+                        GhiChuBanGiao NVARCHAR(1000) NULL,
+                        ChiTiet NVARCHAR(MAX) NULL
+                    );
+                    CREATE INDEX IX_GiaoCa_KetThuc ON GiaoCa(KetThuc DESC);
+                END")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

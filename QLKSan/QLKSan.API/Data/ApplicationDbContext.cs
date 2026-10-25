@@ -37,6 +37,8 @@ namespace QLKSan.Data
         public DbSet<GiaoDichCoc> GiaoDichCocs { get; set; }
         public DbSet<KhachDiCung> KhachDiCungs { get; set; }
         public DbSet<LichSuDoiPhong> LichSuDoiPhongs { get; set; }
+        public DbSet<YeuCauKhach> YeuCauKhachs { get; set; }
+        public DbSet<GiaoCa> GiaoCas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -183,6 +185,16 @@ namespace QLKSan.Data
                 .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.PaymentType, string>(
                     v => v == QLKSan.Enums.PaymentType.Refund ? "Hoàn" : "Thu",
                     v => v == "Hoàn" ? QLKSan.Enums.PaymentType.Refund : QLKSan.Enums.PaymentType.Payment));
+
+            modelBuilder.Entity<YeuCauKhach>()
+                .Property(t => t.TrangThai)
+                .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.GuestRequestStatus, string>(
+                    v => v == QLKSan.Enums.GuestRequestStatus.InProgress ? "Đang xử lý"
+                       : v == QLKSan.Enums.GuestRequestStatus.Done ? "Hoàn thành"
+                       : v == QLKSan.Enums.GuestRequestStatus.Cancelled ? "Đã huỷ" : "Mới",
+                    v => v == "Đang xử lý" ? QLKSan.Enums.GuestRequestStatus.InProgress
+                       : v == "Hoàn thành" ? QLKSan.Enums.GuestRequestStatus.Done
+                       : v == "Đã huỷ" ? QLKSan.Enums.GuestRequestStatus.Cancelled : QLKSan.Enums.GuestRequestStatus.New));
 
             modelBuilder.Entity<GiaoDichCoc>()
                 .Property(t => t.LoaiGiaoDich)

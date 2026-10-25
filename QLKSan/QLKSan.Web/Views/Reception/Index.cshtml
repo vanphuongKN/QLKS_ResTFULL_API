@@ -44,6 +44,7 @@
     var viec = new[]
     {
         (d.PhieuChoDuyet, "Phiếu đặt chờ duyệt", "fa-hourglass-half", "#sapden", d.PhieuChoDuyet > 0 ? "warn" : ""),
+        (d.YeuCauDangMo, "Yêu cầu khách đang mở", "fa-clipboard-list", Url.Action("Requests"), d.YeuCauSapToi.Any(y => y.QuaHen) ? "danger" : d.YeuCauDangMo > 0 ? "warn" : ""),
         (quaHan, "Khách quá hạn trả phòng", "fa-clock", "#di", quaHan > 0 ? "danger" : ""),
         (d.SuCoBuongPhong, "Sự cố khi dọn phòng", "fa-triangle-exclamation", Url.Action("Tasks", "Housekeeping"), d.SuCoBuongPhong > 0 ? "danger" : ""),
         (d.PhongDangDon, "Phòng đang dọn", "fa-broom", Url.Action("Tasks", "Housekeeping"), ""),
@@ -88,6 +89,10 @@
                 <li><button type="button" class="dropdown-item" data-fd-modal="companionsModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong" data-dicung="@diCungJson">
                     <i class="fas fa-user-plus me-2"></i>Người đi cùng</button></li>
                 <li><button type="button" class="dropdown-item" data-fd-modal="depositModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang"><i class="fas fa-wallet me-2"></i>Thu cọc</button></li>
+                @if (dangO)
+                {
+                    <li><a class="dropdown-item" href="@Url.Action("Requests", new { maDatPhong = k.MaDatPhong })"><i class="fas fa-bell-concierge me-2"></i>Ghi yêu cầu của khách</a></li>
+                }
             </ul>
         </div>
     }
@@ -279,6 +284,33 @@
                 }
             </div>
         </div>
+        @if (d.CaTruoc != null && !string.IsNullOrEmpty(d.CaTruoc.GhiChuBanGiao))
+        {
+            <div class="card p-4 mb-4 handover-card">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <h6 class="dash-title mb-0">Bàn giao từ ca trước</h6>
+                    <a asp-action="Shift" class="small text-gold">Giao ca</a>
+                </div>
+                <p class="small text-muted mb-2">@d.CaTruoc.TenNhanVien · chốt lúc @d.CaTruoc.KetThuc.ToString("HH:mm dd/MM")</p>
+                <p class="mb-0 handover-note">@d.CaTruoc.GhiChuBanGiao</p>
+            </div>
+        }
+        @if (d.YeuCauSapToi.Any())
+        {
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <h6 class="dash-title mb-0">Yêu cầu khách cần làm</h6>
+                    <a asp-action="Requests" class="small text-gold">Tất cả (@d.YeuCauDangMo)</a>
+                </div>
+                @foreach (var y in d.YeuCauSapToi)
+                {
+                    <div class="req-mini @(y.QuaHen ? "is-late" : "")">
+                        <span class="req-mini-time">@(y.ThoiGianHen?.ToString("HH:mm") ?? "—")@if (y.ThoiGianHen != null && y.ThoiGianHen.Value.Date != d.Ngay) { <small>@y.ThoiGianHen.Value.ToString("dd/MM")</small> }</span>
+                        <span class="req-mini-text"><strong>@y.Loai</strong>@(y.SoPhong != null ? " · P" + y.SoPhong : "") — @y.NoiDung</span>
+                    </div>
+                }
+            </div>
+        }
         <div class="card p-4">
             <h6 class="dash-title mb-3">Tra cứu nhanh</h6>
             <div class="fd-links">
@@ -286,6 +318,8 @@
                 <a asp-action="BookingHistory"><i class="fas fa-history"></i>Lịch sử đặt phòng</a>
                 <a asp-action="Customers"><i class="fas fa-users"></i>Khách hàng</a>
                 <a asp-controller="Room" asp-action="Guests"><i class="fas fa-id-card"></i>Sổ lưu trú</a>
+                <a asp-action="Requests"><i class="fas fa-clipboard-list"></i>Yêu cầu khách</a>
+                <a asp-action="Shift"><i class="fas fa-cash-register"></i>Giao ca</a>
             </div>
         </div>
     </div>

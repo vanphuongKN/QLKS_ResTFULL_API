@@ -144,6 +144,47 @@ namespace QLKSan.Models.Requests
         public bool GiuGiaCu { get; set; } = true;
     }
 
+    // POST /api/guest-requests: ghi yêu cầu của khách (gắn phiếu đang ở hoặc chỉ phòng / khách ngoài)
+    public class GuestRequestCreateRequest
+    {
+        [StringLength(10)]
+        public string? MaDatPhong { get; set; }
+
+        [StringLength(10)]
+        public string? MaPhong { get; set; }
+
+        // Một trong GuestRequestTypes.TatCa
+        [Required(ErrorMessage = "Vui lòng chọn loại yêu cầu.")]
+        [StringLength(30)]
+        public string Loai { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập nội dung yêu cầu.")]
+        [StringLength(500)]
+        public string NoiDung { get; set; }
+
+        public DateTime? ThoiGianHen { get; set; }
+    }
+
+    // PATCH /api/guest-requests/{id}: chuyển trạng thái (đang xử lý / hoàn thành / huỷ) kèm kết quả
+    public class GuestRequestUpdateRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn trạng thái.")]
+        public Enums.GuestRequestStatus? TrangThai { get; set; }
+
+        [StringLength(500)]
+        public string? KetQua { get; set; }
+    }
+
+    // POST /api/front-desk/shift/close: chốt ca — tiền mặt đếm thực tế và ghi chú bàn giao cho ca sau
+    public class CloseShiftRequest
+    {
+        [Range(0, 100_000_000_000, ErrorMessage = "Tiền mặt thực tế không hợp lệ.")]
+        public decimal TienMatThucTe { get; set; }
+
+        [StringLength(1000)]
+        public string? GhiChuBanGiao { get; set; }
+    }
+
     // POST /api/bookings/{id}/services/{maSDDV}/void: huỷ dịch vụ gọi nhầm (bớt số lượng hoặc huỷ hẳn)
     public class VoidServiceRequest
     {

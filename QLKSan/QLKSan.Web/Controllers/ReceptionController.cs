@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QLKSan.ApiClients;
+using QLKSan.Extensions;
 using QLKSan.Infrastructure;
 using QLKSan.Models.Requests;
 
@@ -15,15 +16,17 @@ namespace QLKSan.Controllers
         private readonly ICustomerApiClient _customerApi;
         private readonly IFrontDeskApiClient _frontDeskApi;
         private readonly IRoomTypeApiClient _roomTypeApi;
+        private readonly IGuestRequestApiClient _guestRequestApi;
 
         public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi, IFrontDeskApiClient frontDeskApi,
-            IRoomTypeApiClient roomTypeApi)
+            IRoomTypeApiClient roomTypeApi, IGuestRequestApiClient guestRequestApi)
         {
             _roomApi = roomApi;
             _bookingApi = bookingApi;
             _customerApi = customerApi;
             _frontDeskApi = frontDeskApi;
             _roomTypeApi = roomTypeApi;
+            _guestRequestApi = guestRequestApi;
         }
 
         // Màn hình đầu ca: khách đến / đi / đang ở hôm nay, phiếu sắp đến, sơ đồ phòng.
@@ -206,6 +209,73 @@ namespace QLKSan.Controllers
                 });
             }
             return list;
+        }
+
+        // --- SỔ YÊU CẦU KHÁCH ---
+
+        // loc: mo (đang mở, mặc định) | xong | tatca; maDatPhong: mở sẵn form ghi yêu cầu cho phiếu đó
+        [HttpGet]
+        public async Task<IActionResult> Requests(string loc = "mo", string maDatPhong = null)
+        {
+            ViewBag.Loc = loc;
+            ViewBag.MaDatPhong = maDatPhong;
+            ViewBag.Stays = await _bookingApi.GetActiveAsync();
+            return View(await _guestRequestApi.GetAllAsync(loc == "tatca" ? null : loc));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateRequest(GuestRequestCreateRequest model)
+        {
+            try
+            {
+                var y = await _guestRequestApi.CreateAsync(model);
+                TempData["SuccessMessage"] = $"Đã ghi yêu cầu #{y.MaYeuCau} ({y.Loai}{(y.SoPhong != null ? ", phòng " + y.SoPhong : "")}).";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không ghi được yêu cầu. " + ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Requests));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateRequest(int id, Enums.GuestRequestStatus trangThai, string ketQua, string loc = "mo")
+        {
+            try
+            {
+                await _guestRequestApi.UpdateStatusAsync(id, trangThai, ketQua);
+                TempData["SuccessMessage"] = $"Yêu cầu #{id}: {trangThai.GetDisplayName().ToLower()}.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không cập nhật được yêu cầu. " + ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Requests), new { loc });
+        }
+
+        // --- GIAO CA ---
+
+        [HttpGet]
+        public async Task<IActionResult> Shift()
+        {
+            ViewBag.Handovers = await _frontDeskApi.GetHandoversAsync(7);
+            return View(await _frontDeskApi.GetShiftAsync());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CloseShift(CloseShiftRequest model)
+        {
+            try
+            {
+                var ca = await _frontDeskApi.CloseShiftAsync(model);
+                TempData["SuccessMessage"] = $"Đã chốt ca {ca.BatDau:HH:mm} – {ca.KetThuc:HH:mm}: tiền mặt hệ thống {ca.TienMatHeThong:N0}đ, thực tế {ca.TienMatThucTe:N0}đ"
+                    + (ca.ChenhLech == 0 ? " — khớp." : $" — chênh lệch {ca.ChenhLech:N0}đ.");
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không chốt được ca. " + ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Shift));
         }
 
         // --- ĐẶT PHÒNG QUA QUẦY (điện thoại / email / tại quầy / đại lý) ---

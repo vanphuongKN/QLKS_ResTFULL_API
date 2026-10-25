@@ -1,0 +1,118 @@
+@model QLKSan.Models.DTOs.ShiftSummaryDto
+@{
+    ViewData["Title"] = "Giao ca";
+    var handovers = ViewBag.Handovers as List<QLKSan.Models.DTOs.ShiftHandoverDto> ?? new List<QLKSan.Models.DTOs.ShiftHandoverDto>();
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Ca làm việc</p>
+        <h2>Giao ca & đối soát tiền</h2>
+        <p class="page-desc">@Model.TenNhanVien · từ @Model.TuLuc.ToString("HH:mm dd/MM") đến @Model.DenLuc.ToString("HH:mm dd/MM"). Gồm tiền thanh toán hoá đơn, hoàn tiền, thu và hoàn cọc do bạn thực hiện (không tính phần trả bằng điểm thưởng).</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="kpi-grid mb-4">
+    <div class="kpi-card kpi-card--dark">
+        <span class="kpi-label">Tiền mặt trong két (hệ thống)</span>
+        <div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(Model.TienMatHeThong)</div>
+        <span class="kpi-sub">Thu trừ chi bằng tiền mặt trong ca</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Tổng thu</span>
+        <div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(Model.TongThu)</div>
+        <span class="kpi-sub">Mọi phương thức</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Tổng chi trả khách</span>
+        <div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(Model.TongChi)</div>
+        <span class="kpi-sub">Hoàn tiền, hoàn cọc</span>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-label">Thực thu ròng</span>
+        <div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(Model.TongThuRong)</div>
+        <span class="kpi-sub">@Model.GiaoDich.Count giao dịch</span>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-7">
+        <div class="card h-100">
+            <div class="p-4 pb-2"><h6 class="dash-title mb-0">Theo phương thức</h6></div>
+            <table class="table table-custom mb-0" data-no-tools>
+                <thead><tr><th>Phương thức</th><th class="text-center">Giao dịch</th><th class="text-end">Thu</th><th class="text-end">Chi</th><th class="text-end">Ròng</th></tr></thead>
+                <tbody>
+                    @if (!Model.TheoPhuongThuc.Any()) { <tr><td colspan="5" class="text-center text-muted">Chưa có giao dịch trong ca.</td></tr> }
+                    @foreach (var m in Model.TheoPhuongThuc)
+                    {
+                        <tr><td class="fw-semibold">@m.PhuongThuc</td><td class="text-center">@m.SoGiaoDich</td><td class="text-end">@m.Thu.ToString("N0")</td><td class="text-end text-danger">@(m.Chi > 0 ? "-" + m.Chi.ToString("N0") : "0")</td><td class="text-end fw-bold">@m.Rong.ToString("N0")</td></tr>
+                    }
+                </tbody>
+            </table>
+            <div class="p-4 pt-3">
+                <h6 class="dash-title mb-2">Chi tiết giao dịch</h6>
+                <table class="table table-custom mb-0" data-no-tools>
+                    <thead><tr><th>Giờ</th><th>Loại</th><th>Mã</th><th>Phương thức</th><th class="text-end">Số tiền</th></tr></thead>
+                    <tbody>
+                        @if (!Model.GiaoDich.Any()) { <tr><td colspan="5" class="text-center text-muted">—</td></tr> }
+                        @foreach (var g in Model.GiaoDich)
+                        {
+                            <tr title="@g.GhiChu"><td class="small">@g.ThoiGian.ToString("HH:mm")</td><td class="small">@g.Loai</td><td class="small text-muted">@g.MaThamChieu</td><td class="small">@g.PhuongThuc</td>
+                                <td class="text-end fw-semibold @(g.SoTien < 0 ? "text-danger" : "")">@g.SoTien.ToString("N0")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <form asp-action="CloseShift" method="post" class="card p-4 h-100">
+            <h6 class="dash-title mb-3">Chốt ca</h6>
+            <label class="form-label fw-semibold" for="csTienMat">Tiền mặt đếm thực tế</label>
+            <input type="number" name="TienMatThucTe" id="csTienMat" class="form-control mb-1" min="0" step="1000" required value="@Model.TienMatHeThong.ToString("0")" />
+            <small class="mb-3" id="csLech" data-he-thong="@Model.TienMatHeThong.ToString("0")"></small>
+            <label class="form-label fw-semibold" for="csGhiChu">Ghi chú bàn giao cho ca sau</label>
+            <textarea name="GhiChuBanGiao" id="csGhiChu" class="form-control mb-3" rows="5" maxlength="1000" placeholder="VD: Phòng 202 hẹn trả muộn 14:00; khách 301 chờ xe sân bay 6:15; két còn 2 triệu tiền lẻ."></textarea>
+            <button type="submit" class="btn-gold mt-auto" onclick="return confirm('Chốt ca và lưu bàn giao?')"><i class="fas fa-cash-register me-2"></i>Chốt ca & bàn giao</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="p-4 pb-2"><h6 class="dash-title mb-0">Bàn giao 7 ngày gần đây</h6></div>
+    <table class="table table-custom mb-0" data-no-tools>
+        <thead><tr><th>Ca</th><th>Nhân viên</th><th class="text-end">Thu ròng</th><th class="text-end">Tiền mặt HT / thực tế</th><th class="text-end">Chênh lệch</th><th>Ghi chú bàn giao</th></tr></thead>
+        <tbody>
+            @if (!handovers.Any()) { <tr><td colspan="6" class="text-center text-muted">Chưa có lần chốt ca nào.</td></tr> }
+            @foreach (var h in handovers)
+            {
+                <tr>
+                    <td class="small text-nowrap">@h.BatDau.ToString("HH:mm") – @h.KetThuc.ToString("HH:mm dd/MM")</td>
+                    <td>@h.TenNhanVien</td>
+                    <td class="text-end">@h.TongThuRong.ToString("N0")</td>
+                    <td class="text-end small">@h.TienMatHeThong.ToString("N0") / @h.TienMatThucTe.ToString("N0")</td>
+                    <td class="text-end fw-bold @(h.ChenhLech == 0 ? "text-success" : "text-danger")">@(h.ChenhLech == 0 ? "Khớp" : h.ChenhLech.ToString("N0"))</td>
+                    <td class="small">@h.GhiChuBanGiao</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var i = document.getElementById('csTienMat'), o = document.getElementById('csLech');
+            var ht = parseInt(o.getAttribute('data-he-thong'), 10);
+            function cap() {
+                var lech = Math.round(parseFloat(i.value || 0)) - ht;
+                o.textContent = lech === 0 ? 'Khớp với hệ thống.' : 'Chênh lệch ' + (lech > 0 ? '+' : '') + lech.toLocaleString('en-US') + ' ₫ so với hệ thống.';
+                o.className = 'mb-3 small ' + (lech === 0 ? 'text-success' : 'text-danger fw-semibold');
+            }
+            i.addEventListener('input', cap); cap();
+        })();
+    </script>
+}

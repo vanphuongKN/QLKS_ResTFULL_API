@@ -80,6 +80,7 @@ namespace QLKSan
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddScoped<IFrontDeskService, FrontDeskService>();
             builder.Services.AddScoped<IStayService, StayService>();
+            builder.Services.AddScoped<IGuestRequestService, GuestRequestService>();
             builder.Services.AddScoped<IPromotionService, PromotionService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();

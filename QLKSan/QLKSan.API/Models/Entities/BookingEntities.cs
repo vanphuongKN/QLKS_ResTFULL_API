@@ -154,6 +154,88 @@ namespace QLKSan.Models.Entities
         public PhieuDatPhong PhieuDatPhong { get; set; }
     }
 
+    // Yêu cầu của khách ghi tại quầy (báo thức, đặt xe, nhắn gửi, đồ thất lạc…), theo dõi tới khi xử lý xong
+    public class YeuCauKhach
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaYeuCau { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("PhieuDatPhong")]
+        public string? MaDatPhong { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("Phong")]
+        public string? MaPhong { get; set; }
+
+        [StringLength(30)]
+        public string Loai { get; set; }
+
+        [StringLength(500)]
+        public string NoiDung { get; set; }
+
+        // Giờ hẹn (báo thức, giờ xe đón…)
+        public DateTime? ThoiGianHen { get; set; }
+
+        public GuestRequestStatus TrangThai { get; set; } = GuestRequestStatus.New;
+
+        [StringLength(10)]
+        [ForeignKey("NhanVienTao")]
+        public string? MaNhanVienTao { get; set; }
+
+        public DateTime ThoiGianTao { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        [ForeignKey("NhanVienXuLy")]
+        public string? MaNhanVienXuLy { get; set; }
+
+        public DateTime? ThoiGianXuLy { get; set; }
+
+        [StringLength(500)]
+        public string? KetQua { get; set; }
+
+        public PhieuDatPhong? PhieuDatPhong { get; set; }
+        public Phong? Phong { get; set; }
+        public NhanVien? NhanVienTao { get; set; }
+        public NhanVien? NhanVienXuLy { get; set; }
+    }
+
+    // Chốt ca lễ tân: tiền thu theo phương thức trong ca, tiền mặt hệ thống so với tiền đếm thực tế, ghi chú bàn giao
+    public class GiaoCa
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaGiaoCa { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string MaNhanVien { get; set; }
+
+        public DateTime BatDau { get; set; }
+        public DateTime KetThuc { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TongThuRong { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TienMatHeThong { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TienMatThucTe { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal ChenhLech { get; set; }
+
+        [StringLength(1000)]
+        public string? GhiChuBanGiao { get; set; }
+
+        // Tổng theo phương thức tại thời điểm chốt (JSON) để xem lại về sau
+        public string? ChiTiet { get; set; }
+
+        public NhanVien NhanVien { get; set; }
+    }
+
     // Lịch sử đổi phòng khi khách đang ở (phòng cũ → phòng mới, lý do, giá trước / sau)
     public class LichSuDoiPhong
     {

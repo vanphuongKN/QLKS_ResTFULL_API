@@ -111,6 +111,19 @@ namespace QLKSan.Enums
         Issue
     }
 
+    // Yêu cầu của khách tại quầy (bảng YeuCauKhach)
+    public enum GuestRequestStatus
+    {
+        [Display(Name = "Mới")]
+        New,
+        [Display(Name = "Đang xử lý")]
+        InProgress,
+        [Display(Name = "Hoàn thành")]
+        Done,
+        [Display(Name = "Đã huỷ")]
+        Cancelled
+    }
+
     // Loại giao dịch trong bảng ThanhToan
     public enum PaymentType
     {

@@ -36,6 +36,84 @@ namespace QLKSan.Models.DTOs
 
         // Phiếu chờ duyệt / đã duyệt nhận phòng từ ngày mai trở đi, theo ngày đến
         public List<FrontDeskStayDto> SapDen { get; set; } = new List<FrontDeskStayDto>();
+
+        // Yêu cầu khách chưa xử lý xong (giờ hẹn gần nhất trước) và ghi chú bàn giao của ca gần nhất
+        public int YeuCauDangMo { get; set; }
+        public List<GuestRequestDto> YeuCauSapToi { get; set; } = new List<GuestRequestDto>();
+        public ShiftHandoverDto CaTruoc { get; set; }
+    }
+
+    public class GuestRequestDto
+    {
+        public int MaYeuCau { get; set; }
+        public string MaDatPhong { get; set; }
+        public string MaPhong { get; set; }
+        public string SoPhong { get; set; }
+        public string HoTenKhachHang { get; set; }
+        public string Loai { get; set; }
+        public string NoiDung { get; set; }
+        public DateTime? ThoiGianHen { get; set; }
+        public GuestRequestStatus TrangThai { get; set; }
+        public DateTime ThoiGianTao { get; set; }
+        public string TenNhanVienTao { get; set; }
+        public DateTime? ThoiGianXuLy { get; set; }
+        public string TenNhanVienXuLy { get; set; }
+        public string KetQua { get; set; }
+
+        // Chưa xong mà đã quá giờ hẹn
+        public bool QuaHen { get; set; }
+    }
+
+    // GET /api/front-desk/shift: tiền nhân viên đang đăng nhập đã thu / chi trong ca (thanh toán hoá đơn, hoàn tiền, thu / hoàn cọc)
+    public class ShiftSummaryDto
+    {
+        public string MaNhanVien { get; set; }
+        public string TenNhanVien { get; set; }
+        public DateTime TuLuc { get; set; }
+        public DateTime DenLuc { get; set; }
+        public decimal TongThu { get; set; }
+        public decimal TongChi { get; set; }
+        public decimal TongThuRong { get; set; }
+        public decimal TienMatHeThong { get; set; }
+        public List<ShiftMethodDto> TheoPhuongThuc { get; set; } = new List<ShiftMethodDto>();
+        public List<ShiftTransactionDto> GiaoDich { get; set; } = new List<ShiftTransactionDto>();
+    }
+
+    public class ShiftMethodDto
+    {
+        public string PhuongThuc { get; set; }
+        public int SoGiaoDich { get; set; }
+        public decimal Thu { get; set; }
+        public decimal Chi { get; set; }
+        public decimal Rong { get; set; }
+    }
+
+    public class ShiftTransactionDto
+    {
+        public DateTime ThoiGian { get; set; }
+        // Thanh toán hoá đơn | Hoàn tiền hoá đơn | Thu cọc | Hoàn cọc
+        public string Loai { get; set; }
+        public string MaThamChieu { get; set; }
+        public string PhuongThuc { get; set; }
+        // Dương = thu vào, âm = trả ra
+        public decimal SoTien { get; set; }
+        public string GhiChu { get; set; }
+    }
+
+    // Một lần chốt ca / bàn giao
+    public class ShiftHandoverDto
+    {
+        public int MaGiaoCa { get; set; }
+        public string MaNhanVien { get; set; }
+        public string TenNhanVien { get; set; }
+        public DateTime BatDau { get; set; }
+        public DateTime KetThuc { get; set; }
+        public decimal TongThuRong { get; set; }
+        public decimal TienMatHeThong { get; set; }
+        public decimal TienMatThucTe { get; set; }
+        public decimal ChenhLech { get; set; }
+        public string GhiChuBanGiao { get; set; }
+        public List<ShiftMethodDto> TheoPhuongThuc { get; set; } = new List<ShiftMethodDto>();
     }
 
     // Một phiếu đặt trên màn hình lễ tân, kèm thông tin chăm sóc khách

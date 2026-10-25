@@ -135,6 +135,31 @@ namespace QLKSan.Mappings
             };
         }
 
+        public static GuestRequestDto ToDto(this YeuCauKhach entity)
+        {
+            if (entity == null) return null;
+            var mo = entity.TrangThai is Enums.GuestRequestStatus.New or Enums.GuestRequestStatus.InProgress;
+            var khach = entity.PhieuDatPhong?.KhachHang;
+            return new GuestRequestDto
+            {
+                MaYeuCau = entity.MaYeuCau,
+                MaDatPhong = entity.MaDatPhong,
+                MaPhong = entity.MaPhong,
+                SoPhong = entity.Phong?.SoPhong,
+                HoTenKhachHang = khach == null ? null : $"{khach.Ho} {khach.Ten}".Trim(),
+                Loai = entity.Loai,
+                NoiDung = entity.NoiDung,
+                ThoiGianHen = entity.ThoiGianHen,
+                TrangThai = entity.TrangThai,
+                ThoiGianTao = entity.ThoiGianTao,
+                TenNhanVienTao = entity.NhanVienTao?.TenNhanVien,
+                ThoiGianXuLy = entity.ThoiGianXuLy,
+                TenNhanVienXuLy = entity.NhanVienXuLy?.TenNhanVien,
+                KetQua = entity.KetQua,
+                QuaHen = mo && entity.ThoiGianHen != null && entity.ThoiGianHen < DateTime.Now
+            };
+        }
+
         public static CompanionDto ToDto(this KhachDiCung entity)
         {
             if (entity == null) return null;

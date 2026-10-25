@@ -1,0 +1,158 @@
+@model List<QLKSan.Models.DTOs.GuestRequestDto>
+@using QLKSan.Enums
+@{
+    ViewData["Title"] = "Yêu cầu khách";
+    var loc = ViewBag.Loc as string ?? "mo";
+    var maDatPhong = ViewBag.MaDatPhong as string;
+    var stays = ViewBag.Stays as List<QLKSan.Models.DTOs.BookingDto> ?? new List<QLKSan.Models.DTOs.BookingDto>();
+    string Icon(string loai) => loai switch
+    {
+        GuestRequestTypes.BaoThuc => "fa-clock",
+        GuestRequestTypes.DatXe => "fa-car",
+        GuestRequestTypes.NhanGui => "fa-envelope-open-text",
+        GuestRequestTypes.ThatLac => "fa-box-open",
+        GuestRequestTypes.BuongPhong => "fa-broom",
+        GuestRequestTypes.KyThuat => "fa-screwdriver-wrench",
+        _ => "fa-bell-concierge"
+    };
+    (string Css, string Nhan) TrangThai(GuestRequestStatus t) => t switch
+    {
+        GuestRequestStatus.InProgress => ("badge-booked", "Đang xử lý"),
+        GuestRequestStatus.Done => ("badge-available", "Hoàn thành"),
+        GuestRequestStatus.Cancelled => ("badge-muted", "Đã huỷ"),
+        _ => ("badge-pending", "Mới")
+    };
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Chăm sóc khách</p>
+        <h2>Sổ yêu cầu khách</h2>
+        <p class="page-desc">Báo thức, đặt xe / đưa đón, nhắn gửi, đồ thất lạc… Ghi lại để mọi ca cùng theo dõi tới khi xử lý xong.</p>
+    </div>
+    <button type="button" class="btn-gold" data-bs-toggle="modal" data-bs-target="#newRequestModal"><i class="fas fa-plus me-2"></i>Ghi yêu cầu</button>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="filter-chips mb-4">
+    <a href="@Url.Action("Requests", new { loc = "mo" })" class="@(loc == "mo" ? "active" : "")">Đang mở</a>
+    <a href="@Url.Action("Requests", new { loc = "xong" })" class="@(loc == "xong" ? "active" : "")">Đã xong (7 ngày)</a>
+    <a href="@Url.Action("Requests", new { loc = "tatca" })" class="@(loc == "tatca" ? "active" : "")">Tất cả (30 ngày)</a>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <p class="text-muted small p-4 mb-0 text-center">@(loc == "mo" ? "Không có yêu cầu nào đang chờ xử lý." : "Chưa có yêu cầu nào.")</p>
+    }
+    @foreach (var y in Model)
+    {
+        var tt = TrangThai(y.TrangThai);
+        var mo = y.TrangThai is GuestRequestStatus.New or GuestRequestStatus.InProgress;
+        <div class="req-row @(y.QuaHen ? "is-late" : "") @(mo ? "" : "is-done")">
+            <div class="req-icon"><i class="fas @Icon(y.Loai)"></i></div>
+            <div class="req-main">
+                <div class="req-head">
+                    <strong>@y.Loai</strong>
+                    @if (y.SoPhong != null) { <span class="req-room">Phòng @y.SoPhong</span> }
+                    @if (y.HoTenKhachHang != null) { <span class="text-muted small">@y.HoTenKhachHang</span> }
+                    <span class="badge-status @tt.Css">@tt.Nhan</span>
+                    @if (y.QuaHen) { <span class="badge-status badge-occupied">Quá giờ hẹn</span> }
+                </div>
+                <div class="req-text">@y.NoiDung</div>
+                <div class="req-meta">
+                    @if (y.ThoiGianHen != null) { <span><i class="fas fa-clock"></i>Hẹn @y.ThoiGianHen.Value.ToString("HH:mm dd/MM")</span> }
+                    <span><i class="fas fa-pen"></i>#@y.MaYeuCau · @y.ThoiGianTao.ToString("HH:mm dd/MM") · @y.TenNhanVienTao</span>
+                    @if (y.ThoiGianXuLy != null) { <span><i class="fas fa-check"></i>@y.ThoiGianXuLy.Value.ToString("HH:mm dd/MM") · @y.TenNhanVienXuLy</span> }
+                    @if (!string.IsNullOrEmpty(y.KetQua)) { <span class="text-dark"><i class="fas fa-comment"></i>@y.KetQua</span> }
+                </div>
+            </div>
+            @if (mo)
+            {
+                <div class="req-actions">
+                    @if (y.TrangThai == GuestRequestStatus.New)
+                    {
+                        <form asp-action="UpdateRequest" method="post">
+                            <input type="hidden" name="id" value="@y.MaYeuCau" /><input type="hidden" name="loc" value="@loc" />
+                            <input type="hidden" name="trangThai" value="@GuestRequestStatus.InProgress" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Nhận xử lý</button>
+                        </form>
+                    }
+                    <button type="button" class="btn btn-sm btn-gold" data-req-done="@y.MaYeuCau" data-req-status="@GuestRequestStatus.Done" data-req-title="Hoàn thành yêu cầu #@y.MaYeuCau">Hoàn thành</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-req-done="@y.MaYeuCau" data-req-status="@GuestRequestStatus.Cancelled" data-req-title="Huỷ yêu cầu #@y.MaYeuCau" title="Huỷ"><i class="fas fa-times"></i></button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="newRequestModal" tabindex="-1" aria-labelledby="nrTitle">
+    <div class="modal-dialog">
+        <form asp-action="CreateRequest" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="nrTitle">Ghi yêu cầu của khách</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="nrStay">Khách đang ở</label>
+                        <select name="MaDatPhong" id="nrStay" class="form-select">
+                            <option value="">— Không gắn phòng (khách ngoài, đồ thất lạc…) —</option>
+                            @foreach (var s in stays.OrderBy(s => s.ChiTietDatPhongs.FirstOrDefault()?.Phong?.SoPhong))
+                            {
+                                <option value="@s.MaDatPhong" selected="@(s.MaDatPhong == maDatPhong)">Phòng @s.ChiTietDatPhongs.FirstOrDefault()?.Phong?.SoPhong — @s.KhachHang?.Ho @s.KhachHang?.Ten</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold" for="nrLoai">Loại</label>
+                        <select name="Loai" id="nrLoai" class="form-select">@foreach (var l in GuestRequestTypes.TatCa) { <option>@l</option> }</select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold" for="nrHen">Giờ hẹn <span class="text-muted fw-normal">(tuỳ chọn)</span></label>
+                        <input type="datetime-local" name="ThoiGianHen" id="nrHen" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="nrNoiDung">Nội dung</label>
+                        <textarea name="NoiDung" id="nrNoiDung" class="form-control" rows="3" maxlength="500" required placeholder="VD: Báo thức 5:30, đặt taxi ra sân bay 6:15, 2 vali"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Ghi yêu cầu</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="doneRequestModal" tabindex="-1" aria-labelledby="drTitle">
+    <div class="modal-dialog">
+        <form asp-action="UpdateRequest" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="drTitle">Cập nhật yêu cầu</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" id="drId" /><input type="hidden" name="trangThai" id="drStatus" /><input type="hidden" name="loc" value="@loc" />
+                <label class="form-label fw-semibold" for="drKetQua">Kết quả / lý do</label>
+                <textarea name="ketQua" id="drKetQua" class="form-control" rows="2" maxlength="500" placeholder="VD: Đã gọi báo thức, khách xác nhận"></textarea>
+                <small class="text-muted" id="drHint"></small>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Lưu</button></div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-req-done]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var huy = b.getAttribute('data-req-status') === '@GuestRequestStatus.Cancelled';
+                document.getElementById('drId').value = b.getAttribute('data-req-done');
+                document.getElementById('drStatus').value = b.getAttribute('data-req-status');
+                document.getElementById('drTitle').textContent = b.getAttribute('data-req-title');
+                var kq = document.getElementById('drKetQua');
+                kq.value = ''; kq.required = huy;
+                document.getElementById('drHint').textContent = huy ? 'Bắt buộc nhập lý do huỷ.' : 'Không bắt buộc.';
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('doneRequestModal')).show();
+            });
+        });
+        // Mở sẵn form khi đi từ Quầy lễ tân (Ghi yêu cầu cho một phiếu)
+        if ('@(maDatPhong ?? "")') bootstrap.Modal.getOrCreateInstance(document.getElementById('newRequestModal')).show();
+    </script>
+}

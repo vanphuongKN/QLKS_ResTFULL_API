@@ -101,12 +101,15 @@ Phía Web chỉ cần `ApiSettings:BaseUrl` trong `QLKSan.Web/appsettings.json`.
 
 **Nhân viên**
 - **Lễ tân:**
-  - sơ đồ phòng, duyệt, huỷ và đổi phòng cho phiếu online;
-  - check-in, nhận khách vãng lai, gọi dịch vụ;
-  - lịch phòng, sổ khách lưu trú (xuất Excel), giao việc buồng phòng.
+  - màn hình đầu ca: khách đến / đi (kể cả quá hạn trả) / đang ở hôm nay, phiếu sắp đến, phòng trống tối nay, việc cần làm, bàn giao từ ca trước;
+  - đặt phòng qua quầy cho ngày tới (điện thoại, email, tại quầy, đại lý), tra khách cũ theo CCCD / SĐT với cảnh báo VIP, hạn chế, sở thích;
+  - duyệt, đổi phòng, đổi ngày, huỷ (hoàn hoặc giữ cọc); nhận phòng kèm số khách thực tế, cọc và người đi cùng; nhận khách vãng lai;
+  - trong kỳ lưu trú: gia hạn / rút ngắn có báo giá, đổi phòng khi đang ở, gọi và huỷ dịch vụ gọi nhầm, thu thêm cọc (sổ cọc ghi phương thức và người thu);
+  - sổ yêu cầu khách (báo thức, đặt xe, nhắn gửi, đồ thất lạc…), giao ca có đối soát tiền mặt và ghi chú bàn giao;
+  - lịch phòng, sổ khách lưu trú gồm cả người đi cùng (xuất Excel), giao việc buồng phòng.
 - **Thu ngân:**
-  - lập hoá đơn theo số đêm thực tế, giá theo mùa/cuối tuần/lễ, phụ thu trả muộn, khuyến mãi, ưu đãi hạng thành viên và trừ tiền cọc;
-  - nhận thanh toán, cho phép đổi điểm.
+  - bảng kê lưu trú từng đêm trước khi chốt; lập hoá đơn theo số đêm thực tế, giá theo mùa/cuối tuần/lễ, phụ thu trả muộn, khuyến mãi, ưu đãi hạng thành viên và trừ tiền cọc;
+  - nhận thanh toán: đổi điểm, tách tối đa 3 khoản theo phương thức, thông tin xuất hoá đơn VAT công ty.
 - **Buồng phòng:** nhận việc, dọn xong, báo sự cố.
 - **Kế toán:** danh sách hoá đơn, hoàn tiền (phần đã trả bằng điểm không được hoàn), báo cáo doanh thu và công suất (xuất Excel).
 - **Quản trị:** loại phòng (thông tin và bộ ảnh), phòng, dịch vụ (đánh dấu mục "Trải nghiệm"), nhân viên, khuyến mãi, bảng giá theo mùa, đánh giá.

@@ -1023,3 +1023,27 @@ tr.guest-companion td { background: #fcfbf8; }
 .vat-box { border: 1px solid var(--border-light); border-radius: 8px; padding: 10px 12px; background: var(--white); }
 .vat-box summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--navy); }
 @media (max-width: 767.98px) { .folio-meta { grid-template-columns: 1fr 1fr; } }
+
+/* Sổ yêu cầu khách + bàn giao ca */
+.req-row { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: start; padding: 14px 20px; border-bottom: 1px solid var(--border-light); border-left: 3px solid transparent; }
+.req-row:last-child { border-bottom: none; }
+.req-row.is-late { border-left-color: var(--danger); background: rgba(198,40,40,.025); }
+.req-row.is-done { opacity: .65; }
+.req-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--gold-light); color: var(--gold); display: flex; align-items: center; justify-content: center; }
+.req-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--navy); }
+.req-room { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 1.05rem; }
+.req-text { margin-top: 4px; font-size: 0.9rem; color: var(--text-dark); white-space: pre-line; }
+.req-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 0.76rem; color: var(--text-muted); }
+.req-meta i { margin-right: 5px; opacity: .75; }
+.req-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.req-actions form { margin: 0; }
+.req-actions .btn { font-size: 0.76rem; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.req-mini { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 0.82rem; }
+.req-mini:last-child { border-bottom: none; }
+.req-mini-time { font-weight: 700; color: var(--navy); line-height: 1.2; }
+.req-mini-time small { display: block; font-weight: 500; color: var(--text-muted); font-size: 0.7rem; }
+.req-mini.is-late .req-mini-time { color: var(--danger); }
+.req-mini-text { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.handover-card { border-left: 3px solid var(--gold); }
+.handover-note { white-space: pre-line; font-size: 0.88rem; }
+@media (max-width: 767.98px) { .req-row { grid-template-columns: 32px 1fr; padding: 12px 14px; } .req-icon { width: 32px; height: 32px; } .req-actions { grid-column: 1 / -1; justify-content: flex-start; } }

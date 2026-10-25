@@ -385,6 +385,43 @@ CREATE TABLE LichSuDoiPhong (
 );
 CREATE INDEX IX_LichSuDoiPhong_PhieuDat ON LichSuDoiPhong(MaDatPhong);
 
+-- Sổ yêu cầu khách tại quầy (báo thức, đặt xe, nhắn gửi, đồ thất lạc…)
+CREATE TABLE YeuCauKhach (
+    MaYeuCau INT IDENTITY(1,1) PRIMARY KEY,
+    MaDatPhong VARCHAR(10) NULL,
+    MaPhong VARCHAR(10) NULL,
+    Loai NVARCHAR(30) NOT NULL,
+    NoiDung NVARCHAR(500) NOT NULL,
+    ThoiGianHen DATETIME NULL,
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'Mới',   -- Mới | Đang xử lý | Hoàn thành | Đã huỷ
+    MaNhanVienTao VARCHAR(10) NULL,
+    ThoiGianTao DATETIME NOT NULL DEFAULT GETDATE(),
+    MaNhanVienXuLy VARCHAR(10) NULL,
+    ThoiGianXuLy DATETIME NULL,
+    KetQua NVARCHAR(500) NULL,
+    CONSTRAINT FK_YeuCauKhach_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong),
+    CONSTRAINT FK_YeuCauKhach_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
+    CONSTRAINT FK_YeuCauKhach_NVTao FOREIGN KEY (MaNhanVienTao) REFERENCES NhanVien(MaNhanVien),
+    CONSTRAINT FK_YeuCauKhach_NVXuLy FOREIGN KEY (MaNhanVienXuLy) REFERENCES NhanVien(MaNhanVien)
+);
+CREATE INDEX IX_YeuCauKhach_TrangThai ON YeuCauKhach(TrangThai, ThoiGianHen);
+
+-- Chốt ca lễ tân: tiền thu theo phương thức, tiền mặt hệ thống so với tiền đếm thực tế, ghi chú bàn giao
+CREATE TABLE GiaoCa (
+    MaGiaoCa INT IDENTITY(1,1) PRIMARY KEY,
+    MaNhanVien VARCHAR(10) NOT NULL,
+    BatDau DATETIME NOT NULL,
+    KetThuc DATETIME NOT NULL,
+    TongThuRong DECIMAL(18,0) NOT NULL,
+    TienMatHeThong DECIMAL(18,0) NOT NULL,
+    TienMatThucTe DECIMAL(18,0) NOT NULL,
+    ChenhLech DECIMAL(18,0) NOT NULL,
+    GhiChuBanGiao NVARCHAR(1000) NULL,
+    ChiTiet NVARCHAR(MAX) NULL,                     -- tổng theo phương thức lúc chốt (JSON)
+    CONSTRAINT FK_GiaoCa_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
+);
+CREATE INDEX IX_GiaoCa_KetThuc ON GiaoCa(KetThuc DESC);
+
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,
     MaPhong VARCHAR(10) NOT NULL,
