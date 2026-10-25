@@ -221,6 +221,9 @@ namespace QLKSan.Business
                 throw new ConflictException("Hoá đơn đã thanh toán, không huỷ dịch vụ được.");
             if (soLuong < 1 || soLuong > dong.SoLuong)
                 throw new BusinessException($"Số lượng huỷ phải từ 1 đến {dong.SoLuong}.");
+            var ngayChot = await NightAuditService.NgayChotGanNhatAsync(_context);
+            if (ngayChot != null && dong.NgaySuDung.Date <= ngayChot.Value)
+                throw new ConflictException($"Dịch vụ ghi ngày {dong.NgaySuDung:dd/MM/yyyy} thuộc ngày đã chốt, không huỷ được.");
 
             var ten = dong.DichVu?.TenDichVu ?? dong.MaDichVu;
             if (soLuong == dong.SoLuong) _context.SuDungDichVus.Remove(dong);

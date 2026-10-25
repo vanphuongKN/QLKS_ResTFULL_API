@@ -19,9 +19,7 @@ namespace QLKSan.Common
         // Tiền cọc khách vãng lai (% tiền phòng dự kiến)
         public int PhanTramTienCocVangLai { get; set; } = 50;
 
-        // Tự động huỷ phiếu chờ duyệt/đã duyệt khi đã qua ngày nhận phòng mà khách không đến
-        public bool TuDongHuyKhachKhongDen { get; set; } = true;
-        public int ChuKyKiemTraKhongDenPhut { get; set; } = 60;
+        // Khách không đến (no-show) được xử lý khi chốt ngày (NightAuditService), không còn tự huỷ định kỳ
 
         // Chính sách chuẩn (giống appsettings.json) — dùng cho unit test
         public static HotelPolicy MacDinh() => new HotelPolicy

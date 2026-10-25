@@ -42,6 +42,26 @@ namespace QLKSan.Models.Requests
         public string GhiChu { get; set; }
     }
 
+    // POST /api/night-audit/close: chốt một ngày; GiuLai = phiếu chưa nhận phòng nhưng khách báo đến muộn (không huỷ)
+    public class CloseDayRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn ngày chốt.")]
+        public System.DateTime? Ngay { get; set; }
+
+        public List<string> GiuLai { get; set; } = new List<string>();
+
+        [StringLength(500)]
+        public string GhiChu { get; set; }
+    }
+
+    // POST /api/night-audit/{ngay}/reopen: quản lý mở lại ngày chốt gần nhất
+    public class ReopenDayRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập lý do mở lại.")]
+        [StringLength(300)]
+        public string LyDo { get; set; }
+    }
+
     // PUT /api/invoices/{id}/e-invoice: kế toán ghi số hoá đơn điện tử đã xuất (trống = bỏ)
     public class EInvoiceRequest
     {

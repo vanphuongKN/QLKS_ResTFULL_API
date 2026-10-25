@@ -1,0 +1,17 @@
+@model QLKSan.Models.DTOs.NightAuditFiguresDto
+<div class="table-responsive">
+<table class="table table-custom mb-0" data-no-tools>
+    <thead><tr><th>Phòng</th><th>Phiếu · khách</th><th>Quy tắc giá</th><th class="text-end">Giá đêm</th></tr></thead>
+    <tbody>
+        @if (!Model.CacDem.Any()) { <tr><td colspan="4" class="text-center text-muted">Không có phòng nào có khách đêm này.</td></tr> }
+        @foreach (var n in Model.CacDem)
+        {
+            <tr><td><strong>P@(n.SoPhong)</strong></td><td>@n.MaDatPhong<small class="d-block text-muted">@n.HoTenKhachHang</small></td><td class="small">@(n.QuyTac ?? "Giá thường")</td><td class="text-end fw-semibold">@n.Gia.ToString("N0")</td></tr>
+        }
+        @foreach (var c in Model.CocGiuLai)
+        {
+            <tr class="table-light"><td class="small text-muted">Cọc giữ lại</td><td>@c.MaDatPhong<small class="d-block text-muted">@c.HoTenKhachHang · nhận dự kiến @c.NgayNhan.ToString("dd/MM")</small></td><td class="small">Doanh thu khác</td><td class="text-end">@c.TienCoc.ToString("N0")</td></tr>
+        }
+    </tbody>
+</table>
+</div>

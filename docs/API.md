@@ -206,6 +206,11 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/reports/deposits?tuNgay&denNgay` | Finance | Sổ cọc: cọc đang giữ (phiếu chưa trả phòng), thu / hoàn cọc trong kỳ theo phương thức, cọc giữ lại khi huỷ |
 | GET | `/api/reports/shifts?tuNgay&denNgay` | Finance | Các lần chốt ca của lễ tân trong kỳ (tiền mặt hệ thống / thực tế, chênh lệch, theo phương thức, ghi chú bàn giao) |
 | GET | `/api/reports/occupancy` | Finance | Công suất phòng |
+| GET | `/api/night-audit/status` | Cashier | Tình trạng chốt ngày: ngày bắt đầu áp dụng (`NightAudit:NgayBatDau`), ngày chốt gần nhất, ngày cần chốt tiếp theo, số ngày đã qua chưa chốt |
+| GET | `/api/night-audit/preview?ngay` | Cashier | Xem trước một ngày (mặc định ngày cần chốt): tiền phòng theo đêm (giá đêm theo quy tắc giá, trước giảm giá, chưa VAT), công suất, ADR, RevPAR, cọc giữ lại chưa ghi nhận, dịch vụ, tiền thu theo phương thức; phiếu tới ngày đó chưa nhận phòng; cảnh báo quá hạn trả, hoá đơn chưa thu, nhân viên chưa chốt ca |
+| POST | `/api/night-audit/close` | Cashier | Chốt `{ "Ngay", "GiuLai": [mã phiếu], "GhiChu" }` — chỉ ngày đã qua, lần lượt từ ngày bắt đầu (sai thứ tự → 400, đã chốt → 409). Phiếu chưa nhận phòng bị huỷ và giữ cọc, trừ phiếu trong `GiuLai` (khách báo đến muộn); ghi `DoanhThuDem` và ảnh chụp `ChotNgay`. Dịch vụ ghi vào ngày đã chốt không huỷ được (409) |
+| GET | `/api/night-audit?tuNgay&denNgay`, `/api/night-audit/{yyyy-MM-dd}` | Cashier | Các ngày đã chốt / số liệu một ngày đã chốt |
+| POST | `/api/night-audit/{yyyy-MM-dd}/reopen` | Admin | Mở lại ngày chốt gần nhất `{ "LyDo" }` (bắt buộc, ghi nhật ký): gỡ doanh thu theo đêm và cọc đã ghi nhận để chốt lại; phiếu khách không đến đã huỷ giữ nguyên |
 | GET | `/api/reports/guests`, `/guests/export` | Cashier | Sổ khách lưu trú (JSON / Excel) |
 | GET / POST / PUT / DELETE | `/api/staff[/{id}]` | Admin | Quản lý nhân viên |
 | POST | `/api/staff/{id}/reset-password` | Admin | Đặt lại mật khẩu (đồng thời mở khoá tài khoản đang bị khoá tạm) |

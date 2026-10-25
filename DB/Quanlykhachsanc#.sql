@@ -207,6 +207,8 @@ CREATE TABLE PhieuDatPhong (
     KhongLamPhienNgay DATE NULL,                    -- buồng phòng: khách "Không làm phiền" ngày này
     GioDonMongMuon NVARCHAR(30) NULL,               -- giờ dọn khách muốn
     TuChoiDonHangNgay BIT NOT NULL DEFAULT 0,       -- khách từ chối dọn hằng ngày cả kỳ nghỉ
+    NgayHuy DATETIME NULL,                          -- thời điểm huỷ phiếu
+    NgayGhiNhanCocGiuLai DATE NULL,                 -- ngày chốt đã ghi nhận tiền cọc giữ lại thành doanh thu
     CONSTRAINT FK_PhieuDat_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
     CONSTRAINT FK_PhieuDat_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
 );
@@ -448,6 +450,42 @@ CREATE TABLE PhieuKyThuat (
     CONSTRAINT FK_PhieuKyThuat_NVXuLy FOREIGN KEY (MaNhanVienXuLy) REFERENCES NhanVien(MaNhanVien)
 );
 CREATE INDEX IX_PhieuKyThuat_Phong ON PhieuKyThuat(MaPhong, TrangThai);
+
+-- Chốt ngày (night audit): ảnh chụp số liệu từng ngày đã chốt, chốt lần lượt
+CREATE TABLE ChotNgay (
+    Ngay DATE PRIMARY KEY,
+    ThoiGianChot DATETIME NOT NULL CONSTRAINT DF_ChotNgay_ThoiGian DEFAULT GETDATE(),
+    MaNhanVien VARCHAR(10) NULL,
+    TongSoPhong INT NOT NULL,
+    DemPhongBan INT NOT NULL,
+    CongSuat DECIMAL(5,1) NOT NULL,
+    TienPhong DECIMAL(18,0) NOT NULL,               -- doanh thu phòng theo đêm (giá đêm, trước giảm giá, chưa VAT)
+    ADR DECIMAL(18,0) NOT NULL,
+    RevPAR DECIMAL(18,0) NOT NULL,
+    DoanhThuKhac DECIMAL(18,0) NOT NULL,            -- cọc giữ lại khi huỷ / không đến
+    TienDichVu DECIMAL(18,0) NOT NULL,
+    SoHoaDonThanhToan INT NOT NULL,
+    TongHoaDonThanhToan DECIMAL(18,0) NOT NULL,
+    KhachDen INT NOT NULL,
+    KhachDi INT NOT NULL,
+    KhachKhongDen INT NOT NULL,
+    GhiChu NVARCHAR(500) NULL,
+    ChiTiet NVARCHAR(MAX) NULL,                     -- theo phương thức, từng đêm, cọc giữ lại (JSON)
+    CONSTRAINT FK_ChotNgay_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
+);
+
+-- Doanh thu ghi nhận khi chốt ngày: Tiền phòng (từng đêm) | Cọc giữ lại
+CREATE TABLE DoanhThuDem (
+    MaDong INT IDENTITY(1,1) PRIMARY KEY,
+    Ngay DATE NOT NULL,
+    MaDatPhong VARCHAR(10) NOT NULL,
+    MaPhong VARCHAR(10) NULL,
+    Loai NVARCHAR(30) NOT NULL,
+    SoTien DECIMAL(18,0) NOT NULL,
+    GhiChu NVARCHAR(100) NULL,
+    CONSTRAINT FK_DoanhThuDem_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong)
+);
+CREATE INDEX IX_DoanhThuDem_Ngay ON DoanhThuDem(Ngay);
 
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,

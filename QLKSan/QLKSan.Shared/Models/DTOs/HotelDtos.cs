@@ -104,11 +104,6 @@ namespace QLKSan.Models.DTOs
 
         [Range(0, 100, ErrorMessage = "Tiền cọc từ 0 đến 100%.")]
         public int PhanTramTienCocVangLai { get; set; }
-
-        public bool TuDongHuyKhachKhongDen { get; set; }
-
-        [Range(5, 1440, ErrorMessage = "Chu kỳ kiểm tra từ 5 đến 1440 phút.")]
-        public int ChuKyKiemTraKhongDenPhut { get; set; }
     }
 
     public class LateCheckoutRuleDto

@@ -12,9 +12,12 @@
         <p class="page-label">Kế toán</p>
         <h2>Báo cáo doanh thu & công suất phòng</h2>
     </div>
-    <a href="@Url.Action("Export", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") })" class="btn-gold text-decoration-none">
-        <i class="fas fa-file-excel me-2"></i>Xuất Excel
-    </a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="@Url.Action("Index", "NightAudit", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") })" class="btn btn-outline-gold"><i class="fas fa-moon me-2"></i>Doanh thu theo đêm</a>
+        <a href="@Url.Action("Export", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") })" class="btn-gold text-decoration-none">
+            <i class="fas fa-file-excel me-2"></i>Xuất Excel
+        </a>
+    </div>
 </div>
 
 <form method="get" class="card p-3 mb-4">

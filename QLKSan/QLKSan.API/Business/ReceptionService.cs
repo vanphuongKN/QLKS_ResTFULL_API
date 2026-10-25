@@ -177,6 +177,7 @@ namespace QLKSan.Business
 
             var hanhDong = booking.TrangThai == BookingStatus.Pending && !laKhachHang ? "Từ chối" : "Huỷ";
             booking.TrangThai = BookingStatus.Cancelled;
+            booking.NgayHuy = DateTime.Now;
             booking.GhiChu = BookingNotes.Append(booking.GhiChu,
                 $"[{hanhDong} {DateTime.Now:dd/MM/yyyy HH:mm} - {nguoiHuy}] {(string.IsNullOrWhiteSpace(lyDo) ? "Không ghi lý do" : lyDo.Trim())}");
 

@@ -207,6 +207,37 @@ namespace QLKSan.ApiClients
             => HttpGetAsync<List<ShiftHandoverDto>>("api/reports/shifts?" + Range(tuNgay, denNgay));
     }
 
+    // ===== /api/night-audit: chốt ngày =====
+    public interface INightAuditApiClient
+    {
+        Task<NightAuditStatusDto> GetStatusAsync();
+        Task<NightAuditPreviewDto> PreviewAsync(DateTime? ngay);
+        Task<DayCloseDto> CloseAsync(CloseDayRequest request);
+        Task<List<DayCloseDto>> GetAllAsync(DateTime tuNgay, DateTime denNgay);
+        Task<DayCloseDto> GetAsync(DateTime ngay);
+        Task ReopenAsync(DateTime ngay, string lyDo);
+    }
+
+    public class NightAuditApiClient : ApiClientBase, INightAuditApiClient
+    {
+        public NightAuditApiClient(HttpClient http) : base(http) { }
+
+        public Task<NightAuditStatusDto> GetStatusAsync() => HttpGetAsync<NightAuditStatusDto>("api/night-audit/status");
+
+        public Task<NightAuditPreviewDto> PreviewAsync(DateTime? ngay)
+            => HttpGetAsync<NightAuditPreviewDto>("api/night-audit/preview" + (ngay == null ? "" : $"?ngay={ngay:yyyy-MM-dd}"));
+
+        public Task<DayCloseDto> CloseAsync(CloseDayRequest request) => HttpPostAsync<DayCloseDto>("api/night-audit/close", request);
+
+        public Task<List<DayCloseDto>> GetAllAsync(DateTime tuNgay, DateTime denNgay)
+            => HttpGetAsync<List<DayCloseDto>>($"api/night-audit?tuNgay={tuNgay:yyyy-MM-dd}&denNgay={denNgay:yyyy-MM-dd}");
+
+        public Task<DayCloseDto> GetAsync(DateTime ngay) => HttpGetOrDefaultAsync<DayCloseDto>($"api/night-audit/{ngay:yyyy-MM-dd}");
+
+        public Task ReopenAsync(DateTime ngay, string lyDo)
+            => HttpPostAsync($"api/night-audit/{ngay:yyyy-MM-dd}/reopen", new ReopenDayRequest { LyDo = lyDo });
+    }
+
     // ===== /api/maintenance: phiếu kỹ thuật =====
     public interface IMaintenanceApiClient
     {

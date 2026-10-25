@@ -83,7 +83,6 @@ namespace QLKSan.Business
                 phanTramTruoc = m.PhanTram;
             }
             if (v.PhanTramTienCocVangLai is < 0 or > 100) throw new BusinessException("Tiền cọc khách vãng lai phải từ 0 đến 100%.");
-            if (v.ChuKyKiemTraKhongDenPhut is < 5 or > 1440) throw new BusinessException("Chu kỳ kiểm tra khách không đến phải từ 5 đến 1440 phút.");
             Save(KhoaChinhSach, v, maNhanVien);
         }
 

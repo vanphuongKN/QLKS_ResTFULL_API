@@ -22,9 +22,7 @@ namespace QLKSan.Mappings
             GioTraPhong = e.GioTraPhong,
             PhuThuTraMuon = e.PhuThuTraMuon.OrderBy(m => m.DenGio).Select(m => new LateCheckoutRuleDto { DenGio = m.DenGio, PhanTram = m.PhanTram }).ToList(),
             TuDongXacNhanDatPhong = e.TuDongXacNhanDatPhong,
-            PhanTramTienCocVangLai = e.PhanTramTienCocVangLai,
-            TuDongHuyKhachKhongDen = e.TuDongHuyKhachKhongDen,
-            ChuKyKiemTraKhongDenPhut = e.ChuKyKiemTraKhongDenPhut
+            PhanTramTienCocVangLai = e.PhanTramTienCocVangLai
         };
 
         public static HotelPolicy ToEntity(this HotelPolicySettingsDto d) => new HotelPolicy
@@ -33,9 +31,7 @@ namespace QLKSan.Mappings
             GioTraPhong = d.GioTraPhong,
             PhuThuTraMuon = (d.PhuThuTraMuon ?? new()).Where(m => m.DenGio > 0).Select(m => new MucPhuThu { DenGio = m.DenGio, PhanTram = m.PhanTram }).ToList(),
             TuDongXacNhanDatPhong = d.TuDongXacNhanDatPhong,
-            PhanTramTienCocVangLai = d.PhanTramTienCocVangLai,
-            TuDongHuyKhachKhongDen = d.TuDongHuyKhachKhongDen,
-            ChuKyKiemTraKhongDenPhut = d.ChuKyKiemTraKhongDenPhut
+            PhanTramTienCocVangLai = d.PhanTramTienCocVangLai
         };
 
         public static LoyaltySettingsDto ToDto(this LoyaltyPolicy e) => new LoyaltySettingsDto

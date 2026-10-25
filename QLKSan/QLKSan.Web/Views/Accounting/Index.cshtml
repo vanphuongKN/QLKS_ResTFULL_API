@@ -32,6 +32,8 @@
     <a href="@Url.Action("Export", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") })" class="btn-gold text-decoration-none"><i class="fas fa-file-excel me-2"></i>Xuất Excel</a>
 </div>
 
+@await Component.InvokeAsync("NightAuditBanner")
+
 <form method="get" class="card p-3 mb-4">
     <div class="row g-2 align-items-end">
         <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Từ ngày</label><input type="date" name="tuNgay" value="@tuNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>

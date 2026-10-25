@@ -427,7 +427,49 @@ namespace QLKSan.Data
             ("40. Thêm HoaDon.SoHoaDonDienTu, NgayXuatHoaDonDienTu", @"
                 IF COL_LENGTH('HoaDon', 'SoHoaDonDienTu') IS NULL
                     ALTER TABLE HoaDon ADD SoHoaDonDienTu NVARCHAR(30) NULL,
-                                           NgayXuatHoaDonDienTu DATETIME NULL;")
+                                           NgayXuatHoaDonDienTu DATETIME NULL;"),
+
+            // K3: chốt ngày — thời điểm huỷ phiếu, ghi nhận cọc giữ lại, ảnh chụp ngày, doanh thu theo đêm
+            ("41. Thêm PhieuDatPhong.NgayHuy, NgayGhiNhanCocGiuLai", @"
+                IF COL_LENGTH('PhieuDatPhong', 'NgayHuy') IS NULL
+                    ALTER TABLE PhieuDatPhong ADD NgayHuy DATETIME NULL,
+                                                  NgayGhiNhanCocGiuLai DATE NULL;"),
+            ("42. Tạo bảng ChotNgay", @"
+                IF OBJECT_ID('ChotNgay', 'U') IS NULL
+                    CREATE TABLE ChotNgay (
+                        Ngay DATE PRIMARY KEY,
+                        ThoiGianChot DATETIME NOT NULL CONSTRAINT DF_ChotNgay_ThoiGian DEFAULT GETDATE(),
+                        MaNhanVien VARCHAR(10) NULL CONSTRAINT FK_ChotNgay_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        TongSoPhong INT NOT NULL,
+                        DemPhongBan INT NOT NULL,
+                        CongSuat DECIMAL(5,1) NOT NULL,
+                        TienPhong DECIMAL(18,0) NOT NULL,
+                        ADR DECIMAL(18,0) NOT NULL,
+                        RevPAR DECIMAL(18,0) NOT NULL,
+                        DoanhThuKhac DECIMAL(18,0) NOT NULL,
+                        TienDichVu DECIMAL(18,0) NOT NULL,
+                        SoHoaDonThanhToan INT NOT NULL,
+                        TongHoaDonThanhToan DECIMAL(18,0) NOT NULL,
+                        KhachDen INT NOT NULL,
+                        KhachDi INT NOT NULL,
+                        KhachKhongDen INT NOT NULL,
+                        GhiChu NVARCHAR(500) NULL,
+                        ChiTiet NVARCHAR(MAX) NULL
+                    );"),
+            ("43. Tạo bảng DoanhThuDem", @"
+                IF OBJECT_ID('DoanhThuDem', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE DoanhThuDem (
+                        MaDong INT IDENTITY(1,1) PRIMARY KEY,
+                        Ngay DATE NOT NULL,
+                        MaDatPhong VARCHAR(10) NOT NULL CONSTRAINT FK_DoanhThuDem_PhieuDat FOREIGN KEY REFERENCES PhieuDatPhong(MaDatPhong),
+                        MaPhong VARCHAR(10) NULL,
+                        Loai NVARCHAR(30) NOT NULL,
+                        SoTien DECIMAL(18,0) NOT NULL,
+                        GhiChu NVARCHAR(100) NULL
+                    );
+                    CREATE INDEX IX_DoanhThuDem_Ngay ON DoanhThuDem(Ngay);
+                END")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

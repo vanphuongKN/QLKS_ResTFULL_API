@@ -59,6 +59,7 @@ namespace QLKSan
             builder.Services.Configure<HotelInfo>(builder.Configuration.GetSection(HotelInfo.SectionName));
             builder.Services.Configure<LoyaltyPolicy>(builder.Configuration.GetSection(LoyaltyPolicy.SectionName));
             builder.Services.Configure<HousekeepingPolicy>(builder.Configuration.GetSection(HousekeepingPolicy.SectionName));
+            builder.Services.Configure<NightAuditPolicy>(builder.Configuration.GetSection(NightAuditPolicy.SectionName));
 
             // Cấu hình nghiệp vụ: quản lý sửa trên web (bảng CauHinh); mục chưa lưu thì dùng các mục appsettings.json ở trên.
             // Ghi đè IOptions<T> theo phạm vi request để mọi service đang nhận IOptions đọc được cấu hình mới nhất.
@@ -67,7 +68,6 @@ namespace QLKSan
             builder.Services.AddScoped<IOptions<HotelInfo>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetHotelInfo()));
             builder.Services.AddScoped<IOptions<HotelPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetPolicy()));
             builder.Services.AddScoped<IOptions<LoyaltyPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetLoyalty()));
-            builder.Services.AddHostedService<NoShowCleanupService>();
             builder.Services.AddHostedService<DailyHousekeepingService>();
 
             builder.Services.AddScoped<IRoomAvailabilityService, RoomAvailabilityService>();
@@ -84,6 +84,7 @@ namespace QLKSan
             builder.Services.AddScoped<IStayService, StayService>();
             builder.Services.AddScoped<IGuestRequestService, GuestRequestService>();
             builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
+            builder.Services.AddScoped<INightAuditService, NightAuditService>();
             builder.Services.AddScoped<IPromotionService, PromotionService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();

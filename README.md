@@ -72,7 +72,8 @@ Quản lý sửa trên web tại **Quản trị → Cấu hình khách sạn**. 
 | Mục | Nội dung |
 |---|---|
 | `HotelInfo` | Tên, mô tả, địa chỉ, hotline, email, bản đồ. Hiển thị ở footer và trang khách. **Các giá trị hiện tại là dữ liệu minh hoạ, cần thay bằng thông tin thật.** |
-| `HotelPolicy` | Giờ nhận/trả phòng, mốc phụ thu trả muộn, tự xác nhận phiếu online (`TuDongXacNhanDatPhong`), % cọc khách vãng lai, tự huỷ phiếu khách không đến. |
+| `HotelPolicy` | Giờ nhận/trả phòng, mốc phụ thu trả muộn, tự xác nhận phiếu online (`TuDongXacNhanDatPhong`), % cọc khách vãng lai. |
+| `NightAudit` | `NgayBatDau`: ngày đầu tiên phải chốt ngày (chỉ sửa trong `appsettings.json`); các ngày trước mốc này không cần chốt. |
 | `Loyalty` | Chương trình thành viên: số tiền cho 1 điểm, giá trị 1 điểm khi đổi, số điểm đổi tối thiểu, các hạng (điểm tối thiểu, % giảm tiền phòng, quyền lợi). |
 | `Jwt` | Khoá ký và thời hạn token. **Đổi `Key` khi triển khai thật.** |
 
@@ -115,7 +116,8 @@ Phía Web chỉ cần `ApiSettings:BaseUrl` trong `QLKSan.Web/appsettings.json`.
   - dọn sau trả phòng / đổi phòng / sửa chữa, dọn hằng ngày phòng có khách, chỉnh trang buổi tối (cấu hình `Housekeeping` trong `appsettings.json`), "Không làm phiền" và giờ dọn khách muốn;
   - nhân viên dọn xong → quản lý / lễ tân kiểm tra theo danh mục của hạng phòng (chưa đạt thì trả lại dọn lại);
   - ghi minibar vào bảng kê của khách, phiếu kỹ thuật cho sự cố (khoá phòng tới khi sửa xong), yêu cầu khách loại Buồng phòng / Kỹ thuật tự chuyển thành việc.
-- **Kế toán:** danh sách hoá đơn (cọc trừ vào hoá đơn và cọc thừa đã hoàn tách riêng, đủ các phương thức khi tách thanh toán), hoàn tiền (phần đã trả bằng điểm không được hoàn), báo cáo doanh thu và công suất có ưu đãi hạng thành viên (xuất Excel).
+- **Chốt ngày (kế toán hoặc lễ tân):** chốt lần lượt từng ngày đã qua; ghi nhận tiền phòng theo đêm và cọc giữ lại thành doanh thu khác, huỷ phiếu khách không đến (giữ cọc, bỏ đánh dấu cho khách báo đến muộn), lưu số liệu ngày và bản in; cảnh báo trên trang lễ tân / kế toán / quản lý khi còn ngày chưa chốt; quản lý mở lại ngày gần nhất kèm lý do.
+- **Kế toán:** tổng quan kỳ so với kỳ trước, đối soát giao ca và sổ cọc, hoá đơn VAT công ty, danh sách hoá đơn (cọc trừ vào hoá đơn và cọc thừa đã hoàn tách riêng, đủ các phương thức khi tách thanh toán), hoàn tiền (phần đã trả bằng điểm không được hoàn), báo cáo doanh thu và công suất có ưu đãi hạng thành viên (xuất Excel).
 - **Quản trị:** loại phòng (thông tin và bộ ảnh), phòng, dịch vụ (đánh dấu mục "Trải nghiệm"), nhân viên, khuyến mãi, bảng giá theo mùa, đánh giá.
 
 ## Kiểm thử

@@ -132,6 +132,10 @@ namespace QLKSan.Models.Entities
 
         public bool TuChoiDonHangNgay { get; set; }
 
+        // Thời điểm huỷ phiếu và ngày chốt đã ghi nhận tiền cọc giữ lại thành doanh thu khác
+        public DateTime? NgayHuy { get; set; }
+        public DateTime? NgayGhiNhanCocGiuLai { get; set; }
+
         public KhachHang KhachHang { get; set; }
         public NhanVien NhanVien { get; set; }
         public HoaDon HoaDon { get; set; }
@@ -140,6 +144,85 @@ namespace QLKSan.Models.Entities
         public ICollection<GiaoDichCoc> GiaoDichCocs { get; set; }
         public ICollection<KhachDiCung> KhachDiCungs { get; set; }
         public ICollection<LichSuDoiPhong> LichSuDoiPhongs { get; set; }
+    }
+
+    // Một ngày đã chốt: ảnh chụp số liệu (doanh thu phòng theo đêm, thu tiền, khách đến / đi / không đến)
+    public class ChotNgay
+    {
+        [Key]
+        [Column(TypeName = "date")]
+        public DateTime Ngay { get; set; }
+
+        public DateTime ThoiGianChot { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
+        public int TongSoPhong { get; set; }
+        public int DemPhongBan { get; set; }
+
+        [Column(TypeName = "decimal(5,1)")]
+        public decimal CongSuat { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TienPhong { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal ADR { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal RevPAR { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal DoanhThuKhac { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TienDichVu { get; set; }
+
+        public int SoHoaDonThanhToan { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal TongHoaDonThanhToan { get; set; }
+
+        public int KhachDen { get; set; }
+        public int KhachDi { get; set; }
+        public int KhachKhongDen { get; set; }
+
+        [StringLength(500)]
+        public string? GhiChu { get; set; }
+
+        // Chi tiết số liệu (JSON: theo phương thức, từng đêm, cọc giữ lại)
+        public string? ChiTiet { get; set; }
+
+        public NhanVien? NhanVien { get; set; }
+    }
+
+    // Doanh thu ghi nhận khi chốt ngày: tiền phòng từng đêm, cọc giữ lại khi huỷ / không đến
+    public class DoanhThuDem
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaDong { get; set; }
+
+        [Column(TypeName = "date")]
+        public DateTime Ngay { get; set; }
+
+        [StringLength(10)]
+        public string MaDatPhong { get; set; }
+
+        [StringLength(10)]
+        public string? MaPhong { get; set; }
+
+        // Tiền phòng | Cọc giữ lại
+        [StringLength(30)]
+        public string Loai { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal SoTien { get; set; }
+
+        [StringLength(100)]
+        public string? GhiChu { get; set; }
     }
 
     // Người đi cùng khách đứng tên phiếu (khai báo lưu trú đủ người)

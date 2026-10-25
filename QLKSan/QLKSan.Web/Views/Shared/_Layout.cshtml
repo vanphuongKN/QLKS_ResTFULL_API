@@ -44,6 +44,7 @@
                     ("Vận hành", "Gọi dịch vụ", "fa-mug-hot", Url.Action("Index", "Service"), Is("Service"), laAdmin || laLeTan),
                     ("Vận hành", "Yêu cầu khách", "fa-clipboard-list", Url.Action("Requests", "Reception"), Is("Reception", "Requests"), laAdmin || laLeTan),
                     ("Vận hành", "Giao ca", "fa-cash-register", Url.Action("Shift", "Reception"), Is("Reception", "Shift"), laAdmin || laLeTan),
+                    ("Vận hành", "Chốt ngày", "fa-moon", Url.Action("Index", "NightAudit"), Is("NightAudit"), laAdmin || laLeTan || laKeToan),
                     ("Vận hành", "Khách hàng", "fa-users", Url.Action("Customers", "Reception"), Is("Reception", "Customers", "CustomerDetails", "BookingHistory"), laAdmin || laLeTan),
                     ("Vận hành", "Sổ lưu trú", "fa-id-card", Url.Action("Guests", "Room"), Is("Room", "Guests"), laAdmin || laLeTan || laKeToan),
 
