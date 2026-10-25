@@ -1006,3 +1006,20 @@ tr.guest-companion td { background: #fcfbf8; }
 .move-pick { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border-light); border-radius: 10px; padding: 12px 14px; cursor: pointer; height: 100%; }
 .move-pick:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-light); }
 .move-pick input { margin-top: 4px; accent-color: var(--gold); }
+
+/* Trả phòng: bảng kê lưu trú, tách thanh toán, xuất hoá đơn công ty */
+.folio-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: var(--light-gray); border-radius: 10px; padding: 12px 16px; }
+.folio-meta span { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); }
+.folio-meta strong { font-size: 0.88rem; color: var(--navy); }
+.folio-table td, .folio-table th { padding-top: 8px; padding-bottom: 8px; }
+.folio-table tfoot td { font-weight: 700; color: var(--navy); border-top: 2px solid var(--border-light); }
+.folio-sum { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 12px; }
+.folio-sum > div { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9rem; }
+.folio-sum .is-total { font-size: 1.05rem; color: var(--navy); border-top: 1px dashed var(--border-light); padding-top: 6px; }
+.folio-sum .is-due { font-size: 1.1rem; color: var(--gold); font-weight: 700; }
+.split-box { border: 1px dashed var(--border-light); border-radius: 8px; padding: 10px 12px; }
+.split-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--border-light); }
+.split-row [name=ktGhiChu] { grid-column: 1 / -1; }
+.vat-box { border: 1px solid var(--border-light); border-radius: 8px; padding: 10px 12px; background: var(--white); }
+.vat-box summary { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--navy); }
+@media (max-width: 767.98px) { .folio-meta { grid-template-columns: 1fr 1fr; } }

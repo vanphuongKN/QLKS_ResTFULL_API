@@ -18,13 +18,27 @@ namespace QLKSan.Controllers
         private readonly ICustomerService _customerService;
         private readonly IServiceManager _serviceManager;
         private readonly IStayService _stayService;
+        private readonly ICheckoutService _checkoutService;
 
-        public BookingsController(IReceptionService receptionService, ICustomerService customerService, IServiceManager serviceManager, IStayService stayService)
+        public BookingsController(IReceptionService receptionService, ICustomerService customerService, IServiceManager serviceManager, IStayService stayService,
+            ICheckoutService checkoutService)
         {
             _receptionService = receptionService;
             _customerService = customerService;
             _serviceManager = serviceManager;
             _stayService = stayService;
+            _checkoutService = checkoutService;
+        }
+
+        /// <summary>
+        /// Bảng kê lưu trú (folio): giá từng đêm kèm quy tắc giá, dịch vụ, phụ thu trả muộn, khuyến mãi, ưu đãi hạng, VAT, cọc, đã thu.
+        /// Chưa thanh toán: tính tới thời điểm hiện tại (không lưu); đã thanh toán: theo hoá đơn.
+        /// </summary>
+        [HttpGet("{maDatPhong}/folio")]
+        [Authorize(Roles = AppRoles.Cashier)]
+        public async Task<ActionResult<FolioDto>> Folio(string maDatPhong)
+        {
+            return await _checkoutService.GetFolioAsync(maDatPhong);
         }
 
         /// <summary>Lịch sử đặt phòng, tìm theo mã phiếu, tên khách hoặc số phòng (không dấu, không phân biệt hoa thường).</summary>

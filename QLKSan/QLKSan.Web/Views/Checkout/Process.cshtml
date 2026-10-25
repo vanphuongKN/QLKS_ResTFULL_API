@@ -4,6 +4,7 @@
     var invoice = ViewBag.Invoice as QLKSan.Models.DTOs.InvoiceDto;
     var customer = ViewBag.Customer as QLKSan.Models.DTOs.CustomerDto;
     var tv = customer?.ThanhVien;
+    var folio = ViewBag.Folio as QLKSan.Models.DTOs.FolioDto;
 }
 
 <div class="page-header">
@@ -24,64 +25,91 @@
 <div class="row g-4">
     <div class="col-lg-8">
 
-        @if (booking != null)
+        @if (booking != null && folio != null)
         {
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="text-navy fw-bold">Hồ sơ: @booking.KhachHang.Ho @booking.KhachHang.Ten</h5>
-                    <span class="badge-status badge-available">ĐANG LƯU TRÚ</span>
+            var thu = new[] { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                    <div>
+                        <p class="page-label mb-1">Bảng kê lưu trú</p>
+                        <h5 class="text-navy fw-bold mb-1">@folio.HoTenKhachHang</h5>
+                        <div class="small text-muted">#@folio.MaDatPhong · Phòng @folio.SoPhong (@FormatHelper.TenHangPhong(folio.TenLoaiPhong)) · CCCD @booking.KhachHang.CCCD_Passport</div>
+                    </div>
+                    <span class="badge-status @(folio.TrangThaiHoaDon == QLKSan.Enums.InvoiceStatus.Paid ? "badge-muted" : "badge-available")">@(folio.TrangThaiHoaDon == QLKSan.Enums.InvoiceStatus.Paid ? "ĐÃ THANH TOÁN" : "ĐANG LƯU TRÚ")</span>
                 </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <p class="mb-1 text-muted">Mã Đặt Phòng:</p>
-                        <h6>@booking.MaDatPhong</h6>
-                        <p class="mb-1 mt-3 text-muted">Phòng:</p>
-                        <h6>Phòng @booking.ChiTietDatPhongs.FirstOrDefault()?.Phong?.SoPhong</h6>
-                    </div>
-                    <div class="col-md-6">
-                        <p class="mb-1 text-muted">Thời gian lưu trú:</p>
-                        <h6 style="line-height: 1.7;">
-                            <span class="text-navy fw-bold">Nhận dự kiến:</span> @booking.NgayCheckInDuKien.ToString("dd/MM/yyyy") <br/>
-                            <span class="text-navy fw-bold">Trả dự kiến:</span> @booking.NgayCheckOutDuKien.ToString("dd/MM/yyyy") <br/>
-                            @{
-                                var days = (booking.NgayCheckOutDuKien.Date - booking.NgayCheckInDuKien.Date).Days;
-                                if (days <= 0) days = 1;
-                            }
-                            <span class="text-gold fw-bold">Số ngày đặt:</span> @days ngày <br/>
-                        </h6>
-                        <p class="mb-1 mt-3 text-muted">CCCD/Passport:</p>
-                        <h6>@booking.KhachHang.CCCD_Passport</h6>
-                    </div>
+                <div class="folio-meta">
+                    <div><span>Nhận phòng</span><strong>@folio.NgayNhan.ToString("HH:mm dd/MM/yyyy")</strong></div>
+                    <div><span>Trả dự kiến</span><strong>@folio.NgayTraDuKien.ToString("dd/MM/yyyy")</strong></div>
+                    <div><span>Tính tới</span><strong>@folio.ThoiDiemTinh.ToString("HH:mm dd/MM/yyyy")</strong></div>
+                    <div><span>Số khách</span><strong>@booking.SoLuongKhach@(booking.KhachDiCungs.Count > 0 ? $" ({booking.KhachDiCungs.Count} người đi cùng)" : "")</strong></div>
                 </div>
 
-                <h6 class="ledger-label mb-3">Dịch vụ đã sử dụng</h6>
-                <table class="table table-custom">
-                    <thead>
-                        <tr>
-                            <th>Dịch vụ</th>
-                            <th>Số lượng</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                    </thead>
+                <h6 class="ledger-label mt-4 mb-2">Tiền phòng từng đêm</h6>
+                <table class="table table-custom folio-table mb-0" data-no-tools>
+                    <thead><tr><th>Đêm</th><th>Ghi chú</th><th class="text-end">Giá</th></tr></thead>
                     <tbody>
-                        @if (booking.SuDungDichVus != null && booking.SuDungDichVus.Any())
+                        @foreach (var n in folio.CacDem)
                         {
-                            foreach (var sv in booking.SuDungDichVus)
-                            {
-                                <tr>
-                                    <td>@sv.TenDichVu</td>
-                                    <td>@sv.SoLuong</td>
-                                    <td>@sv.ThanhTien.ToString("N0") ₫</td>
-                                </tr>
-                            }
+                            <tr>
+                                <td>@thu[(int)n.Dem.DayOfWeek], @n.Dem.ToString("dd/MM")</td>
+                                <td class="small text-muted">@(string.IsNullOrEmpty(n.QuyTac) ? "Giá niêm yết" : $"{n.QuyTac} ({(n.PhanTramDieuChinh > 0 ? "+" : "")}{n.PhanTramDieuChinh:0.#}%)")</td>
+                                <td class="text-end">@n.Gia.ToString("N0") ₫</td>
+                            </tr>
                         }
-                        else
+                        @if (folio.PhuThuTraMuon > 0)
                         {
-                            <tr><td colspan="3" class="text-center text-muted">Không sử dụng dịch vụ phát sinh.</td></tr>
+                            <tr class="text-danger"><td>Phụ thu</td><td class="small">Trả phòng muộn (@folio.PhanTramPhuThu% giá 1 đêm)</td><td class="text-end">@folio.PhuThuTraMuon.ToString("N0") ₫</td></tr>
                         }
                     </tbody>
+                    <tfoot><tr><td colspan="2">Cộng tiền phòng (@folio.SoDem đêm)</td><td class="text-end">@((folio.TienPhong + folio.PhuThuTraMuon).ToString("N0")) ₫</td></tr></tfoot>
                 </table>
+
+                <h6 class="ledger-label mt-4 mb-2">Dịch vụ đã sử dụng</h6>
+                <table class="table table-custom folio-table mb-0" data-no-tools>
+                    <thead><tr><th>Dịch vụ</th><th>Thời gian</th><th class="text-center">SL</th><th class="text-end">Thành tiền</th></tr></thead>
+                    <tbody>
+                        @if (!folio.DichVu.Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted">Không sử dụng dịch vụ phát sinh.</td></tr>
+                        }
+                        @foreach (var sv in folio.DichVu)
+                        {
+                            <tr><td>@sv.TenDichVu</td><td class="small text-muted">@sv.NgaySuDung.ToString("HH:mm dd/MM")</td><td class="text-center">@sv.SoLuong</td><td class="text-end">@sv.ThanhTien.ToString("N0") ₫</td></tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><td colspan="3">Cộng dịch vụ</td><td class="text-end">@folio.TongTienDichVu.ToString("N0") ₫</td></tr></tfoot>
+                </table>
+
+                <div class="folio-sum mt-4">
+                    @if (folio.GiamGiaKhuyenMai > 0) { <div class="text-success"><span>Khuyến mãi @folio.MaKhuyenMai</span><strong>-@folio.GiamGiaKhuyenMai.ToString("N0") ₫</strong></div> }
+                    @if (folio.GiamGiaThanhVien > 0) { <div class="text-success"><span>Ưu đãi @folio.HangThanhVien</span><strong>-@folio.GiamGiaThanhVien.ToString("N0") ₫</strong></div> }
+                    <div><span>Cộng trước thuế</span><strong>@folio.TienTruocThue.ToString("N0") ₫</strong></div>
+                    <div><span>Thuế VAT (8%)</span><strong>@folio.ThueVAT.ToString("N0") ₫</strong></div>
+                    <div class="is-total"><span>Tổng cộng</span><strong>@folio.TongCong.ToString("N0") ₫</strong></div>
+                    @foreach (var g in folio.GiaoDichCocs)
+                    {
+                        var hoan = g.LoaiGiaoDich == QLKSan.Enums.PaymentType.Refund;
+                        <div class="small @(hoan ? "text-danger" : "text-muted")"><span>@(hoan ? "Hoàn cọc" : "Cọc") @g.ThoiGian.ToString("dd/MM HH:mm") · @g.PhuongThuc@(string.IsNullOrEmpty(g.GhiChu) ? "" : " · " + g.GhiChu)</span><strong>@(hoan ? "+" : "-")@g.SoTien.ToString("N0") ₫</strong></div>
+                    }
+                    @foreach (var t in folio.ThanhToans)
+                    {
+                        <div class="small text-muted"><span>Đã thu @t.NgayThanhToan.ToString("dd/MM HH:mm") · @t.PhuongThuc@(string.IsNullOrEmpty(t.GhiChu) ? "" : " · " + t.GhiChu)</span><strong>-@t.SoTienDaTra.ToString("N0") ₫</strong></div>
+                    }
+                    @if (folio.TrangThaiHoaDon != QLKSan.Enums.InvoiceStatus.Paid)
+                    {
+                        <div class="is-due"><span>@(folio.ConPhaiThu >= 0 ? "Còn phải thu (tạm tính)" : "Cọc thừa — hoàn lại khách")</span><strong>@Math.Abs(folio.ConPhaiThu).ToString("N0") ₫</strong></div>
+                    }
+                </div>
+
+                @if (folio.LichSuDoiPhongs.Any())
+                {
+                    <div class="small text-muted mt-3">
+                        @foreach (var mv in folio.LichSuDoiPhongs)
+                        {
+                            <div><i class="fas fa-right-left me-1"></i>@mv.ThoiGian.ToString("dd/MM HH:mm"): đổi phòng @mv.SoPhongCu → @mv.SoPhongMoi (@mv.LyDo)@(mv.GiaMoi == mv.GiaCu ? ", giữ giá cũ" : "")</div>
+                        }
+                    </div>
+                }
             </div>
         }
     </div>
@@ -244,8 +272,9 @@
                         </form>
                     </div>
 
-                    <form asp-action="Pay" method="post" class="mt-4">
+                    <form asp-action="Pay" method="post" class="mt-4" id="payForm">
                         <input type="hidden" name="maHoaDon" value="@invoice.MaHoaDon" />
+                        <input type="hidden" name="maPhong" value="@booking.ChiTietDatPhongs.FirstOrDefault()?.MaPhong" />
                         <label class="form-label-upper mb-3 d-block text-navy fw-bold" style="letter-spacing: 0.5px; font-size: 0.75rem;">CHỌN PHƯƠNG THỨC</label>
                         
                         <div class="payment-methods-grid mb-4">
@@ -327,10 +356,68 @@
                             </div>
                         }
 
+                        @if (invoice.SoTienConLai > 0)
+                        {
+                            <div class="split-box mb-4">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" name="tachThanhToan" value="true" id="tachThanhToan" />
+                                    <label class="form-check-label fw-semibold small" for="tachThanhToan">Tách thanh toán (tối đa 3 khoản)</label>
+                                </div>
+                                <div id="splitRows" hidden>
+                                    @for (var i = 0; i < 3; i++)
+                                    {
+                                        <div class="split-row">
+                                            <select name="ktPhuongThuc" class="form-select form-select-sm" aria-label="Phương thức khoản @(i + 1)">
+                                                @foreach (var pt in QLKSan.Enums.PaymentMethods.TaiQuay) { <option>@pt</option> }
+                                            </select>
+                                            <input type="number" name="ktSoTien" class="form-control form-control-sm" min="0" step="1000" placeholder="Số tiền" aria-label="Số tiền khoản @(i + 1)" />
+                                            <input name="ktGhiChu" class="form-control form-control-sm" maxlength="255" placeholder="Ghi chú (VD: công ty trả)" aria-label="Ghi chú khoản @(i + 1)" />
+                                        </div>
+                                    }
+                                    <div class="small mt-1" id="splitInfo" data-can-thu="@Math.Round(invoice.SoTienConLai, 0).ToString("0")"></div>
+                                </div>
+                            </div>
+                        }
+
                         <button type="submit" class="btn btn-gold w-100 py-3 fw-bold" style="letter-spacing: 1px;">XÁC NHẬN THANH TOÁN & TRẢ PHÒNG</button>
                     </form>
 
                     <script>
+                        // Tách thanh toán: tổng các khoản phải bằng số còn phải thu sau khi đổi điểm
+                        (function () {
+                            var sw = document.getElementById('tachThanhToan');
+                            if (!sw) return;
+                            var rows = document.getElementById('splitRows'), info = document.getElementById('splitInfo');
+                            var methods = document.querySelector('.payment-methods-grid');
+                            function canThu() {
+                                var d = document.getElementById('diemSuDung');
+                                return parseInt(info.getAttribute('data-can-thu'), 10) - (d ? Math.max(0, parseInt(d.value || 0, 10)) * @(tv?.GiaTriMotDiem ?? 0) : 0);
+                            }
+                            function capNhat() {
+                                var tong = 0;
+                                rows.querySelectorAll('[name=ktSoTien]').forEach(function (i) { tong += Math.max(0, parseFloat(i.value || 0)); });
+                                var con = canThu() - tong;
+                                info.textContent = 'Đã chia ' + tong.toLocaleString('en-US') + ' ₫ / cần thu ' + canThu().toLocaleString('en-US') + ' ₫' + (con !== 0 ? ' — còn lệch ' + con.toLocaleString('en-US') + ' ₫' : ' ✓');
+                                info.className = 'small mt-1 ' + (con === 0 ? 'text-success' : 'text-danger');
+                                return con === 0;
+                            }
+                            sw.addEventListener('change', function () {
+                                rows.hidden = !sw.checked;
+                                methods.style.opacity = sw.checked ? .45 : 1;
+                                if (sw.checked) {
+                                    var first = rows.querySelector('[name=ktSoTien]');
+                                    if (!first.value) first.value = canThu();
+                                }
+                                capNhat();
+                            });
+                            rows.addEventListener('input', capNhat);
+                            var d = document.getElementById('diemSuDung');
+                            if (d) d.addEventListener('input', capNhat);
+                            document.getElementById('payForm').addEventListener('submit', function (e) {
+                                if (sw.checked && !capNhat()) { e.preventDefault(); alert('Tổng các khoản phải bằng số tiền cần thu.'); }
+                            });
+                        })();
+
                         function selectPaymentMethod(radioInput) {
                             document.querySelectorAll('.payment-method-card').forEach(card => {
                                 card.classList.remove('active');
@@ -345,6 +432,24 @@
                 {
                     <div class="alert alert-success mt-4 text-center">ĐÃ THANH TOÁN</div>
                 }
+
+                <details class="vat-box mt-4" @(string.IsNullOrEmpty(invoice.MaSoThue) ? "" : "open")>
+                    <summary><i class="fas fa-building me-2"></i>Xuất hoá đơn VAT cho công ty @if (!string.IsNullOrEmpty(invoice.MaSoThue)) { <span class="text-success small ms-1">· MST @invoice.MaSoThue</span> }</summary>
+                    <form asp-action="SetCompany" method="post" class="mt-3">
+                        <input type="hidden" name="maHoaDon" value="@invoice.MaHoaDon" />
+                        <input type="hidden" name="maPhong" value="@booking.ChiTietDatPhongs.FirstOrDefault()?.MaPhong" />
+                        <div class="row g-2">
+                            <div class="col-12"><input name="TenCongTy" class="form-control form-control-sm" maxlength="200" placeholder="Tên công ty" value="@invoice.TenCongTy" aria-label="Tên công ty" /></div>
+                            <div class="col-5"><input name="MaSoThue" class="form-control form-control-sm" maxlength="20" placeholder="Mã số thuế" value="@invoice.MaSoThue" aria-label="Mã số thuế" /></div>
+                            <div class="col-7"><input name="EmailHoaDon" type="email" class="form-control form-control-sm" maxlength="100" placeholder="Email nhận hoá đơn" value="@invoice.EmailHoaDon" aria-label="Email nhận hoá đơn" /></div>
+                            <div class="col-12"><input name="DiaChiCongTy" class="form-control form-control-sm" maxlength="300" placeholder="Địa chỉ công ty" value="@invoice.DiaChiCongTy" aria-label="Địa chỉ công ty" /></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-muted">Để trống mã số thuế: hoá đơn cá nhân.</small>
+                            <button type="submit" class="btn btn-sm btn-outline-navy">Lưu</button>
+                        </div>
+                    </form>
+                </details>
             </div>
         }
         else if (booking != null)

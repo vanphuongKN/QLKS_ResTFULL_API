@@ -338,6 +338,19 @@ namespace QLKSan.Models.Entities
         
         public InvoiceStatus TrangThai { get; set; } = InvoiceStatus.Unpaid;
 
+        // Thông tin xuất hoá đơn VAT cho công ty (để trống: hoá đơn cá nhân)
+        [StringLength(200)]
+        public string? TenCongTy { get; set; }
+
+        [StringLength(20)]
+        public string? MaSoThue { get; set; }
+
+        [StringLength(300)]
+        public string? DiaChiCongTy { get; set; }
+
+        [StringLength(100)]
+        public string? EmailHoaDon { get; set; }
+
         public PhieuDatPhong PhieuDatPhong { get; set; }
         public NhanVien NhanVienLap { get; set; }
         public KhuyenMai KhuyenMai { get; set; }

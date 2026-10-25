@@ -332,7 +332,15 @@ namespace QLKSan.Data
                         MaNhanVien VARCHAR(10) NULL CONSTRAINT FK_LichSuDoiPhong_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien)
                     );
                     CREATE INDEX IX_LichSuDoiPhong_PhieuDat ON LichSuDoiPhong(MaDatPhong);
-                END")
+                END"),
+
+            // L4: thông tin xuất hoá đơn VAT công ty
+            ("32. Thêm HoaDon.TenCongTy, MaSoThue, DiaChiCongTy, EmailHoaDon", @"
+                IF COL_LENGTH('HoaDon', 'MaSoThue') IS NULL
+                    ALTER TABLE HoaDon ADD TenCongTy NVARCHAR(200) NULL,
+                                           MaSoThue VARCHAR(20) NULL,
+                                           DiaChiCongTy NVARCHAR(300) NULL,
+                                           EmailHoaDon NVARCHAR(100) NULL;")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

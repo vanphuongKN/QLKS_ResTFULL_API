@@ -28,6 +28,8 @@ namespace QLKSan.ApiClients
         Task<BookingDto> MoveRoomAsync(string maDatPhong, MoveRoomRequest request);
         Task<BookingDto> VoidServiceAsync(string maDatPhong, string maSDDV, VoidServiceRequest request);
         Task<BookingDto> SetCompanionsAsync(string maDatPhong, CompanionsRequest request);
+        // Bảng kê lưu trú (từng đêm, dịch vụ, ưu đãi, cọc, đã thu)
+        Task<FolioDto> GetFolioAsync(string maDatPhong);
         Task ChangeRoomAsync(string maDatPhong, string maPhong);
         Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request);
     }
@@ -68,6 +70,7 @@ namespace QLKSan.ApiClients
             => HttpPostAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/services/{Uri.EscapeDataString(maSDDV)}/void", request);
         public Task<BookingDto> SetCompanionsAsync(string maDatPhong, CompanionsRequest request)
             => HttpPutAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/companions", request);
+        public Task<FolioDto> GetFolioAsync(string maDatPhong) => HttpGetOrDefaultAsync<FolioDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/folio");
         public Task ChangeRoomAsync(string maDatPhong, string maPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/change-room", new ChangeRoomRequest { MaPhong = maPhong });
 
         public Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request)
@@ -123,6 +126,7 @@ namespace QLKSan.ApiClients
         Task<List<InvoiceListItemDto>> GetAllAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search);
         Task<InvoiceDetailDto> GetByIdAsync(string maHoaDon);
         Task<InvoiceDetailDto> RefundAsync(string maHoaDon, RefundRequest request);
+        Task<InvoiceDto> SetCompanyAsync(string maHoaDon, InvoiceCompanyRequest request);
     }
 
     public class InvoiceApiClient : ApiClientBase, IInvoiceApiClient
@@ -149,6 +153,9 @@ namespace QLKSan.ApiClients
 
         public Task<InvoiceDetailDto> RefundAsync(string maHoaDon, RefundRequest request)
             => HttpPostAsync<InvoiceDetailDto>($"api/invoices/{Uri.EscapeDataString(maHoaDon)}/refunds", request);
+
+        public Task<InvoiceDto> SetCompanyAsync(string maHoaDon, InvoiceCompanyRequest request)
+            => HttpPutAsync<InvoiceDto>($"api/invoices/{Uri.EscapeDataString(maHoaDon)}/company", request);
     }
 
     // ===== /api/reports =====

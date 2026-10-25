@@ -127,7 +127,11 @@ namespace QLKSan.Mappings
                 TienCoc = entity.TienCoc,
                 SoTienConLai = entity.SoTienConLai,
                 TrangThai = entity.TrangThai,
-                ThanhToans = entity.ThanhToans?.Select(t => t.ToDto()).ToList() ?? new List<PaymentDto>()
+                ThanhToans = entity.ThanhToans?.Select(t => t.ToDto()).ToList() ?? new List<PaymentDto>(),
+                TenCongTy = entity.TenCongTy,
+                MaSoThue = entity.MaSoThue,
+                DiaChiCongTy = entity.DiaChiCongTy,
+                EmailHoaDon = entity.EmailHoaDon
             };
         }
 

@@ -59,14 +59,24 @@ namespace QLKSan.Controllers
         /// <summary>
         /// Thanh toán hoá đơn: trả phòng, chuyển phòng sang Đang dọn (tạo việc buồng phòng) và cộng điểm tích luỹ.
         /// DiemSuDung &gt; 0: đổi điểm của khách trừ vào số tiền còn phải trả (ghi nhận thành khoản "Điểm thưởng").
+        /// CacKhoan (tối đa 3): tách thanh toán theo phương thức, tổng bằng số tiền còn phải thu. Cọc thừa được ghi hoàn vào sổ cọc.
         /// </summary>
         [HttpPost("{maHoaDon}/payments")]
         [Authorize(Roles = AppRoles.Cashier)]
         [Audit("Thanh toán, trả phòng", "Hoá đơn")]
         public async Task<ActionResult<InvoiceDto>> Pay(string maHoaDon, PaymentRequest request)
         {
-            var invoice = await _checkoutService.ProcessPaymentAsync(maHoaDon, request.PhuongThuc, User.GetMaNhanVien(), request.DiemSuDung);
+            var invoice = await _checkoutService.ProcessPaymentAsync(maHoaDon, request.PhuongThuc, User.GetMaNhanVien(), request.DiemSuDung, request.CacKhoan);
             return invoice.ToDto();
+        }
+
+        /// <summary>Thông tin xuất hoá đơn VAT cho công ty (tên, mã số thuế, địa chỉ, email nhận hoá đơn); mã số thuế trống = hoá đơn cá nhân.</summary>
+        [HttpPut("{maHoaDon}/company")]
+        [Authorize(Roles = AppRoles.Cashier)]
+        [Audit("Cập nhật thông tin xuất hoá đơn", "Hoá đơn")]
+        public async Task<ActionResult<InvoiceDto>> SetCompany(string maHoaDon, InvoiceCompanyRequest request)
+        {
+            return (await _checkoutService.SetCompanyInfoAsync(maHoaDon, request)).ToDto();
         }
 
         /// <summary>Hoàn tiền cho hoá đơn đã thanh toán (không vượt quá tổng giá trị hoá đơn trừ phần đã hoàn).</summary>

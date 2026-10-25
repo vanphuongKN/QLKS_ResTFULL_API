@@ -32,6 +32,51 @@ namespace QLKSan.Models.DTOs
 
         public InvoiceStatus TrangThai { get; set; }
         public List<PaymentDto> ThanhToans { get; set; } = new List<PaymentDto>();
+
+        // Xuất hoá đơn VAT cho công ty (trống = cá nhân)
+        public string TenCongTy { get; set; }
+        public string MaSoThue { get; set; }
+        public string DiaChiCongTy { get; set; }
+        public string EmailHoaDon { get; set; }
+    }
+
+    // GET /api/bookings/{id}/folio: bảng kê lưu trú tính tới thời điểm hiện tại (chưa thanh toán) hoặc theo hoá đơn đã thanh toán
+    public class FolioDto
+    {
+        public string MaDatPhong { get; set; }
+        public string MaHoaDon { get; set; }
+        public InvoiceStatus? TrangThaiHoaDon { get; set; }
+        public string HoTenKhachHang { get; set; }
+        public string SoPhong { get; set; }
+        public string TenLoaiPhong { get; set; }
+        public DateTime NgayNhan { get; set; }
+        public DateTime NgayTraDuKien { get; set; }
+        public DateTime ThoiDiemTinh { get; set; }
+
+        public int SoDem { get; set; }
+        public List<NightPriceDto> CacDem { get; set; } = new List<NightPriceDto>();
+        public decimal TienPhong { get; set; }
+        public int PhanTramPhuThu { get; set; }
+        public decimal PhuThuTraMuon { get; set; }
+        public List<ServiceUsageDto> DichVu { get; set; } = new List<ServiceUsageDto>();
+        public decimal TongTienDichVu { get; set; }
+        public string MaKhuyenMai { get; set; }
+        public decimal GiamGiaKhuyenMai { get; set; }
+        public string HangThanhVien { get; set; }
+        public decimal GiamGiaThanhVien { get; set; }
+        public decimal TienTruocThue { get; set; }
+        public decimal ThueVAT { get; set; }
+        public decimal TongCong { get; set; }
+
+        public decimal TienCoc { get; set; }
+        public decimal DaThanhToan { get; set; }
+
+        // Còn phải thu (âm = cọc thừa, hoàn lại khách)
+        public decimal ConPhaiThu { get; set; }
+
+        public List<DepositDto> GiaoDichCocs { get; set; } = new List<DepositDto>();
+        public List<PaymentDto> ThanhToans { get; set; } = new List<PaymentDto>();
+        public List<RoomMoveDto> LichSuDoiPhongs { get; set; } = new List<RoomMoveDto>();
     }
 
     public class PaymentDto

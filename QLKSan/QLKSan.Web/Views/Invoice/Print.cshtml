@@ -109,6 +109,15 @@
             <div><span>Email:</span> @b?.KhachHang?.Email</div>
             <div><span>Trả phòng:</span> @(b?.NgayCheckOutThucTe?.ToString("dd/MM/yyyy HH:mm") ?? b?.NgayCheckOutDuKien.ToString("dd/MM/yyyy"))</div>
         </div>
+        @if (!string.IsNullOrEmpty(h.MaSoThue))
+        {
+            <div class="info">
+                <div><span>Đơn vị mua hàng:</span> <strong>@h.TenCongTy</strong></div>
+                <div><span>Mã số thuế:</span> <strong>@h.MaSoThue</strong></div>
+                <div><span>Địa chỉ:</span> @h.DiaChiCongTy</div>
+                <div><span>Email nhận hoá đơn:</span> @h.EmailHoaDon</div>
+            </div>
+        }
 
         <table>
             <thead>

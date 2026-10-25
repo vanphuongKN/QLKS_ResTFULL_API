@@ -248,6 +248,10 @@ CREATE TABLE HoaDon (
     TienCoc DECIMAL(18,0) NOT NULL DEFAULT 0,       -- tiền cọc của phiếu đặt
     SoTienConLai AS ((TongTienPhong + TongTienDichVu + TienPhat - GiamGiaKhuyenMai - GiamGiaThanhVien) * 1.08 - TienCoc),
     TrangThai NVARCHAR(50) DEFAULT N'Chưa thanh toán',
+    TenCongTy NVARCHAR(200) NULL,                   -- xuất hoá đơn VAT cho công ty (trống = cá nhân)
+    MaSoThue VARCHAR(20) NULL,
+    DiaChiCongTy NVARCHAR(300) NULL,
+    EmailHoaDon NVARCHAR(100) NULL,
     CONSTRAINT FK_HoaDon_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong),
     CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (MaKhuyenMai) REFERENCES KhuyenMai(MaKhuyenMai),
     CONSTRAINT FK_HoaDon_NhanVien FOREIGN KEY (MaNhanVienLap) REFERENCES NhanVien(MaNhanVien)

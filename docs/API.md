@@ -97,6 +97,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | POST | `/{id}/check-in` | FrontDesk | Nhận phòng (đúng ngày). Body tuỳ chọn `{ "SoLuongKhach", "TienCoc", "PhuongThucCoc", "KhachDiCung" }`: số khách thực tế, cọc thu thêm, người đi cùng |
 | POST | `/{id}/services` | FrontDesk | Gọi dịch vụ cho khách đang ở |
 | POST | `/{id}/services/{maSDDV}/void` | FrontDesk | Huỷ dịch vụ gọi nhầm `{ "SoLuong", "LyDo" }` (bớt số lượng hoặc huỷ hẳn; hoá đơn chưa thanh toán) |
+| GET | `/{id}/folio` | Cashier | Bảng kê lưu trú: giá từng đêm (kèm quy tắc giá), dịch vụ, phụ thu, khuyến mãi, ưu đãi hạng, VAT, sổ cọc, các khoản đã thu, còn phải thu. Chưa thanh toán: tính tới hiện tại, không lưu |
 | GET | `/{id}/stay-dates/quote?ngayNhan&ngayTra` | FrontDesk | Báo giá đổi ngày: số đêm, tiền phòng cũ – mới theo giá từng đêm, phòng còn trống không |
 | PUT | `/{id}/stay-dates` | FrontDesk | Gia hạn / rút ngắn (đang ở: chỉ `NgayTra`, không trước hôm nay, tối thiểu 1 đêm) hoặc đổi ngày (chưa nhận phòng: `NgayNhan`, `NgayTra`); 409 khi vướng phiếu khác |
 | POST | `/{id}/move` | FrontDesk | Đổi phòng khi đang ở `{ "MaPhong", "LyDo", "GiuGiaCu": true }`: phòng mới phải sạch, trống đến ngày trả; phòng cũ chuyển Đang dọn + tạo việc buồng phòng; ghi lịch sử đổi phòng |
@@ -115,7 +116,8 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/?tuNgay&denNgay&trangThai&search` | Finance | Danh sách hoá đơn |
 | GET | `/{maHoaDon}` | Cashier, Customer | Chi tiết, giao dịch, số tiền còn hoàn được (khách chỉ xem hoá đơn của mình) |
 | POST | `/` | Cashier | Lập hoặc tính lại hoá đơn `{ "MaDatPhong", "MaKhuyenMai" }`. Gồm số đêm thực tế, giá từng đêm, phụ thu trả muộn, khuyến mãi, ưu đãi hạng thành viên, tiền cọc |
-| POST | `/{id}/payments` | Cashier | Thanh toán và trả phòng `{ "PhuongThuc", "DiemSuDung" }`. Điểm đổi được ghi thành khoản "Điểm thưởng" |
+| POST | `/{id}/payments` | Cashier | Thanh toán và trả phòng `{ "PhuongThuc", "DiemSuDung", "CacKhoan" }`. Điểm đổi được ghi thành khoản "Điểm thưởng". `CacKhoan` (tối đa 3 `{ "PhuongThuc", "SoTien", "GhiChu" }`) để tách thanh toán, tổng phải bằng số còn phải thu. Cọc thừa được ghi hoàn vào sổ cọc |
+| PUT | `/{id}/company` | Cashier | Thông tin xuất hoá đơn VAT công ty `{ "TenCongTy", "MaSoThue", "DiaChiCongTy", "EmailHoaDon" }` (MST 10 số hoặc 10-3 số; trống = hoá đơn cá nhân) |
 | POST | `/{id}/refunds` | Finance | Hoàn tiền `{ "SoTien", "PhuongThuc", "LyDo" }`. Không hoàn phần đã trả bằng điểm |
 
 ## Khách hàng — `/api/customers`
