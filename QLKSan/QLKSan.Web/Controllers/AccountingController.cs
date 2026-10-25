@@ -30,6 +30,51 @@ namespace QLKSan.Controllers
             return to < from ? (to, from) : (from, to);
         }
 
+        // Tổng quan kế toán: kỳ chọn so với kỳ liền trước, theo kênh đặt, việc cần đối soát
+        [HttpGet]
+        public async Task<IActionResult> Index(DateTime? tuNgay, DateTime? denNgay)
+        {
+            var (from, to) = Range(tuNgay, denNgay);
+            ViewBag.TuNgay = from;
+            ViewBag.DenNgay = to;
+            return View(await _reportApi.GetOverviewAsync(from, to));
+        }
+
+        // Đối soát: giao ca của lễ tân (tiền mặt hệ thống / thực tế) và sổ cọc
+        [HttpGet]
+        public async Task<IActionResult> Reconciliation(DateTime? tuNgay, DateTime? denNgay)
+        {
+            var (from, to) = Range(tuNgay, denNgay);
+            ViewBag.TuNgay = from;
+            ViewBag.DenNgay = to;
+            ViewBag.Shifts = await _reportApi.GetShiftsAsync(from, to);
+            return View(await _reportApi.GetDepositsAsync(from, to));
+        }
+
+        // Hoá đơn VAT công ty: ghi số hoá đơn điện tử đã xuất
+        [HttpGet]
+        public async Task<IActionResult> VatInvoices(bool chuaXuat = false)
+        {
+            ViewBag.ChuaXuat = chuaXuat;
+            var list = await _invoiceApi.GetAllAsync(null, null, InvoiceStatus.Paid, null, congTy: true);
+            return View(chuaXuat ? list.Where(h => string.IsNullOrEmpty(h.SoHoaDonDienTu)).ToList() : list);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SetEInvoice(string id, string soHoaDonDienTu, bool chuaXuat = false)
+        {
+            try
+            {
+                await _invoiceApi.SetEInvoiceAsync(id, soHoaDonDienTu);
+                TempData["SuccessMessage"] = string.IsNullOrWhiteSpace(soHoaDonDienTu) ? $"Đã bỏ số hoá đơn điện tử của {id}." : $"Đã ghi số hoá đơn điện tử {soHoaDonDienTu} cho {id}.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không ghi được số hoá đơn điện tử. " + ex.UserMessage;
+            }
+            return RedirectToAction(nameof(VatInvoices), new { chuaXuat });
+        }
+
         [HttpGet]
         public async Task<IActionResult> Invoices(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search)
         {

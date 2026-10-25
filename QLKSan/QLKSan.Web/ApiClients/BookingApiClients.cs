@@ -123,7 +123,8 @@ namespace QLKSan.ApiClients
     {
         Task<InvoiceDto> GenerateAsync(GenerateInvoiceRequest request);
         Task<InvoiceDto> PayAsync(string maHoaDon, PaymentRequest request);
-        Task<List<InvoiceListItemDto>> GetAllAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search);
+        Task<List<InvoiceListItemDto>> GetAllAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search, bool congTy = false);
+        Task<InvoiceDto> SetEInvoiceAsync(string maHoaDon, string soHoaDonDienTu);
         Task<InvoiceDetailDto> GetByIdAsync(string maHoaDon);
         Task<InvoiceDetailDto> RefundAsync(string maHoaDon, RefundRequest request);
         Task<InvoiceDto> SetCompanyAsync(string maHoaDon, InvoiceCompanyRequest request);
@@ -138,9 +139,13 @@ namespace QLKSan.ApiClients
         public Task<InvoiceDto> PayAsync(string maHoaDon, PaymentRequest request)
             => HttpPostAsync<InvoiceDto>($"api/invoices/{Uri.EscapeDataString(maHoaDon)}/payments", request);
 
-        public Task<List<InvoiceListItemDto>> GetAllAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search)
+        public Task<InvoiceDto> SetEInvoiceAsync(string maHoaDon, string soHoaDonDienTu)
+            => HttpPutAsync<InvoiceDto>($"api/invoices/{Uri.EscapeDataString(maHoaDon)}/e-invoice", new EInvoiceRequest { SoHoaDonDienTu = soHoaDonDienTu });
+
+        public Task<List<InvoiceListItemDto>> GetAllAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search, bool congTy = false)
         {
             var query = new List<string>();
+            if (congTy) query.Add("congTy=true");
             if (tuNgay != null) query.Add($"tuNgay={tuNgay:yyyy-MM-dd}");
             if (denNgay != null) query.Add($"denNgay={denNgay:yyyy-MM-dd}");
             if (trangThai != null) query.Add($"trangThai={trangThai}");
@@ -166,6 +171,9 @@ namespace QLKSan.ApiClients
         Task<(byte[] Content, string ContentType, string FileName)> ExportRevenueAsync(DateTime tuNgay, DateTime denNgay);
         Task<List<GuestRegisterDto>> GetGuestsAsync(DateTime tuNgay, DateTime denNgay);
         Task<(byte[] Content, string ContentType, string FileName)> ExportGuestsAsync(DateTime tuNgay, DateTime denNgay);
+        Task<AccountingOverviewDto> GetOverviewAsync(DateTime tuNgay, DateTime denNgay);
+        Task<DepositReportDto> GetDepositsAsync(DateTime tuNgay, DateTime denNgay);
+        Task<List<ShiftHandoverDto>> GetShiftsAsync(DateTime tuNgay, DateTime denNgay);
     }
 
     public class ReportApiClient : ApiClientBase, IReportApiClient
@@ -188,6 +196,15 @@ namespace QLKSan.ApiClients
 
         public Task<(byte[] Content, string ContentType, string FileName)> ExportGuestsAsync(DateTime tuNgay, DateTime denNgay)
             => HttpGetFileAsync("api/reports/guests/export?" + Range(tuNgay, denNgay));
+
+        public Task<AccountingOverviewDto> GetOverviewAsync(DateTime tuNgay, DateTime denNgay)
+            => HttpGetAsync<AccountingOverviewDto>("api/reports/overview?" + Range(tuNgay, denNgay));
+
+        public Task<DepositReportDto> GetDepositsAsync(DateTime tuNgay, DateTime denNgay)
+            => HttpGetAsync<DepositReportDto>("api/reports/deposits?" + Range(tuNgay, denNgay));
+
+        public Task<List<ShiftHandoverDto>> GetShiftsAsync(DateTime tuNgay, DateTime denNgay)
+            => HttpGetAsync<List<ShiftHandoverDto>>("api/reports/shifts?" + Range(tuNgay, denNgay));
     }
 
     // ===== /api/maintenance: phiếu kỹ thuật =====

@@ -22,6 +22,7 @@ namespace QLKSan.Business
         Task<ShiftSummaryDto> GetShiftSummaryAsync(string maNhanVien);
         Task<ShiftHandoverDto> CloseShiftAsync(string maNhanVien, decimal tienMatThucTe, string ghiChuBanGiao);
         Task<List<ShiftHandoverDto>> GetHandoversAsync(int soNgay);
+        Task<List<ShiftHandoverDto>> GetHandoversAsync(DateTime tuNgay, DateTime denNgay);
     }
 
     public class FrontDeskService : IFrontDeskService
@@ -191,6 +192,14 @@ namespace QLKSan.Business
         {
             var moc = DateTime.Today.AddDays(-Math.Clamp(soNgay, 1, 90));
             return (await _context.GiaoCas.Include(g => g.NhanVien).Where(g => g.KetThuc >= moc).OrderByDescending(g => g.KetThuc).ToListAsync())
+                .Select(ToHandover).ToList();
+        }
+
+        public async Task<List<ShiftHandoverDto>> GetHandoversAsync(DateTime tuNgay, DateTime denNgay)
+        {
+            var from = tuNgay.Date;
+            var to = denNgay.Date.AddDays(1);
+            return (await _context.GiaoCas.Include(g => g.NhanVien).Where(g => g.KetThuc >= from && g.KetThuc < to).OrderByDescending(g => g.KetThuc).ToListAsync())
                 .Select(ToHandover).ToList();
         }
 

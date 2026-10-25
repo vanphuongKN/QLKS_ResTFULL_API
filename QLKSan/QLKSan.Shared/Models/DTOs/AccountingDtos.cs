@@ -25,6 +25,12 @@ namespace QLKSan.Models.DTOs
 
         // Các phương thức đã thu (tách thanh toán: nối bằng " + ")
         public string PhuongThuc { get; set; }
+
+        // Hoá đơn công ty: tên, mã số thuế, số hoá đơn điện tử đã xuất
+        public string TenCongTy { get; set; }
+        public string MaSoThue { get; set; }
+        public string SoHoaDonDienTu { get; set; }
+        public DateTime? NgayXuatHoaDonDienTu { get; set; }
     }
 
     // Chi tiết hoá đơn cho kế toán: hoá đơn + phiếu đặt + các giao dịch thu/hoàn
@@ -66,6 +72,9 @@ namespace QLKSan.Models.DTOs
         public List<RevenueByServiceDto> TheoDichVu { get; set; } = new List<RevenueByServiceDto>();
         public List<RevenueByMethodDto> TheoPhuongThuc { get; set; } = new List<RevenueByMethodDto>();
         public List<RevenueByStaffDto> TheoNhanVien { get; set; } = new List<RevenueByStaffDto>();
+
+        // Theo kênh đặt phòng (Online, Điện thoại, Email, Tại quầy, Đại lý, Vãng lai)
+        public List<RevenueByChannelDto> TheoKenh { get; set; } = new List<RevenueByChannelDto>();
     }
 
     public class RevenueByDayDto
@@ -89,6 +98,70 @@ namespace QLKSan.Models.DTOs
         public string TenDichVu { get; set; }
         public int SoLuong { get; set; }
         public decimal DoanhThu { get; set; }
+    }
+
+    public class RevenueByChannelDto
+    {
+        public string Kenh { get; set; }
+        public int SoLuot { get; set; }
+        public int SoDem { get; set; }
+        public decimal DoanhThu { get; set; }
+    }
+
+    // GET /api/reports/overview: tổng quan kế toán kỳ chọn so với kỳ liền trước, kèm việc cần đối soát
+    public class AccountingOverviewDto
+    {
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public DashboardPeriodDto KyNay { get; set; } = new DashboardPeriodDto();
+        public DashboardPeriodDto KyTruoc { get; set; } = new DashboardPeriodDto();
+        public int SoHoaDon { get; set; }
+        public decimal TongHoanTien { get; set; }
+        public List<RevenueByChannelDto> TheoKenh { get; set; } = new List<RevenueByChannelDto>();
+
+        public int HoaDonChuaThanhToan { get; set; }
+        public decimal TienChuaThanhToan { get; set; }
+        public decimal CocDangGiu { get; set; }
+        public int SoPhieuGiuCoc { get; set; }
+        public decimal CocGiuLaiKhiHuy { get; set; }
+        public int HoaDonCongTyChuaXuat { get; set; }
+        public int SoCaChenhLech { get; set; }
+        public decimal TongChenhLech { get; set; }
+    }
+
+    // GET /api/reports/deposits: sổ cọc — cọc đang giữ (nợ phải trả khách), giao dịch trong kỳ, cọc giữ lại khi huỷ
+    public class DepositReportDto
+    {
+        public DateTime TuNgay { get; set; }
+        public DateTime DenNgay { get; set; }
+        public List<DepositHoldingDto> DangGiu { get; set; } = new List<DepositHoldingDto>();
+        public decimal TongDangGiu { get; set; }
+        public List<DepositLedgerRowDto> GiaoDich { get; set; } = new List<DepositLedgerRowDto>();
+        public List<ShiftMethodDto> TheoPhuongThuc { get; set; } = new List<ShiftMethodDto>();
+        public List<DepositHoldingDto> GiuLaiKhiHuy { get; set; } = new List<DepositHoldingDto>();
+        public decimal TongGiuLai { get; set; }
+    }
+
+    public class DepositHoldingDto
+    {
+        public string MaDatPhong { get; set; }
+        public string HoTenKhachHang { get; set; }
+        public string SoPhong { get; set; }
+        public DateTime NgayNhan { get; set; }
+        public Enums.BookingStatus TrangThai { get; set; }
+        public decimal TienCoc { get; set; }
+    }
+
+    public class DepositLedgerRowDto
+    {
+        public DateTime ThoiGian { get; set; }
+        public string MaDatPhong { get; set; }
+        public string HoTenKhachHang { get; set; }
+        public Enums.PaymentType LoaiGiaoDich { get; set; }
+        public string PhuongThuc { get; set; }
+        public decimal SoTien { get; set; }
+        public string TenNhanVien { get; set; }
+        public string GhiChu { get; set; }
     }
 
     public class RevenueByMethodDto

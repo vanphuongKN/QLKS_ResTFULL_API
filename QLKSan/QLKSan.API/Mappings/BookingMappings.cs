@@ -131,7 +131,9 @@ namespace QLKSan.Mappings
                 TenCongTy = entity.TenCongTy,
                 MaSoThue = entity.MaSoThue,
                 DiaChiCongTy = entity.DiaChiCongTy,
-                EmailHoaDon = entity.EmailHoaDon
+                EmailHoaDon = entity.EmailHoaDon,
+                SoHoaDonDienTu = entity.SoHoaDonDienTu,
+                NgayXuatHoaDonDienTu = entity.NgayXuatHoaDonDienTu
             };
         }
 

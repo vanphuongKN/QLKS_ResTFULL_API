@@ -128,6 +128,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/{maHoaDon}` | Cashier, Customer | Chi tiết, giao dịch, số tiền còn hoàn được (khách chỉ xem hoá đơn của mình) |
 | POST | `/` | Cashier | Lập hoặc tính lại hoá đơn `{ "MaDatPhong", "MaKhuyenMai" }`. Gồm số đêm thực tế, giá từng đêm, phụ thu trả muộn, khuyến mãi, ưu đãi hạng thành viên, tiền cọc |
 | POST | `/{id}/payments` | Cashier | Thanh toán và trả phòng `{ "PhuongThuc", "DiemSuDung", "CacKhoan" }`. Điểm đổi được ghi thành khoản "Điểm thưởng". `CacKhoan` (tối đa 3 `{ "PhuongThuc", "SoTien", "GhiChu" }`) để tách thanh toán, tổng phải bằng số còn phải thu. Cọc thừa được ghi hoàn vào sổ cọc |
+| PUT | `/{id}/e-invoice` | Finance | Ghi số hoá đơn điện tử đã xuất `{ "SoHoaDonDienTu" }` cho hoá đơn công ty đã thanh toán (trống = bỏ; trùng số → 409). Danh sách hoá đơn công ty: `GET /api/invoices?congTy=true` |
 | PUT | `/{id}/company` | Cashier | Thông tin xuất hoá đơn VAT công ty `{ "TenCongTy", "MaSoThue", "DiaChiCongTy", "EmailHoaDon" }` (MST 10 số hoặc 10-3 số; trống = hoá đơn cá nhân) |
 | POST | `/{id}/refunds` | Finance | Hoàn tiền `{ "SoTien", "PhuongThuc", "LyDo" }`. Không hoàn phần đã trả bằng điểm |
 
@@ -200,7 +201,10 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | PATCH | `/api/maintenance/{id}` | FrontDesk | Đang sửa / đã xong / huỷ (huỷ cần lý do). Phiếu khoá phòng cuối cùng kết thúc → phòng Đang dọn + việc "Dọn sau sửa chữa"; yêu cầu khách loại Kỹ thuật liên kết tự hoàn thành |
 | POST | `/api/housekeeping/rooms/{maPhong}/clean` | FrontDesk | Xác nhận phòng đã dọn |
 | GET | `/api/dashboard` | Finance | Bảng điều khiển: công suất / khách đến / khách đi hôm nay, doanh thu thuần – ADR – RevPAR 30 ngày so với kỳ trước, công suất đã đặt 14 ngày tới, việc cần xử lý, đánh giá mới |
-| GET | `/api/reports/revenue`, `/revenue/export` | Finance | Báo cáo doanh thu (JSON / Excel) |
+| GET | `/api/reports/overview?tuNgay&denNgay` | Finance | Tổng quan kế toán: doanh thu thuần, ADR, RevPAR, công suất kỳ chọn (mặc định từ đầu tháng) so với kỳ liền trước cùng độ dài; doanh thu theo kênh đặt; hoá đơn chưa thu, cọc đang giữ, cọc giữ lại khi huỷ (theo ngày nhận dự kiến), HĐ công ty chưa ghi số, ca lệch tiền |
+| GET | `/api/reports/revenue`, `/revenue/export` | Finance | Báo cáo doanh thu (JSON / Excel): theo ngày, hạng phòng, dịch vụ, phương thức (cọc chỉ tính phần trừ vào hoá đơn — tổng = doanh thu thuần), nhân viên, kênh đặt; có ưu đãi hạng thành viên |
+| GET | `/api/reports/deposits?tuNgay&denNgay` | Finance | Sổ cọc: cọc đang giữ (phiếu chưa trả phòng), thu / hoàn cọc trong kỳ theo phương thức, cọc giữ lại khi huỷ |
+| GET | `/api/reports/shifts?tuNgay&denNgay` | Finance | Các lần chốt ca của lễ tân trong kỳ (tiền mặt hệ thống / thực tế, chênh lệch, theo phương thức, ghi chú bàn giao) |
 | GET | `/api/reports/occupancy` | Finance | Công suất phòng |
 | GET | `/api/reports/guests`, `/guests/export` | Cashier | Sổ khách lưu trú (JSON / Excel) |
 | GET / POST / PUT / DELETE | `/api/staff[/{id}]` | Admin | Quản lý nhân viên |

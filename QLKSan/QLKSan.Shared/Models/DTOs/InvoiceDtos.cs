@@ -38,6 +38,8 @@ namespace QLKSan.Models.DTOs
         public string MaSoThue { get; set; }
         public string DiaChiCongTy { get; set; }
         public string EmailHoaDon { get; set; }
+        public string SoHoaDonDienTu { get; set; }
+        public DateTime? NgayXuatHoaDonDienTu { get; set; }
     }
 
     // GET /api/bookings/{id}/folio: bảng kê lưu trú tính tới thời điểm hiện tại (chưa thanh toán) hoặc theo hoá đơn đã thanh toán

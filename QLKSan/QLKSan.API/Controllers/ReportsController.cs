@@ -12,10 +12,12 @@ namespace QLKSan.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly IAccountingService _accountingService;
+        private readonly IFrontDeskService _frontDeskService;
 
-        public ReportsController(IAccountingService accountingService)
+        public ReportsController(IAccountingService accountingService, IFrontDeskService frontDeskService)
         {
             _accountingService = accountingService;
+            _frontDeskService = frontDeskService;
         }
 
         // Mặc định: từ đầu tháng hiện tại đến hôm nay
@@ -23,6 +25,36 @@ namespace QLKSan.Controllers
             => ((tuNgay ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)).Date, (denNgay ?? DateTime.Today).Date);
 
         /// <summary>Báo cáo doanh thu: tổng hợp, theo ngày, loại phòng, dịch vụ, phương thức thanh toán, nhân viên thu.</summary>
+        /// <summary>
+        /// Tổng quan kế toán: doanh thu thuần, ADR, RevPAR, công suất của kỳ (mặc định từ đầu tháng) so với kỳ liền trước cùng độ dài;
+        /// doanh thu theo kênh đặt; việc cần đối soát (hoá đơn chưa thu, cọc đang giữ, cọc giữ lại khi huỷ, HĐ công ty chưa xuất, ca lệch tiền).
+        /// </summary>
+        [HttpGet("overview")]
+        [Authorize(Roles = AppRoles.Finance)]
+        public async Task<ActionResult<AccountingOverviewDto>> Overview([FromQuery] DateTime? tuNgay, [FromQuery] DateTime? denNgay)
+        {
+            var (from, to) = Range(tuNgay, denNgay);
+            return await _accountingService.GetOverviewAsync(from, to);
+        }
+
+        /// <summary>Sổ cọc: cọc đang giữ cho phiếu chưa trả phòng, giao dịch thu / hoàn cọc trong kỳ theo phương thức, cọc giữ lại khi huỷ.</summary>
+        [HttpGet("deposits")]
+        [Authorize(Roles = AppRoles.Finance)]
+        public async Task<ActionResult<DepositReportDto>> Deposits([FromQuery] DateTime? tuNgay, [FromQuery] DateTime? denNgay)
+        {
+            var (from, to) = Range(tuNgay, denNgay);
+            return await _accountingService.GetDepositReportAsync(from, to);
+        }
+
+        /// <summary>Các lần chốt ca / bàn giao của lễ tân trong kỳ (tiền mặt hệ thống / thực tế, chênh lệch, theo phương thức).</summary>
+        [HttpGet("shifts")]
+        [Authorize(Roles = AppRoles.Finance)]
+        public async Task<ActionResult<IEnumerable<ShiftHandoverDto>>> Shifts([FromQuery] DateTime? tuNgay, [FromQuery] DateTime? denNgay)
+        {
+            var (from, to) = Range(tuNgay, denNgay);
+            return Ok(await _frontDeskService.GetHandoversAsync(from, to));
+        }
+
         [HttpGet("revenue")]
         [Authorize(Roles = AppRoles.Finance)]
         public async Task<ActionResult<RevenueReportDto>> Revenue([FromQuery] DateTime? tuNgay, [FromQuery] DateTime? denNgay)

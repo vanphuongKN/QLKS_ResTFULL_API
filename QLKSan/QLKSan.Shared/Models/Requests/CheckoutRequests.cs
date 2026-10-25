@@ -42,6 +42,13 @@ namespace QLKSan.Models.Requests
         public string GhiChu { get; set; }
     }
 
+    // PUT /api/invoices/{id}/e-invoice: kế toán ghi số hoá đơn điện tử đã xuất (trống = bỏ)
+    public class EInvoiceRequest
+    {
+        [StringLength(30)]
+        public string SoHoaDonDienTu { get; set; }
+    }
+
     // PUT /api/invoices/{id}/company: thông tin xuất hoá đơn VAT cho công ty (gửi MaSoThue trống để bỏ)
     public class InvoiceCompanyRequest
     {

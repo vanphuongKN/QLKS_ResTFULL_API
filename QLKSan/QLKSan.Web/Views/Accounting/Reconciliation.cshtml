@@ -1,0 +1,118 @@
+@model QLKSan.Models.DTOs.DepositReportDto
+@using QLKSan.Enums
+@using QLKSan.Models.DTOs
+@{
+    ViewData["Title"] = "Đối soát";
+    DateTime tuNgay = ViewBag.TuNgay;
+    DateTime denNgay = ViewBag.DenNgay;
+    var shifts = ViewBag.Shifts as List<ShiftHandoverDto> ?? new List<ShiftHandoverDto>();
+    var thu = Model.GiaoDich.Where(g => g.LoaiGiaoDich == PaymentType.Payment).Sum(g => g.SoTien);
+    var hoan = Model.GiaoDich.Where(g => g.LoaiGiaoDich == PaymentType.Refund).Sum(g => g.SoTien);
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Kế toán</p>
+        <h2>Đối soát giao ca &amp; sổ cọc</h2>
+        <p class="page-desc">@tuNgay.ToString("dd/MM/yyyy") – @denNgay.ToString("dd/MM/yyyy"). Giao ca: tiền mặt hệ thống so với tiền lễ tân đếm khi chốt ca. Sổ cọc: tiền khách đặt trước khách sạn đang giữ và các lần thu / hoàn cọc.</p>
+    </div>
+</div>
+
+<form method="get" class="card p-3 mb-4">
+    <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Từ ngày</label><input type="date" name="tuNgay" value="@tuNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+        <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Đến ngày</label><input type="date" name="denNgay" value="@denNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+        <div class="col-md-2"><button type="submit" class="btn btn-gold btn-sm w-100"><i class="fas fa-sync me-1"></i>Xem</button></div>
+    </div>
+</form>
+
+<div class="card mb-4">
+    <div class="p-4 pb-2 d-flex justify-content-between align-items-baseline">
+        <h6 class="dash-title mb-0">Giao ca lễ tân (@shifts.Count)</h6>
+        <small class="text-muted">@shifts.Count(s => s.ChenhLech != 0) ca lệch · tổng lệch @shifts.Sum(s => s.ChenhLech).ToString("N0") ₫</small>
+    </div>
+    <table class="table table-custom mb-0" data-no-tools>
+        <thead><tr><th>Ca</th><th>Nhân viên</th><th>Theo phương thức</th><th class="text-end">Thu ròng</th><th class="text-end">Tiền mặt HT / thực tế</th><th class="text-end">Chênh lệch</th><th>Bàn giao</th></tr></thead>
+        <tbody>
+            @if (!shifts.Any()) { <tr><td colspan="7" class="text-center text-muted">Chưa có lần chốt ca nào trong kỳ.</td></tr> }
+            @foreach (var s in shifts)
+            {
+                <tr class="@(s.ChenhLech != 0 ? "row-alert" : "")">
+                    <td class="small text-nowrap">@s.BatDau.ToString("HH:mm dd/MM") – @s.KetThuc.ToString("HH:mm dd/MM")</td>
+                    <td>@s.TenNhanVien</td>
+                    <td class="small">@string.Join(" · ", s.TheoPhuongThuc.Select(m => $"{m.PhuongThuc}: {m.Rong:N0}"))</td>
+                    <td class="text-end">@s.TongThuRong.ToString("N0")</td>
+                    <td class="text-end small">@s.TienMatHeThong.ToString("N0") / @s.TienMatThucTe.ToString("N0")</td>
+                    <td class="text-end fw-bold @(s.ChenhLech == 0 ? "text-success" : "text-danger")">@(s.ChenhLech == 0 ? "Khớp" : s.ChenhLech.ToString("N0"))</td>
+                    <td class="small">@s.GhiChuBanGiao</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="kpi-grid mb-4">
+    <div class="kpi-card kpi-card--dark"><span class="kpi-label">Cọc đang giữ</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(Model.TongDangGiu)</div><span class="kpi-sub">@Model.DangGiu.Count phiếu chưa trả phòng</span></div>
+    <div class="kpi-card"><span class="kpi-label">Thu cọc trong kỳ</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(thu)</div><span class="kpi-sub">@Model.GiaoDich.Count(g => g.LoaiGiaoDich == PaymentType.Payment) lần thu</span></div>
+    <div class="kpi-card"><span class="kpi-label">Hoàn cọc trong kỳ</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(hoan)</div><span class="kpi-sub">Huỷ phiếu, cọc thừa khi trả phòng</span></div>
+    <div class="kpi-card"><span class="kpi-label">Giữ lại khi khách huỷ</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(Model.TongGiuLai)</div><span class="kpi-sub">Phiếu huỷ có ngày nhận dự kiến trong kỳ · chưa vào doanh thu</span></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card mb-4">
+            <div class="p-4 pb-2"><h6 class="dash-title mb-0">Cọc đang giữ</h6></div>
+            <table class="table table-custom mb-0" data-no-tools>
+                <thead><tr><th>Phiếu</th><th>Ngày nhận</th><th class="text-end">Tiền cọc</th></tr></thead>
+                <tbody>
+                    @if (!Model.DangGiu.Any()) { <tr><td colspan="3" class="text-center text-muted">Không có.</td></tr> }
+                    @foreach (var c in Model.DangGiu)
+                    {
+                        <tr><td><strong>@c.MaDatPhong</strong><small class="d-block text-muted">@c.HoTenKhachHang@(c.SoPhong != null ? " · P" + c.SoPhong : "") · @c.TrangThai.GetDisplayName()</small></td>
+                            <td class="small">@c.NgayNhan.ToString("dd/MM/yyyy")</td><td class="text-end fw-semibold">@c.TienCoc.ToString("N0")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.GiuLaiKhiHuy.Any())
+        {
+            <div class="card">
+                <div class="p-4 pb-2"><h6 class="dash-title mb-0">Cọc giữ lại khi khách huỷ</h6></div>
+                <table class="table table-custom mb-0" data-no-tools>
+                    <thead><tr><th>Phiếu</th><th>Ngày nhận dự kiến</th><th class="text-end">Tiền cọc</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in Model.GiuLaiKhiHuy)
+                        {
+                            <tr><td><strong>@c.MaDatPhong</strong><small class="d-block text-muted">@c.HoTenKhachHang</small></td><td class="small">@c.NgayNhan.ToString("dd/MM/yyyy")</td><td class="text-end">@c.TienCoc.ToString("N0")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="p-4 pb-2 d-flex justify-content-between align-items-baseline flex-wrap gap-2">
+                <h6 class="dash-title mb-0">Thu / hoàn cọc trong kỳ</h6>
+                <small class="text-muted">@string.Join(" · ", Model.TheoPhuongThuc.Select(m => $"{m.PhuongThuc}: {m.Rong:N0}"))</small>
+            </div>
+            <table class="table table-custom mb-0">
+                <thead><tr><th>Thời gian</th><th>Phiếu</th><th>Loại</th><th>Phương thức</th><th>Người thu</th><th class="text-end">Số tiền</th></tr></thead>
+                <tbody>
+                    @if (!Model.GiaoDich.Any()) { <tr><td colspan="6" class="text-center text-muted">Không có giao dịch cọc trong kỳ.</td></tr> }
+                    @foreach (var g in Model.GiaoDich)
+                    {
+                        var laHoan = g.LoaiGiaoDich == PaymentType.Refund;
+                        <tr title="@g.GhiChu">
+                            <td class="small text-nowrap">@g.ThoiGian.ToString("HH:mm dd/MM")</td>
+                            <td><strong>@g.MaDatPhong</strong><small class="d-block text-muted">@g.HoTenKhachHang</small></td>
+                            <td><span class="badge @(laHoan ? "bg-warning text-dark" : "bg-light text-dark")">@(laHoan ? "Hoàn" : "Thu")</span></td>
+                            <td class="small">@g.PhuongThuc</td><td class="small">@g.TenNhanVien</td>
+                            <td class="text-end fw-semibold @(laHoan ? "text-danger" : "")">@(laHoan ? "-" : "")@g.SoTien.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -36,8 +36,8 @@ namespace QLKSan.Business
             var dto = new DashboardDto { NgayCapNhat = DateTime.Now, TongSoPhong = await _context.Phongs.CountAsync() };
 
             await FillTodayAsync(dto, today);
-            dto.KyNay = await PeriodAsync(today.AddDays(-(SoNgayKy - 1)), today);
-            dto.KyTruoc = await PeriodAsync(today.AddDays(-(2 * SoNgayKy - 1)), today.AddDays(-SoNgayKy));
+            dto.KyNay = await _accounting.GetPeriodAsync(today.AddDays(-(SoNgayKy - 1)), today);
+            dto.KyTruoc = await _accounting.GetPeriodAsync(today.AddDays(-(2 * SoNgayKy - 1)), today.AddDays(-SoNgayKy));
             dto.DuBao14Ngay = await ForecastAsync(today, 14, dto.TongSoPhong);
 
             var nam = await _accounting.GetRevenueReportAsync(new DateTime(today.Year, 1, 1), today);
@@ -102,25 +102,6 @@ namespace QLKSan.Business
                 LaVIP = p.KhachHang?.LaVIP ?? false,
                 SoThich = p.KhachHang?.SoThich,
                 DaXuLy = daXuLy
-            };
-        }
-
-        private async Task<DashboardPeriodDto> PeriodAsync(DateTime from, DateTime to)
-        {
-            var revenue = await _accounting.GetRevenueReportAsync(from, to);
-            var occupancy = await _accounting.GetOccupancyReportAsync(from, to);
-            var soNgay = (to - from).Days + 1;
-            var demDaBan = revenue.TheoLoaiPhong.Sum(x => x.SoDem);
-            return new DashboardPeriodDto
-            {
-                TuNgay = from,
-                DenNgay = to,
-                DoanhThuThuan = revenue.DoanhThuThuan,
-                TienPhong = revenue.TienPhong,
-                DemPhongDaBan = demDaBan,
-                CongSuat = occupancy.TyLeTrungBinh,
-                ADR = demDaBan == 0 ? 0 : Math.Round(revenue.TienPhong / demDaBan, 0),
-                RevPAR = occupancy.TongSoPhong == 0 ? 0 : Math.Round(revenue.TienPhong / (occupancy.TongSoPhong * soNgay), 0)
             };
         }
 

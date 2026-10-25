@@ -128,6 +128,22 @@
             </div>
         </div>
 
+        <div class="card mb-4">
+            <div class="card-body p-0">
+                <div class="p-3 border-bottom"><h6 class="fw-bold mb-0 text-navy">Theo kênh đặt phòng</h6></div>
+                <table class="table table-custom mb-0" data-no-tools>
+                    <thead><tr><th>Kênh</th><th>Lượt</th><th>Đêm</th><th class="text-end">Doanh thu</th></tr></thead>
+                    <tbody>
+                        @foreach (var k in Model.TheoKenh)
+                        {
+                            <tr><td>@k.Kenh</td><td>@k.SoLuot</td><td>@k.SoDem</td><td class="text-end">@k.DoanhThu.ToString("N0")</td></tr>
+                        }
+                        @if (!Model.TheoKenh.Any()) { <tr><td colspan="4" class="text-center text-muted">Không có dữ liệu</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-body p-0">
                 <div class="p-3 border-bottom"><h6 class="fw-bold mb-0 text-navy">Đối soát theo nhân viên thu</h6></div>

@@ -444,6 +444,12 @@ namespace QLKSan.Models.Entities
         [StringLength(100)]
         public string? EmailHoaDon { get; set; }
 
+        // Kế toán ghi số hoá đơn điện tử (VAT) đã xuất cho công ty
+        [StringLength(30)]
+        public string? SoHoaDonDienTu { get; set; }
+
+        public DateTime? NgayXuatHoaDonDienTu { get; set; }
+
         public PhieuDatPhong PhieuDatPhong { get; set; }
         public NhanVien NhanVienLap { get; set; }
         public KhuyenMai KhuyenMai { get; set; }

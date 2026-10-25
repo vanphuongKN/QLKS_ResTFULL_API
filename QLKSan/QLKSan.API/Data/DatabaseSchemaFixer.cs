@@ -421,7 +421,13 @@ namespace QLKSan.Data
                 IF COL_LENGTH('PhieuDatPhong', 'TuChoiDonHangNgay') IS NULL
                     ALTER TABLE PhieuDatPhong ADD KhongLamPhienNgay DATE NULL,
                                                   GioDonMongMuon NVARCHAR(30) NULL,
-                                                  TuChoiDonHangNgay BIT NOT NULL CONSTRAINT DF_PhieuDat_TuChoiDon DEFAULT 0;")
+                                                  TuChoiDonHangNgay BIT NOT NULL CONSTRAINT DF_PhieuDat_TuChoiDon DEFAULT 0;"),
+
+            // K2: số hoá đơn điện tử đã xuất cho công ty
+            ("40. Thêm HoaDon.SoHoaDonDienTu, NgayXuatHoaDonDienTu", @"
+                IF COL_LENGTH('HoaDon', 'SoHoaDonDienTu') IS NULL
+                    ALTER TABLE HoaDon ADD SoHoaDonDienTu NVARCHAR(30) NULL,
+                                           NgayXuatHoaDonDienTu DATETIME NULL;")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

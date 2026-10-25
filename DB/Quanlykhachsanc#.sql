@@ -256,6 +256,8 @@ CREATE TABLE HoaDon (
     MaSoThue VARCHAR(20) NULL,
     DiaChiCongTy NVARCHAR(300) NULL,
     EmailHoaDon NVARCHAR(100) NULL,
+    SoHoaDonDienTu NVARCHAR(30) NULL,               -- số hoá đơn điện tử kế toán đã xuất cho công ty
+    NgayXuatHoaDonDienTu DATETIME NULL,
     CONSTRAINT FK_HoaDon_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong),
     CONSTRAINT FK_HoaDon_KhuyenMai FOREIGN KEY (MaKhuyenMai) REFERENCES KhuyenMai(MaKhuyenMai),
     CONSTRAINT FK_HoaDon_NhanVien FOREIGN KEY (MaNhanVienLap) REFERENCES NhanVien(MaNhanVien)

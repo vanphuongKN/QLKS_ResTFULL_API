@@ -176,7 +176,7 @@ namespace QLKSan.Controllers
                 nameof(Role.Customer) => RedirectToAction("MyStays", "Customer"),
                 nameof(Role.Receptionist) => RedirectToAction("Index", "Reception"),
                 nameof(Role.Housekeeping) => RedirectToAction("MyTasks", "Housekeeping"),
-                nameof(Role.Accountant) => RedirectToAction("Reports", "Accounting"),
+                nameof(Role.Accountant) => RedirectToAction("Index", "Accounting"),
                 _ => RedirectToAction("Index", "Admin")
             };
         }

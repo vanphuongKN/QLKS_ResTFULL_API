@@ -1087,3 +1087,7 @@ tr.guest-companion td { background: #fcfbf8; }
 .minibar-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
 .minibar-item .qty { display: flex; gap: 6px; width: 150px; }
 .minibar-item .qty input { padding-left: 4px; padding-right: 4px; }
+
+/* Đối soát kế toán */
+tr.row-alert td { background: rgba(198,40,40,.04); }
+.task-row span small { font-size: 0.74rem; }

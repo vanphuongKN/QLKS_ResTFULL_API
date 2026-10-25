@@ -47,7 +47,10 @@
                     ("Vận hành", "Khách hàng", "fa-users", Url.Action("Customers", "Reception"), Is("Reception", "Customers", "CustomerDetails", "BookingHistory"), laAdmin || laLeTan),
                     ("Vận hành", "Sổ lưu trú", "fa-id-card", Url.Action("Guests", "Room"), Is("Room", "Guests"), laAdmin || laLeTan || laKeToan),
 
+                    ("Doanh thu", "Tổng quan kế toán", "fa-scale-balanced", Url.Action("Index", "Accounting"), Is("Accounting", "Index"), laAdmin || laKeToan),
                     ("Doanh thu", "Hoá đơn", "fa-file-invoice-dollar", Url.Action("Invoices", "Accounting"), Is("Accounting", "Invoices", "Invoice"), laAdmin || laKeToan),
+                    ("Doanh thu", "Đối soát", "fa-cash-register", Url.Action("Reconciliation", "Accounting"), Is("Accounting", "Reconciliation"), laAdmin || laKeToan),
+                    ("Doanh thu", "Hoá đơn VAT công ty", "fa-building-columns", Url.Action("VatInvoices", "Accounting"), Is("Accounting", "VatInvoices"), laAdmin || laKeToan),
                     ("Doanh thu", "Báo cáo", "fa-chart-line", Url.Action("Reports", "Accounting"), Is("Accounting", "Reports"), laAdmin || laKeToan),
                     ("Doanh thu", "Bảng giá", "fa-calendar-alt", Url.Action("Pricing", "Admin"), Is("Admin", "Pricing"), laAdmin),
                     ("Doanh thu", "Khuyến mãi", "fa-tags", Url.Action("Promotions", "Admin"), Is("Admin", "Promotions"), laAdmin),

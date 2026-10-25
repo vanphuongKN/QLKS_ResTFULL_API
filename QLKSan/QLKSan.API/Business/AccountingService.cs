@@ -55,9 +55,10 @@ namespace QLKSan.Business
         private static DateTime NgayGhiNhan(HoaDon h)
             => h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Payment).Select(t => (DateTime?)t.NgayThanhToan).Min() ?? h.NgayLapHoaDon;
 
-        public async Task<List<InvoiceListItemDto>> GetInvoicesAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search)
+        public async Task<List<InvoiceListItemDto>> GetInvoicesAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search, bool congTy = false)
         {
             var query = InvoiceQuery();
+            if (congTy) query = query.Where(h => h.MaSoThue != null);
             if (tuNgay != null) query = query.Where(h => h.NgayLapHoaDon >= tuNgay.Value.Date);
             if (denNgay != null) query = query.Where(h => h.NgayLapHoaDon < denNgay.Value.Date.AddDays(1));
             if (trangThai != null) query = query.Where(h => h.TrangThai == trangThai.Value);
@@ -88,7 +89,11 @@ namespace QLKSan.Business
                 DaHoan = DaHoan(h),
                 TrangThai = h.TrangThai,
                 TenNhanVienLap = h.NhanVienLap?.TenNhanVien,
-                PhuongThuc = CacPhuongThuc(h)
+                PhuongThuc = CacPhuongThuc(h),
+                TenCongTy = h.TenCongTy,
+                MaSoThue = h.MaSoThue,
+                SoHoaDonDienTu = h.SoHoaDonDienTu,
+                NgayXuatHoaDonDienTu = h.NgayXuatHoaDonDienTu
             }).ToList();
         }
 
@@ -244,6 +249,18 @@ namespace QLKSan.Business
                 .OrderByDescending(x => x.DoanhThuPhong)
                 .ToList();
 
+            report.TheoKenh = paidInvoices
+                .GroupBy(h => h.PhieuDatPhong?.NguonDat ?? "Không rõ")
+                .Select(g => new RevenueByChannelDto
+                {
+                    Kenh = g.Key,
+                    SoLuot = g.Count(),
+                    SoDem = g.Sum(h => h.SoDem),
+                    DoanhThu = Math.Round(g.Sum(h => h.TongTienCanThanhToan), 0)
+                })
+                .OrderByDescending(x => x.DoanhThu)
+                .ToList();
+
             report.TheoDichVu = paidInvoices
                 .SelectMany(h => h.PhieuDatPhong?.SuDungDichVus ?? Enumerable.Empty<SuDungDichVu>())
                 .GroupBy(s => s.DichVu?.TenDichVu ?? s.MaDichVu)
@@ -276,6 +293,137 @@ namespace QLKSan.Business
                 .ToList();
 
             return report;
+        }
+
+        public async Task<InvoiceDto> SetEInvoiceAsync(string maHoaDon, string soHoaDonDienTu)
+        {
+            var h = await _context.HoaDons.Include(x => x.ThanhToans).FirstOrDefaultAsync(x => x.MaHoaDon == maHoaDon)
+                ?? throw new NotFoundException($"Không tìm thấy hóa đơn '{maHoaDon}'.");
+            if (string.IsNullOrEmpty(h.MaSoThue))
+                throw new BusinessException("Hoá đơn chưa có thông tin công ty (mã số thuế).");
+            if (h.TrangThai != InvoiceStatus.Paid)
+                throw new ConflictException("Chỉ xuất hoá đơn điện tử cho hoá đơn đã thanh toán.");
+            var so = string.IsNullOrWhiteSpace(soHoaDonDienTu) ? null : soHoaDonDienTu.Trim();
+            if (so != null && await _context.HoaDons.AnyAsync(x => x.MaHoaDon != maHoaDon && x.SoHoaDonDienTu == so))
+                throw new ConflictException($"Số hoá đơn điện tử {so} đã được ghi cho hoá đơn khác.");
+            h.SoHoaDonDienTu = so;
+            h.NgayXuatHoaDonDienTu = so == null ? null : DateTime.Now;
+            await _context.SaveChangesAsync();
+            return h.ToDto();
+        }
+
+        public async Task<DashboardPeriodDto> GetPeriodAsync(DateTime tuNgay, DateTime denNgay)
+        {
+            var from = tuNgay.Date;
+            var to = denNgay.Date;
+            var revenue = await GetRevenueReportAsync(from, to);
+            var occupancy = await GetOccupancyReportAsync(from, to);
+            var soNgay = (to - from).Days + 1;
+            var demDaBan = revenue.TheoLoaiPhong.Sum(x => x.SoDem);
+            return new DashboardPeriodDto
+            {
+                TuNgay = from,
+                DenNgay = to,
+                DoanhThuThuan = revenue.DoanhThuThuan,
+                TienPhong = revenue.TienPhong,
+                DemPhongDaBan = demDaBan,
+                CongSuat = occupancy.TyLeTrungBinh,
+                ADR = demDaBan == 0 ? 0 : Math.Round(revenue.TienPhong / demDaBan, 0),
+                RevPAR = occupancy.TongSoPhong == 0 ? 0 : Math.Round(revenue.TienPhong / (occupancy.TongSoPhong * soNgay), 0)
+            };
+        }
+
+        public async Task<AccountingOverviewDto> GetOverviewAsync(DateTime tuNgay, DateTime denNgay)
+        {
+            var from = tuNgay.Date;
+            var to = denNgay.Date;
+            if (to < from) throw new BusinessException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
+            var soNgay = (to - from).Days + 1;
+            var revenue = await GetRevenueReportAsync(from, to);
+            var dto = new AccountingOverviewDto
+            {
+                TuNgay = from,
+                DenNgay = to,
+                KyNay = await GetPeriodAsync(from, to),
+                KyTruoc = await GetPeriodAsync(from.AddDays(-soNgay), from.AddDays(-1)),
+                SoHoaDon = revenue.SoHoaDon,
+                TongHoanTien = revenue.TongHoanTien,
+                TheoKenh = revenue.TheoKenh
+            };
+
+            var chuaThu = await _context.HoaDons.Where(h => h.TrangThai == InvoiceStatus.Unpaid).ToListAsync();
+            dto.HoaDonChuaThanhToan = chuaThu.Count;
+            dto.TienChuaThanhToan = Math.Round(chuaThu.Sum(h => h.TongTienCanThanhToan), 0);
+
+            var giuCoc = await _context.PhieuDatPhongs
+                .Where(p => p.TienCoc > 0 && (p.TrangThai == BookingStatus.Pending || p.TrangThai == BookingStatus.Approved || p.TrangThai == BookingStatus.CheckedIn))
+                .Select(p => p.TienCoc).ToListAsync();
+            dto.CocDangGiu = giuCoc.Sum();
+            dto.SoPhieuGiuCoc = giuCoc.Count;
+            dto.CocGiuLaiKhiHuy = await _context.PhieuDatPhongs
+                .Where(p => p.TrangThai == BookingStatus.Cancelled && p.TienCoc > 0 && p.NgayCheckInDuKien >= from && p.NgayCheckInDuKien < to.AddDays(1))
+                .SumAsync(p => p.TienCoc);
+            dto.HoaDonCongTyChuaXuat = await _context.HoaDons.CountAsync(h => h.TrangThai == InvoiceStatus.Paid && h.MaSoThue != null && h.SoHoaDonDienTu == null);
+
+            var lech = await _context.GiaoCas.Where(g => g.KetThuc >= from && g.KetThuc < to.AddDays(1) && g.ChenhLech != 0).Select(g => g.ChenhLech).ToListAsync();
+            dto.SoCaChenhLech = lech.Count;
+            dto.TongChenhLech = lech.Sum();
+            return dto;
+        }
+
+        public async Task<DepositReportDto> GetDepositReportAsync(DateTime tuNgay, DateTime denNgay)
+        {
+            var from = tuNgay.Date;
+            var to = denNgay.Date;
+            if (to < from) throw new BusinessException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
+
+            static DepositHoldingDto Holding(PhieuDatPhong p) => new DepositHoldingDto
+            {
+                MaDatPhong = p.MaDatPhong,
+                HoTenKhachHang = $"{p.KhachHang?.Ho} {p.KhachHang?.Ten}".Trim(),
+                SoPhong = p.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong,
+                NgayNhan = p.NgayCheckInThucTe ?? p.NgayCheckInDuKien,
+                TrangThai = p.TrangThai,
+                TienCoc = p.TienCoc
+            };
+            var phieu = _context.PhieuDatPhongs.Include(p => p.KhachHang).Include(p => p.ChiTietDatPhongs).ThenInclude(c => c.Phong);
+            var dto = new DepositReportDto { TuNgay = from, DenNgay = to };
+            dto.DangGiu = (await phieu.Where(p => p.TienCoc > 0
+                    && (p.TrangThai == BookingStatus.Pending || p.TrangThai == BookingStatus.Approved || p.TrangThai == BookingStatus.CheckedIn))
+                    .OrderBy(p => p.NgayCheckInDuKien).ToListAsync())
+                .Select(Holding).ToList();
+            dto.TongDangGiu = dto.DangGiu.Sum(x => x.TienCoc);
+            dto.GiuLaiKhiHuy = (await phieu.Where(p => p.TrangThai == BookingStatus.Cancelled && p.TienCoc > 0
+                    && p.NgayCheckInDuKien >= from && p.NgayCheckInDuKien < to.AddDays(1))
+                    .OrderBy(p => p.NgayCheckInDuKien).ToListAsync())
+                .Select(Holding).ToList();
+            dto.TongGiuLai = dto.GiuLaiKhiHuy.Sum(x => x.TienCoc);
+
+            var rows = await _context.GiaoDichCocs
+                .Include(g => g.NhanVien)
+                .Include(g => g.PhieuDatPhong).ThenInclude(p => p.KhachHang)
+                .Where(g => g.ThoiGian >= from && g.ThoiGian < to.AddDays(1))
+                .OrderBy(g => g.ThoiGian).ToListAsync();
+            dto.GiaoDich = rows.Select(g => new DepositLedgerRowDto
+            {
+                ThoiGian = g.ThoiGian,
+                MaDatPhong = g.MaDatPhong,
+                HoTenKhachHang = $"{g.PhieuDatPhong?.KhachHang?.Ho} {g.PhieuDatPhong?.KhachHang?.Ten}".Trim(),
+                LoaiGiaoDich = g.LoaiGiaoDich,
+                PhuongThuc = g.PhuongThuc ?? "Không rõ",
+                SoTien = g.SoTien,
+                TenNhanVien = g.NhanVien?.TenNhanVien,
+                GhiChu = g.GhiChu
+            }).ToList();
+            dto.TheoPhuongThuc = dto.GiaoDich.GroupBy(g => g.PhuongThuc).Select(g => new ShiftMethodDto
+            {
+                PhuongThuc = g.Key,
+                SoGiaoDich = g.Count(),
+                Thu = g.Where(x => x.LoaiGiaoDich == PaymentType.Payment).Sum(x => x.SoTien),
+                Chi = g.Where(x => x.LoaiGiaoDich == PaymentType.Refund).Sum(x => x.SoTien),
+                Rong = g.Sum(x => x.LoaiGiaoDich == PaymentType.Refund ? -x.SoTien : x.SoTien)
+            }).OrderByDescending(m => m.Thu).ToList();
+            return dto;
         }
 
         public async Task<OccupancyReportDto> GetOccupancyReportAsync(DateTime tuNgay, DateTime denNgay)
@@ -448,6 +596,8 @@ namespace QLKSan.Business
                 report.TheoDichVu.Select(x => new object[] { x.TenDichVu, x.SoLuong, x.DoanhThu }), money);
             AddTable(workbook, "Theo phương thức", new[] { "Phương thức", "Số giao dịch", "Số tiền" },
                 report.TheoPhuongThuc.Select(x => new object[] { x.PhuongThuc, x.SoGiaoDich, x.SoTien }), money);
+            AddTable(workbook, "Theo kênh đặt", new[] { "Kênh", "Số lượt", "Số đêm", "Doanh thu" },
+                report.TheoKenh.Select(x => new object[] { x.Kenh, x.SoLuot, x.SoDem, x.DoanhThu }), money);
             AddTable(workbook, "Theo nhân viên thu", new[] { "Nhân viên", "Số giao dịch", "Số tiền thu" },
                 report.TheoNhanVien.Select(x => new object[] { x.TenNhanVien, x.SoGiaoDich, x.SoTienThu }), money);
             AddTable(workbook, "Hoá đơn", new[] { "Mã HĐ", "Mã phiếu", "Khách hàng", "Phòng", "Ngày lập", "Tổng tiền", "Cọc trừ vào HĐ", "Cọc thừa đã hoàn", "Đã thu", "Đã hoàn", "Phương thức", "Người lập" },

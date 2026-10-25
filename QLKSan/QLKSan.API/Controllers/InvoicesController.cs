@@ -27,9 +27,18 @@ namespace QLKSan.Controllers
         [HttpGet]
         [Authorize(Roles = AppRoles.Finance)]
         public async Task<ActionResult<IEnumerable<InvoiceListItemDto>>> GetAll([FromQuery] DateTime? tuNgay, [FromQuery] DateTime? denNgay,
-            [FromQuery] InvoiceStatus? trangThai, [FromQuery] string search)
+            [FromQuery] InvoiceStatus? trangThai, [FromQuery] string search, [FromQuery] bool congTy = false)
         {
-            return Ok(await _accountingService.GetInvoicesAsync(tuNgay, denNgay, trangThai, search));
+            return Ok(await _accountingService.GetInvoicesAsync(tuNgay, denNgay, trangThai, search, congTy));
+        }
+
+        /// <summary>Kế toán ghi số hoá đơn điện tử (VAT) đã xuất cho hoá đơn công ty đã thanh toán; số trống = bỏ ghi.</summary>
+        [HttpPut("{maHoaDon}/e-invoice")]
+        [Authorize(Roles = AppRoles.Finance)]
+        [Audit("Ghi số hoá đơn điện tử", "Hoá đơn")]
+        public async Task<ActionResult<InvoiceDto>> SetEInvoice(string maHoaDon, EInvoiceRequest request)
+        {
+            return await _accountingService.SetEInvoiceAsync(maHoaDon, request.SoHoaDonDienTu);
         }
 
         /// <summary>Chi tiết hoá đơn (xem/in). Thu ngân, kế toán xem mọi hoá đơn; khách hàng chỉ xem hoá đơn của mình.</summary>

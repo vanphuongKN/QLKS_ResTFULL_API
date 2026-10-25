@@ -9,7 +9,16 @@ namespace QLKSan.Business
     // Nghiệp vụ kế toán: tra cứu hoá đơn, hoàn tiền, báo cáo doanh thu / công suất phòng
     public interface IAccountingService
     {
-        Task<List<InvoiceListItemDto>> GetInvoicesAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search);
+        // congTy = true: chỉ hoá đơn xuất cho công ty (có mã số thuế)
+        Task<List<InvoiceListItemDto>> GetInvoicesAsync(DateTime? tuNgay, DateTime? denNgay, InvoiceStatus? trangThai, string search, bool congTy = false);
+
+        // Số hoá đơn điện tử đã xuất cho hoá đơn công ty đã thanh toán
+        Task<InvoiceDto> SetEInvoiceAsync(string maHoaDon, string soHoaDonDienTu);
+
+        // Doanh thu thuần, ADR, RevPAR, công suất của một kỳ (dùng chung cho bảng điều khiển và tổng quan kế toán)
+        Task<DashboardPeriodDto> GetPeriodAsync(DateTime tuNgay, DateTime denNgay);
+        Task<AccountingOverviewDto> GetOverviewAsync(DateTime tuNgay, DateTime denNgay);
+        Task<DepositReportDto> GetDepositReportAsync(DateTime tuNgay, DateTime denNgay);
         Task<InvoiceDetailDto> GetInvoiceDetailAsync(string maHoaDon);
 
         // Hoàn tiền cho hoá đơn đã thanh toán; ném BusinessException nếu vượt quá số tiền còn có thể hoàn
