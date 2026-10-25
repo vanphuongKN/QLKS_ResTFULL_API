@@ -156,6 +156,7 @@ namespace QLKSan.Business
             existing.GiaDichVu = service.GiaDichVu;
             existing.DonViTinh = service.DonViTinh;
             existing.LaTraiNghiem = service.LaTraiNghiem;
+            existing.LaMinibar = service.LaMinibar;
             existing.MoTa = service.MoTa;
             await _context.SaveChangesAsync();
         }

@@ -20,6 +20,9 @@ namespace QLKSan.Models.Requests
         // Hiển thị ở mục "Trải nghiệm" trang chủ kèm mô tả ngắn
         public bool LaTraiNghiem { get; set; }
 
+        // Đồ minibar (nhân viên buồng phòng ghi được)
+        public bool LaMinibar { get; set; }
+
         [StringLength(500)]
         public string MoTa { get; set; }
     }

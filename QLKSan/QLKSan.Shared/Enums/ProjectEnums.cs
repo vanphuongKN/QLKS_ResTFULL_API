@@ -108,7 +108,10 @@ namespace QLKSan.Enums
         [Display(Name = "Hoàn thành")]
         Completed,
         [Display(Name = "Sự cố")]
-        Issue
+        Issue,
+        // Nhân viên đã dọn xong phòng trống, chờ người có quyền kiểm tra trước khi phòng sẵn sàng đón khách
+        [Display(Name = "Chờ kiểm tra")]
+        AwaitingInspection
     }
 
     // Yêu cầu của khách tại quầy (bảng YeuCauKhach)

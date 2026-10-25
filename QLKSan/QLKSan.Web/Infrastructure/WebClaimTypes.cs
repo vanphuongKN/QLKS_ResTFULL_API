@@ -30,5 +30,11 @@ namespace QLKSan.Infrastructure
 
         // Nhân viên buồng phòng làm việc được giao
         public const string HousekeepingWorkers = Admin + "," + Housekeeping;
+
+        // Bộ phận buồng phòng nói chung: xem sơ đồ, ghi minibar, báo kỹ thuật
+        public const string HousekeepingTeam = Admin + "," + Receptionist + "," + Housekeeping;
+
+        // Kiểm tra phòng sau khi dọn — khớp AppRoles.RoomInspectors bên API (thêm vai trò Giám sát buồng phòng vào đây khi có)
+        public const string RoomInspectors = Admin + "," + Receptionist;
     }
 }

@@ -117,7 +117,7 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
 | GET | `/?loc&maDatPhong` | FrontDesk | Sổ yêu cầu: `loc=mo` (mới / đang xử lý, giờ hẹn gần nhất trước), `xong` (hoàn thành / huỷ 7 ngày), trống: 30 ngày |
-| POST | `/` | FrontDesk | Ghi yêu cầu `{ "MaDatPhong", "MaPhong", "Loai", "NoiDung", "ThoiGianHen" }`; loại: Báo thức, Đặt xe / đưa đón, Nhắn gửi, Đồ thất lạc, Buồng phòng, Kỹ thuật, Khác. Loại Buồng phòng tự tạo (hoặc gộp vào) việc buồng phòng của phòng; dọn xong thì yêu cầu tự hoàn thành |
+| POST | `/` | FrontDesk | Ghi yêu cầu `{ "MaDatPhong", "MaPhong", "Loai", "NoiDung", "ThoiGianHen" }`; loại: Báo thức, Đặt xe / đưa đón, Nhắn gửi, Đồ thất lạc, Buồng phòng, Kỹ thuật, Khác. Loại Buồng phòng tự tạo (hoặc gộp vào) việc buồng phòng của phòng; loại Kỹ thuật tự mở phiếu kỹ thuật; xử lý xong thì yêu cầu tự hoàn thành |
 | PATCH | `/{id}` | FrontDesk | Đổi trạng thái `{ "TrangThai": "InProgress" \| "Done" \| "Cancelled", "KetQua" }` (huỷ phải có lý do; yêu cầu đã xong không đổi được) |
 
 ## Hoá đơn — `/api/invoices`
@@ -189,7 +189,12 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/housekeeping/staff` | FrontDesk | Nhân viên có thể giao việc |
 | POST | `/api/housekeeping/tasks/{id}/assign` | FrontDesk | Giao việc |
 | POST | `/api/housekeeping/tasks/assign-bulk` | FrontDesk | Giao nhiều việc chưa bắt đầu cho một nhân viên `{ "MaNhanVien", "MaPhanCongs": [...] }` (vd: cả tầng) |
-| POST | `/api/housekeeping/tasks/{id}/start` · `/complete` · `/issue` | Buồng phòng | Bắt đầu / dọn xong / báo sự cố |
+| POST | `/api/housekeeping/tasks/{id}/start` · `/complete` · `/issue` | Buồng phòng | Bắt đầu / dọn xong (phòng trống → "Chờ kiểm tra"; người có quyền kiểm tra tự hoàn thành thì coi như đạt) / báo sự cố (tự mở phiếu kỹ thuật khoá phòng) |
+| POST | `/api/housekeeping/tasks/{id}/inspect` | RoomInspectors (Admin, Lễ tân) | Kiểm tra phòng `{ "Dat", "MucChuaDat": [...], "GhiChu" }` theo danh mục của hạng phòng (cấu hình `Housekeeping` trong appsettings.json). Đạt: phòng sẵn sàng; chưa đạt: trả lại nhân viên dọn lại |
+| POST | `/api/housekeeping/rooms/{maPhong}/minibar` | Admin, Lễ tân, Buồng phòng | Ghi đồ minibar `{ "Items": [{ "MaDichVu", "SoLuong" }] }` vào bảng kê của khách đang ở; chỉ dịch vụ đánh dấu `LaMinibar` |
+| GET | `/api/maintenance?loc` | Admin, Lễ tân, Buồng phòng | Phiếu kỹ thuật: `mo` (mới / đang sửa, khẩn trước), `xong`, trống: 30 ngày |
+| POST | `/api/maintenance` | Admin, Lễ tân, Buồng phòng | Mở phiếu `{ "MaPhong", "MoTa", "MucDo": "Thường" \| "Khẩn", "KhoaPhong" }`; khoá phòng → Bảo trì (bỏ qua khi phòng có khách) |
+| PATCH | `/api/maintenance/{id}` | FrontDesk | Đang sửa / đã xong / huỷ (huỷ cần lý do). Phiếu khoá phòng cuối cùng kết thúc → phòng Đang dọn + việc "Dọn sau sửa chữa"; yêu cầu khách loại Kỹ thuật liên kết tự hoàn thành |
 | POST | `/api/housekeeping/rooms/{maPhong}/clean` | FrontDesk | Xác nhận phòng đã dọn |
 | GET | `/api/dashboard` | Finance | Bảng điều khiển: công suất / khách đến / khách đi hôm nay, doanh thu thuần – ADR – RevPAR 30 ngày so với kỳ trước, công suất đã đặt 14 ngày tới, việc cần xử lý, đánh giá mới |
 | GET | `/api/reports/revenue`, `/revenue/export` | Finance | Báo cáo doanh thu (JSON / Excel) |

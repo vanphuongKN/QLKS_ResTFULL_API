@@ -190,6 +190,27 @@ namespace QLKSan.ApiClients
             => HttpGetFileAsync("api/reports/guests/export?" + Range(tuNgay, denNgay));
     }
 
+    // ===== /api/maintenance: phiếu kỹ thuật =====
+    public interface IMaintenanceApiClient
+    {
+        Task<List<MaintenanceTicketDto>> GetAllAsync(string loc = null);
+        Task<MaintenanceTicketDto> CreateAsync(MaintenanceCreateRequest request);
+        Task<MaintenanceTicketDto> UpdateStatusAsync(int maPhieu, GuestRequestStatus trangThai, string ketQua);
+    }
+
+    public class MaintenanceApiClient : ApiClientBase, IMaintenanceApiClient
+    {
+        public MaintenanceApiClient(HttpClient http) : base(http) { }
+
+        public Task<List<MaintenanceTicketDto>> GetAllAsync(string loc = null)
+            => HttpGetAsync<List<MaintenanceTicketDto>>("api/maintenance" + (string.IsNullOrWhiteSpace(loc) ? "" : $"?loc={Uri.EscapeDataString(loc)}"));
+
+        public Task<MaintenanceTicketDto> CreateAsync(MaintenanceCreateRequest request) => HttpPostAsync<MaintenanceTicketDto>("api/maintenance", request);
+
+        public Task<MaintenanceTicketDto> UpdateStatusAsync(int maPhieu, GuestRequestStatus trangThai, string ketQua)
+            => HttpPatchAsync<MaintenanceTicketDto>($"api/maintenance/{maPhieu}", new MaintenanceUpdateRequest { TrangThai = trangThai, KetQua = ketQua });
+    }
+
     // ===== /api/housekeeping =====
     public interface IHousekeepingApiClient
     {
@@ -198,6 +219,8 @@ namespace QLKSan.ApiClients
         Task<List<HousekeepingTaskDto>> GetMyTasksAsync();
         Task AssignAsync(string maPhanCong, string maNhanVien);
         Task<int> AssignBulkAsync(List<string> maPhanCongs, string maNhanVien);
+        Task InspectAsync(string maPhanCong, InspectTaskRequest request);
+        Task<decimal> PostMinibarAsync(string maPhong, MinibarRequest request);
         Task StartAsync(string maPhanCong);
         Task CompleteAsync(string maPhanCong);
         Task ReportIssueAsync(string maPhanCong, string ghiChu);
@@ -216,6 +239,12 @@ namespace QLKSan.ApiClients
 
         public Task<int> AssignBulkAsync(List<string> maPhanCongs, string maNhanVien)
             => HttpPostAsync<int>("api/housekeeping/tasks/assign-bulk", new BulkAssignTaskRequest { MaPhanCongs = maPhanCongs, MaNhanVien = maNhanVien });
+
+        public Task InspectAsync(string maPhanCong, InspectTaskRequest request)
+            => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/inspect", request);
+
+        public Task<decimal> PostMinibarAsync(string maPhong, MinibarRequest request)
+            => HttpPostAsync<decimal>($"api/housekeeping/rooms/{Uri.EscapeDataString(maPhong)}/minibar", request);
 
         public Task StartAsync(string maPhanCong) => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/start");
         public Task CompleteAsync(string maPhanCong) => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/complete");

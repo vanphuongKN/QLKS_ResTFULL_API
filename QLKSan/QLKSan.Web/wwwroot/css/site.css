@@ -1077,3 +1077,13 @@ tr.guest-companion td { background: #fcfbf8; }
 .my-task.is-p1 { border-top: 3px solid var(--danger); }
 .my-task.is-p2 { border-top: 3px solid var(--warning); }
 @media (max-width: 575.98px) { .hk-floor { grid-template-columns: 1fr; gap: 6px; } .hk-rooms { grid-template-columns: repeat(2, 1fr); } }
+
+/* Kiểm tra phòng, minibar */
+.inspect-card { border-top: 3px solid var(--info); }
+.inspect-item { border: 1px solid var(--border-light); border-radius: 8px; padding: 10px 14px; min-width: 210px; }
+.inspect-list .form-check { padding: 6px 0 6px 1.8em; border-bottom: 1px dashed var(--border-light); }
+.minibar-form { max-width: 640px; }
+.minibar-items { display: flex; flex-direction: column; gap: 10px; }
+.minibar-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+.minibar-item .qty { display: flex; gap: 6px; width: 150px; }
+.minibar-item .qty input { padding-left: 4px; padding-right: 4px; }

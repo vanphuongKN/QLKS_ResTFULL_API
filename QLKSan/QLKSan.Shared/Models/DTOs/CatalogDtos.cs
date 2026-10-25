@@ -13,6 +13,7 @@ namespace QLKSan.Models.DTOs
 
         // Dịch vụ được giới thiệu ở mục "Trải nghiệm" trang chủ (không ghi giá)
         public bool LaTraiNghiem { get; set; }
+        public bool LaMinibar { get; set; }
         public string MoTa { get; set; }
     }
 

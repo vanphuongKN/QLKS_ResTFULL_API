@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
@@ -15,10 +16,14 @@ namespace QLKSan.Business
     public class HousekeepingService : IHousekeepingService
     {
         private readonly ApplicationDbContext _context;
+        private readonly HousekeepingPolicy _policy;
+        private readonly IServiceManager _serviceManager;
 
-        public HousekeepingService(ApplicationDbContext context)
+        public HousekeepingService(ApplicationDbContext context, IOptions<HousekeepingPolicy> policy, IServiceManager serviceManager)
         {
             _context = context;
+            _policy = policy.Value;
+            _serviceManager = serviceManager;
         }
 
         public async Task<IEnumerable<Phong>> GetRoomsNeedingCleaningAsync()
@@ -65,7 +70,8 @@ namespace QLKSan.Business
         private IQueryable<PhanCongDonPhong> TaskQuery()
             => _context.PhanCongDonPhongs
                 .Include(t => t.Phong).ThenInclude(p => p.LoaiPhong)
-                .Include(t => t.NhanVien);
+                .Include(t => t.NhanVien)
+                .Include(t => t.NhanVienKiemTra);
 
         public async Task<IEnumerable<PhanCongDonPhong>> GetOpenTasksAsync()
         {
@@ -182,6 +188,8 @@ namespace QLKSan.Business
                 {
                     var dto = t.ToDto();
                     SetPriority(dto, den.GetValueOrDefault(t.MaPhong));
+                    if (t.TrangThai == HousekeepingTaskStatus.AwaitingInspection)
+                        dto.DanhMucKiemTra = _policy.DanhMucCho(t.Phong?.MaLoai);
                     return dto;
                 })
                 .OrderBy(t => t.TrangThai == HousekeepingTaskStatus.Completed)
@@ -200,6 +208,10 @@ namespace QLKSan.Business
                     .Where(c => c.PhieuDatPhong.TrangThai == BookingStatus.CheckedIn && c.PhieuDatPhong.NgayCheckOutDuKien < today.AddDays(1))
                     .Select(c => c.MaPhong).ToListAsync())
                 .ToHashSet();
+            var suCo = (await _context.PhieuKyThuats
+                    .Where(t => t.TrangThai == GuestRequestStatus.New || t.TrangThai == GuestRequestStatus.InProgress)
+                    .OrderByDescending(t => t.ThoiGianBao).ToListAsync())
+                .GroupBy(t => t.MaPhong).ToDictionary(g => g.Key, g => g.First().MoTa);
 
             return rooms.Select(p =>
                 {
@@ -215,7 +227,8 @@ namespace QLKSan.Business
                         GioDen = k?.GioDen,
                         KhachDenVIP = k?.LaVIP ?? false,
                         KhachDiHomNay = phongDi.Contains(p.MaPhong),
-                        ViecDangMo = viec.GetValueOrDefault(p.MaPhong)
+                        ViecDangMo = viec.GetValueOrDefault(p.MaPhong),
+                        SuCo = suCo.GetValueOrDefault(p.MaPhong)
                     };
                 })
                 .OrderBy(r => r.Tang).ThenBy(r => r.SoPhong)
@@ -235,16 +248,31 @@ namespace QLKSan.Business
             return task;
         }
 
-        public async Task<PhanCongDonPhong> CompleteTaskAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy)
+        public async Task<PhanCongDonPhong> CompleteTaskAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy, bool laNguoiKiemTra = false)
         {
             var task = await FindTaskAsync(maPhanCong);
             EnsureCanAct(task, maNhanVienThucHien, laQuanLy);
-            if (!HousekeepingTasks.IsOpen(task.TrangThai) || (task.TrangThai == HousekeepingTaskStatus.Unassigned && !laQuanLy))
+            if (!HousekeepingTasks.IsOpen(task.TrangThai) || task.TrangThai == HousekeepingTaskStatus.AwaitingInspection
+                || (task.TrangThai == HousekeepingTaskStatus.Unassigned && !laQuanLy))
                 throw new ConflictException("Công việc không ở trạng thái có thể hoàn thành.");
 
-            task.TrangThai = HousekeepingTaskStatus.Completed;
             task.ThoiGianBatDau ??= DateTime.Now;
             task.ThoiGianHoanThanh = DateTime.Now;
+
+            // Phòng trống vừa dọn phải qua kiểm tra trước khi bán; người có quyền kiểm tra tự hoàn thành thì coi như đã kiểm tra đạt
+            if (task.Phong.TrangThai == RoomStatus.Cleaning)
+            {
+                if (!laNguoiKiemTra)
+                {
+                    task.TrangThai = HousekeepingTaskStatus.AwaitingInspection;
+                    await _context.SaveChangesAsync();
+                    return task;
+                }
+                task.ThoiGianKiemTra = DateTime.Now;
+                task.MaNhanVienKiemTra = maNhanVienThucHien;
+                task.KetQuaKiemTra = "Đạt (người kiểm tra xác nhận khi hoàn thành)";
+            }
+            task.TrangThai = HousekeepingTaskStatus.Completed;
 
             // Dọn xong: phòng sẵn sàng đón khách; yêu cầu khách liên kết (nếu có) hoàn thành
             if (task.Phong.TrangThai == RoomStatus.Cleaning)
@@ -252,7 +280,74 @@ namespace QLKSan.Business
             await HousekeepingTasks.CompleteLinkedRequestAsync(_context, task, $"Buồng phòng đã xử lý ({task.NhanVien?.TenNhanVien ?? "quản lý"})");
 
             await _context.SaveChangesAsync();
+            await _context.Entry(task).Reference(t => t.NhanVienKiemTra).LoadAsync();
             return task;
+        }
+
+        public async Task<PhanCongDonPhong> InspectAsync(string maPhanCong, bool dat, IList<string> mucChuaDat, string ghiChu, string maNguoiKiemTra)
+        {
+            var task = await FindTaskAsync(maPhanCong);
+            if (task.TrangThai != HousekeepingTaskStatus.AwaitingInspection)
+                throw new ConflictException("Chỉ kiểm tra công việc đã dọn xong, đang chờ kiểm tra.");
+            var danhMuc = _policy.DanhMucCho(task.Phong?.MaLoai);
+            var chuaDat = (mucChuaDat ?? new List<string>()).Where(m => !string.IsNullOrWhiteSpace(m)).Select(m => m.Trim()).Distinct().ToList();
+            if (chuaDat.Any(m => !danhMuc.Contains(m)))
+                throw new BusinessException("Có mục không thuộc danh mục kiểm tra của hạng phòng.");
+            ghiChu = string.IsNullOrWhiteSpace(ghiChu) ? null : ghiChu.Trim();
+
+            task.ThoiGianKiemTra = DateTime.Now;
+            task.MaNhanVienKiemTra = maNguoiKiemTra;
+            if (dat)
+            {
+                task.TrangThai = HousekeepingTaskStatus.Completed;
+                task.KetQuaKiemTra = "Đạt" + (ghiChu != null ? $": {ghiChu}" : "");
+                if (task.Phong.TrangThai == RoomStatus.Cleaning)
+                    task.Phong.TrangThai = RoomStatus.Available;
+                await HousekeepingTasks.CompleteLinkedRequestAsync(_context, task, $"Buồng phòng đã xử lý ({task.NhanVien?.TenNhanVien ?? "quản lý"})");
+            }
+            else
+            {
+                if (chuaDat.Count == 0 && ghiChu == null)
+                    throw new BusinessException("Vui lòng chọn mục chưa đạt hoặc ghi chú lý do.");
+                // Trả lại nhân viên đã dọn (hoặc chờ giao nếu chưa có ai) để dọn lại
+                task.TrangThai = task.MaNhanVien == null ? HousekeepingTaskStatus.Unassigned : HousekeepingTaskStatus.Assigned;
+                task.ThoiGianBatDau = null;
+                task.ThoiGianHoanThanh = null;
+                task.SoLanKhongDat++;
+                task.KetQuaKiemTra = "Chưa đạt: " + string.Join("; ", chuaDat.Concat(ghiChu != null ? new[] { ghiChu } : Array.Empty<string>()));
+                task.GhiChu = string.IsNullOrEmpty(task.GhiChu) ? task.KetQuaKiemTra : $"{task.GhiChu} | {task.KetQuaKiemTra}";
+            }
+            await _context.SaveChangesAsync();
+            await _context.Entry(task).Reference(t => t.NhanVienKiemTra).LoadAsync();
+            return task;
+        }
+
+        public async Task<decimal> PostMinibarAsync(string maPhong, IList<Models.Requests.ServiceOrderItem> items, string nguoiGhi)
+        {
+            var booking = await _context.ChiTietDatPhongs
+                .Where(c => c.MaPhong == maPhong && c.PhieuDatPhong.TrangThai == BookingStatus.CheckedIn)
+                .Select(c => c.PhieuDatPhong)
+                .FirstOrDefaultAsync()
+                ?? throw new ConflictException("Phòng không có khách đang lưu trú để ghi minibar.");
+            var dong = (items ?? new List<Models.Requests.ServiceOrderItem>()).Where(i => i.SoLuong > 0).ToList();
+            if (dong.Count == 0) throw new BusinessException("Vui lòng chọn ít nhất một món.");
+
+            var ma = dong.Select(i => i.MaDichVu).ToList();
+            var dichVu = await _context.DichVus.Where(d => ma.Contains(d.MaDichVu)).ToDictionaryAsync(d => d.MaDichVu);
+            if (dong.Any(i => !dichVu.TryGetValue(i.MaDichVu, out var d) || !d.LaMinibar))
+                throw new BusinessException("Chỉ ghi được đồ minibar.");
+
+            decimal tong = 0;
+            foreach (var i in dong)
+            {
+                await _serviceManager.OrderServiceAsync(booking.MaDatPhong, i.MaDichVu, i.SoLuong);
+                tong += dichVu[i.MaDichVu].GiaDichVu * i.SoLuong;
+            }
+            var tracked = await _context.PhieuDatPhongs.FindAsync(booking.MaDatPhong);
+            tracked.GhiChu = BookingNotes.Append(tracked.GhiChu,
+                $"[Minibar {DateTime.Now:dd/MM HH:mm} - {nguoiGhi}] " + string.Join(", ", dong.Select(i => $"{dichVu[i.MaDichVu].TenDichVu} × {i.SoLuong}")));
+            await _context.SaveChangesAsync();
+            return tong;
         }
 
         public async Task<PhanCongDonPhong> ReportIssueAsync(string maPhanCong, string ghiChu, string maNhanVienThucHien, bool laQuanLy)
@@ -265,9 +360,9 @@ namespace QLKSan.Business
             task.TrangThai = HousekeepingTaskStatus.Issue;
             task.GhiChu = string.IsNullOrEmpty(task.GhiChu) ? $"Sự cố: {ghiChu}" : $"{task.GhiChu} | Sự cố: {ghiChu}";
 
-            // Phòng có sự cố chuyển sang bảo trì (không áp dụng nếu khách vẫn đang ở)
-            if (task.Phong.TrangThai != RoomStatus.Occupied)
-                task.Phong.TrangThai = RoomStatus.Maintenance;
+            // Mở phiếu kỹ thuật khoá phòng: phòng chuyển Bảo trì (không áp dụng nếu khách vẫn đang ở)
+            await MaintenanceService.OpenAsync(_context, task.Phong, ghiChu.Trim(), MaintenanceService.MucDoThuong, true,
+                maNhanVienThucHien, task.MaPhanCong, task.MaYeuCau);
 
             await _context.SaveChangesAsync();
             return task;

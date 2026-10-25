@@ -39,6 +39,7 @@ namespace QLKSan.Data
         public DbSet<LichSuDoiPhong> LichSuDoiPhongs { get; set; }
         public DbSet<YeuCauKhach> YeuCauKhachs { get; set; }
         public DbSet<GiaoCa> GiaoCas { get; set; }
+        public DbSet<PhieuKyThuat> PhieuKyThuats { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -210,12 +211,24 @@ namespace QLKSan.Data
                        : v == QLKSan.Enums.HousekeepingTaskStatus.InProgress ? "Đang dọn"
                        : v == QLKSan.Enums.HousekeepingTaskStatus.Completed ? "Hoàn thành"
                        : v == QLKSan.Enums.HousekeepingTaskStatus.Issue ? "Sự cố"
+                       : v == QLKSan.Enums.HousekeepingTaskStatus.AwaitingInspection ? "Chờ kiểm tra"
                        : "Chờ giao",
                     v => v == "Đã giao" ? QLKSan.Enums.HousekeepingTaskStatus.Assigned
                        : v == "Đang dọn" ? QLKSan.Enums.HousekeepingTaskStatus.InProgress
                        : v == "Hoàn thành" ? QLKSan.Enums.HousekeepingTaskStatus.Completed
                        : v == "Sự cố" ? QLKSan.Enums.HousekeepingTaskStatus.Issue
+                       : v == "Chờ kiểm tra" ? QLKSan.Enums.HousekeepingTaskStatus.AwaitingInspection
                        : QLKSan.Enums.HousekeepingTaskStatus.Unassigned));
+
+            modelBuilder.Entity<PhieuKyThuat>()
+                .Property(t => t.TrangThai)
+                .HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<QLKSan.Enums.GuestRequestStatus, string>(
+                    v => v == QLKSan.Enums.GuestRequestStatus.InProgress ? "Đang sửa"
+                       : v == QLKSan.Enums.GuestRequestStatus.Done ? "Đã xong"
+                       : v == QLKSan.Enums.GuestRequestStatus.Cancelled ? "Đã huỷ" : "Mới",
+                    v => v == "Đang sửa" ? QLKSan.Enums.GuestRequestStatus.InProgress
+                       : v == "Đã xong" ? QLKSan.Enums.GuestRequestStatus.Done
+                       : v == "Đã huỷ" ? QLKSan.Enums.GuestRequestStatus.Cancelled : QLKSan.Enums.GuestRequestStatus.New));
 
             // Configure Unique Constraints based on Database Schema
             modelBuilder.Entity<TaiKhoan>()

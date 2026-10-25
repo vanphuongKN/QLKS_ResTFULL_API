@@ -28,6 +28,10 @@ namespace QLKSan.Common
         // Xem tổng quan buồng phòng
         public const string HousekeepingTeam = Admin + "," + Receptionist + "," + Housekeeping;
 
+        // Kiểm tra phòng sau khi dọn (đạt → phòng sẵn sàng đón khách).
+        // Khi có vai trò Giám sát buồng phòng: thêm vào Role enum + StaffRoles và nối vào hằng số này là đủ
+        public const string RoomInspectors = Admin + "," + Receptionist;
+
         // Mọi nhân viên khách sạn
         public const string AllStaff = Admin + "," + Receptionist + "," + Housekeeping + "," + Accountant;
 

@@ -32,7 +32,14 @@ namespace QLKSan.Business
 
         // laQuanLy = true: Admin/Lễ tân được thao tác trên công việc của người khác
         Task<PhanCongDonPhong> StartTaskAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy);
-        Task<PhanCongDonPhong> CompleteTaskAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy);
+        // Phòng trống vừa dọn: chuyển "Chờ kiểm tra" (trừ khi người bấm có quyền kiểm tra — coi như đã kiểm tra đạt)
+        Task<PhanCongDonPhong> CompleteTaskAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy, bool laNguoiKiemTra = false);
+
+        // Kiểm tra phòng: đạt → hoàn thành, phòng sẵn sàng; chưa đạt → trả lại nhân viên dọn lại (ghi mục chưa đạt)
+        Task<PhanCongDonPhong> InspectAsync(string maPhanCong, bool dat, IList<string> mucChuaDat, string ghiChu, string maNguoiKiemTra);
+
+        // Ghi đồ minibar khách đã dùng vào bảng kê của phiếu đang ở tại phòng; trả về tổng tiền vừa ghi
+        Task<decimal> PostMinibarAsync(string maPhong, IList<Models.Requests.ServiceOrderItem> items, string nguoiGhi);
         Task<PhanCongDonPhong> ReportIssueAsync(string maPhanCong, string ghiChu, string maNhanVienThucHien, bool laQuanLy);
     }
 }

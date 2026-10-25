@@ -15,8 +15,11 @@
         HousekeepingTaskStatus.Assigned => "badge-booked",
         HousekeepingTaskStatus.InProgress => "badge-cleaning",
         HousekeepingTaskStatus.Issue => "badge-occupied",
+        HousekeepingTaskStatus.AwaitingInspection => "badge-booked",
         _ => "badge-available"
     };
+    var choKiemTra = tasks.Where(t => t.TrangThai == HousekeepingTaskStatus.AwaitingInspection).ToList();
+    var laNguoiKiemTra = WebRoles.RoomInspectors.Split(',').Any(User.IsInRole);
     (string Css, string Nhan) Phong(RoomStatus t) => t switch
     {
         RoomStatus.Available => ("is-clean", "Sạch"),
@@ -57,6 +60,46 @@
     <div class="alert alert-warning mb-3"><i class="fas fa-triangle-exclamation me-2"></i><strong>@chuaSan phòng</strong> có khách đến hôm nay nhưng chưa sạch — ưu tiên giao dọn trước.</div>
 }
 
+@if (choKiemTra.Any())
+{
+    <div class="card mb-4 inspect-card">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="text-navy fw-bold mb-0"><i class="fas fa-clipboard-check text-gold me-2"></i>Chờ kiểm tra (@choKiemTra.Count)</h5>
+            <small class="text-muted">Phòng đã dọn xong; kiểm tra theo danh mục trước khi phòng được bán</small>
+        </div>
+        <div class="p-3 d-flex flex-wrap gap-3">
+            @foreach (var t in choKiemTra)
+            {
+                <div class="inspect-item">
+                    <div><strong>Phòng @t.SoPhong</strong> <span class="prio @UuTien(t.UuTien).Css">@UuTien(t.UuTien).Nhan</span></div>
+                    <small class="text-muted d-block">@t.TenNhanVien · xong lúc @t.ThoiGianHoanThanh?.ToString("HH:mm")@(t.SoLanKhongDat > 0 ? $" · đã trả lại {t.SoLanKhongDat} lần" : "")</small>
+                    @if (laNguoiKiemTra)
+                    {
+                        <button type="button" class="btn btn-sm btn-gold mt-2" data-inspect="@t.MaPhanCong" data-phong="@t.SoPhong"
+                                data-danhmuc="@System.Text.Json.JsonSerializer.Serialize(t.DanhMucKiemTra)">Kiểm tra</button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="modal fade" id="inspectModal" tabindex="-1" aria-labelledby="inTitle">
+        <div class="modal-dialog">
+            <form asp-action="Inspect" method="post" class="modal-content">
+                <div class="modal-header"><h5 class="modal-title fw-bold" id="inTitle">Kiểm tra phòng</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" name="maPhanCong" id="inMa" />
+                    <p class="small text-muted">Tích các mục đạt. Bỏ tích mục nào thì phòng được trả lại cho nhân viên dọn lại.</p>
+                    <div id="inList" class="inspect-list"></div>
+                    <label class="form-label fw-semibold mt-3" for="inGhiChu">Ghi chú</label>
+                    <input name="ghiChu" id="inGhiChu" class="form-control" maxlength="300" placeholder="VD: thay khăn tắm bị ố" />
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold" id="inSubmit">Đạt — mở bán phòng</button></div>
+            </form>
+        </div>
+    </div>
+}
+
 <div class="row g-3 mb-4">
     @foreach (var s in stats)
     {
@@ -75,7 +118,9 @@
 <!-- Sơ đồ buồng phòng theo tầng -->
 <div class="card p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <h5 class="text-navy fw-bold mb-0"><i class="fas fa-building text-gold me-2"></i>Sơ đồ buồng phòng</h5>
+        <h5 class="text-navy fw-bold mb-0"><i class="fas fa-building text-gold me-2"></i>Sơ đồ buồng phòng
+            <a asp-action="Minibar" class="btn btn-sm btn-outline-navy ms-2"><i class="fas fa-wine-bottle me-1"></i>Ghi minibar</a>
+            <a asp-action="Maintenance" class="btn btn-sm btn-outline-navy ms-1"><i class="fas fa-screwdriver-wrench me-1"></i>Kỹ thuật</a></h5>
         <div class="hk-legend">
             <span class="is-clean">Sạch</span><span class="is-dirty">Chưa dọn</span><span class="is-occupied">Có khách</span><span class="is-ooo">Bảo trì</span>
         </div>
@@ -97,6 +142,7 @@
                             <small class="hk-tag">@if (r.KhachDenVIP) { <i class="fas fa-crown text-gold me-1"></i> }Đến @(r.GioDen ?? "hôm nay")</small>
                         }
                         @if (r.KhachDiHomNay) { <small class="hk-tag"><i class="fas fa-sign-out-alt me-1"></i>Đi hôm nay</small> }
+                        @if (r.SuCo != null) { <small class="hk-tag text-danger" title="@r.SuCo"><i class="fas fa-screwdriver-wrench me-1"></i>@r.SuCo</small> }
                         @if (v != null)
                         {
                             <small class="hk-task"><span class="badge-status @BadgeClass(v.TrangThai)">@v.TrangThai.GetDisplayName()</span> @(v.TenNhanVien ?? "")</small>
@@ -194,6 +240,33 @@
 
 @section Scripts {
     <script>
+        // Hộp thoại kiểm tra: danh mục theo hạng phòng; bỏ tích mục nào → chưa đạt
+        document.querySelectorAll('[data-inspect]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var list = document.getElementById('inList');
+                list.innerHTML = '';
+                document.getElementById('inMa').value = b.getAttribute('data-inspect');
+                document.getElementById('inTitle').textContent = 'Kiểm tra phòng ' + b.getAttribute('data-phong');
+                JSON.parse(b.getAttribute('data-danhmuc') || '[]').forEach(function (m, i) {
+                    var row = document.createElement('div'); row.className = 'form-check';
+                    var all = document.createElement('input'); all.type = 'hidden'; all.name = 'danhMuc'; all.value = m;
+                    var cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'form-check-input'; cb.name = 'daDat'; cb.value = m; cb.checked = true; cb.id = 'inM' + i;
+                    var lb = document.createElement('label'); lb.className = 'form-check-label'; lb.htmlFor = cb.id; lb.textContent = m;
+                    cb.addEventListener('change', capNhatKiemTra);
+                    row.appendChild(all); row.appendChild(cb); row.appendChild(lb); list.appendChild(row);
+                });
+                document.getElementById('inGhiChu').value = '';
+                capNhatKiemTra();
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('inspectModal')).show();
+            });
+        });
+        function capNhatKiemTra() {
+            var thieu = document.querySelectorAll('#inList input[name=daDat]:not(:checked)').length;
+            var btn = document.getElementById('inSubmit');
+            btn.textContent = thieu ? 'Chưa đạt — trả lại dọn lại (' + thieu + ' mục)' : 'Đạt — mở bán phòng';
+            btn.className = thieu ? 'btn btn-danger' : 'btn-gold';
+        }
+
         (function () {
             var boxes = document.querySelectorAll('input[name=maPhanCongs]'), btn = document.getElementById('bulkBtn');
             function cap() {

@@ -26,6 +26,9 @@ namespace QLKSan.Models.Entities
 
         public bool LaTraiNghiem { get; set; }
 
+        // Đồ minibar: nhân viên buồng phòng ghi khi kiểm tra phòng, tự vào bảng kê của khách
+        public bool LaMinibar { get; set; }
+
         [StringLength(500)]
         public string? MoTa { get; set; }
 
@@ -509,9 +512,70 @@ namespace QLKSan.Models.Entities
         [ForeignKey("YeuCauKhach")]
         public int? MaYeuCau { get; set; }
 
+        // Kiểm tra phòng sau khi dọn: người kiểm tra, thời điểm, kết quả; số lần chưa đạt phải dọn lại
+        public DateTime? ThoiGianKiemTra { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("NhanVienKiemTra")]
+        public string? MaNhanVienKiemTra { get; set; }
+
+        [StringLength(500)]
+        public string? KetQuaKiemTra { get; set; }
+
+        public int SoLanKhongDat { get; set; }
+
         public Phong Phong { get; set; }
         public NhanVien? NhanVien { get; set; }
+        public NhanVien? NhanVienKiemTra { get; set; }
         public YeuCauKhach? YeuCauKhach { get; set; }
+    }
+
+    // Phiếu kỹ thuật: sự cố cần sửa trong phòng; KhoaPhong = phòng chuyển Bảo trì tới khi sửa xong
+    public class PhieuKyThuat
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaPhieu { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("Phong")]
+        public string MaPhong { get; set; }
+
+        [StringLength(500)]
+        public string MoTa { get; set; }
+
+        // Thường | Khẩn
+        [StringLength(20)]
+        public string MucDo { get; set; }
+
+        public bool KhoaPhong { get; set; }
+
+        public GuestRequestStatus TrangThai { get; set; } = GuestRequestStatus.New;
+
+        [StringLength(10)]
+        [ForeignKey("NhanVienBao")]
+        public string? MaNhanVienBao { get; set; }
+
+        public DateTime ThoiGianBao { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        [ForeignKey("NhanVienXuLy")]
+        public string? MaNhanVienXuLy { get; set; }
+
+        public DateTime? ThoiGianXong { get; set; }
+
+        [StringLength(500)]
+        public string? KetQua { get; set; }
+
+        // Nguồn: việc buồng phòng báo sự cố / yêu cầu khách loại Kỹ thuật
+        [StringLength(10)]
+        public string? MaPhanCong { get; set; }
+
+        public int? MaYeuCau { get; set; }
+
+        public Phong Phong { get; set; }
+        public NhanVien? NhanVienBao { get; set; }
+        public NhanVien? NhanVienXuLy { get; set; }
     }
 
     public class LichSuGiaoDich

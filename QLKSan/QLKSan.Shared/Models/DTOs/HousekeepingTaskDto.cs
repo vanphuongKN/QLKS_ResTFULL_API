@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using QLKSan.Enums;
 
 namespace QLKSan.Models.DTOs
@@ -27,6 +28,32 @@ namespace QLKSan.Models.DTOs
         // 1 = gấp (khách VIP đến hôm nay), 2 = cao (khách đến hôm nay / khách đang chờ), 3 = thường, 4 = chờ kỹ thuật (sự cố)
         public int UuTien { get; set; } = 3;
         public string LyDoUuTien { get; set; }
+
+        // Kiểm tra phòng: danh mục theo hạng phòng (khi chờ kiểm tra), kết quả lần kiểm tra gần nhất
+        public List<string> DanhMucKiemTra { get; set; } = new List<string>();
+        public DateTime? ThoiGianKiemTra { get; set; }
+        public string TenNguoiKiemTra { get; set; }
+        public string KetQuaKiemTra { get; set; }
+        public int SoLanKhongDat { get; set; }
+    }
+
+    // Phiếu kỹ thuật (sự cố cần sửa trong phòng)
+    public class MaintenanceTicketDto
+    {
+        public int MaPhieu { get; set; }
+        public string MaPhong { get; set; }
+        public string SoPhong { get; set; }
+        public string MoTa { get; set; }
+        public string MucDo { get; set; }
+        public bool KhoaPhong { get; set; }
+        public GuestRequestStatus TrangThai { get; set; }
+        public string TenNguoiBao { get; set; }
+        public DateTime ThoiGianBao { get; set; }
+        public string TenNguoiXuLy { get; set; }
+        public DateTime? ThoiGianXong { get; set; }
+        public string KetQua { get; set; }
+        public string MaPhanCong { get; set; }
+        public int? MaYeuCau { get; set; }
     }
 
     // Một phòng trên bảng buồng phòng: trạng thái phòng, việc đang mở, khách đến / đi hôm nay
@@ -42,5 +69,8 @@ namespace QLKSan.Models.DTOs
         public bool KhachDenVIP { get; set; }
         public bool KhachDiHomNay { get; set; }
         public HousekeepingTaskDto ViecDangMo { get; set; }
+
+        // Phiếu kỹ thuật đang mở của phòng (mô tả gần nhất)
+        public string SuCo { get; set; }
     }
 }

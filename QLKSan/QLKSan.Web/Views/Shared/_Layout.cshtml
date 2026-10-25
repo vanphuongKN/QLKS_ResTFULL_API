@@ -33,11 +33,14 @@
                 {
                     ("", "Bảng điều khiển", "fa-th-large", Url.Action("Index", "Admin"), Is("Admin", "Index"), laAdmin),
                     ("", "Việc của tôi", "fa-clipboard-check", Url.Action("MyTasks", "Housekeeping"), Is("Housekeeping", "MyTasks"), laBuongPhong),
+                    ("", "Ghi minibar", "fa-wine-bottle", Url.Action("Minibar", "Housekeeping"), Is("Housekeeping", "Minibar"), laBuongPhong),
+                    ("", "Kỹ thuật", "fa-screwdriver-wrench", Url.Action("Maintenance", "Housekeeping"), Is("Housekeeping", "Maintenance"), laBuongPhong),
 
                     ("Vận hành", "Lễ tân", "fa-concierge-bell", Url.Action("Index", "Reception"), Is("Reception", "Index", "WalkIn", "ChangeRoom", "NewBooking"), laAdmin || laLeTan),
                     ("Vận hành", "Phòng nghỉ", "fa-th", Url.Action("Status", "Room"), Is("Room", "Status", "Details"), laAdmin || laLeTan || laKeToan),
                     ("Vận hành", "Lịch phòng", "fa-stream", Url.Action("Timeline", "Room"), Is("Room", "Timeline"), laAdmin || laLeTan || laKeToan),
-                    ("Vận hành", "Buồng phòng", "fa-broom", Url.Action("Tasks", "Housekeeping"), Is("Housekeeping", "Tasks"), laAdmin || laLeTan),
+                    ("Vận hành", "Buồng phòng", "fa-broom", Url.Action("Tasks", "Housekeeping"), Is("Housekeeping", "Tasks", "Minibar"), laAdmin || laLeTan),
+                    ("Vận hành", "Kỹ thuật", "fa-screwdriver-wrench", Url.Action("Maintenance", "Housekeeping"), Is("Housekeeping", "Maintenance"), laAdmin || laLeTan),
                     ("Vận hành", "Gọi dịch vụ", "fa-mug-hot", Url.Action("Index", "Service"), Is("Service"), laAdmin || laLeTan),
                     ("Vận hành", "Yêu cầu khách", "fa-clipboard-list", Url.Action("Requests", "Reception"), Is("Reception", "Requests"), laAdmin || laLeTan),
                     ("Vận hành", "Giao ca", "fa-cash-register", Url.Action("Shift", "Reception"), Is("Reception", "Shift"), laAdmin || laLeTan),

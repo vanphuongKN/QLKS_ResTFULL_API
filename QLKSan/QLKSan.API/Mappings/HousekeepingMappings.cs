@@ -25,6 +25,32 @@ namespace QLKSan.Mappings
                 ThoiGianHoanThanh = entity.ThoiGianHoanThanh,
                 GhiChu = entity.GhiChu,
                 Tang = Business.HousekeepingTasks.TangCua(entity.Phong?.SoPhong),
+                MaYeuCau = entity.MaYeuCau,
+                ThoiGianKiemTra = entity.ThoiGianKiemTra,
+                TenNguoiKiemTra = entity.NhanVienKiemTra?.TenNhanVien,
+                KetQuaKiemTra = entity.KetQuaKiemTra,
+                SoLanKhongDat = entity.SoLanKhongDat
+            };
+        }
+
+        public static MaintenanceTicketDto ToDto(this PhieuKyThuat entity)
+        {
+            if (entity == null) return null;
+            return new MaintenanceTicketDto
+            {
+                MaPhieu = entity.MaPhieu,
+                MaPhong = entity.MaPhong,
+                SoPhong = entity.Phong?.SoPhong,
+                MoTa = entity.MoTa,
+                MucDo = entity.MucDo,
+                KhoaPhong = entity.KhoaPhong,
+                TrangThai = entity.TrangThai,
+                TenNguoiBao = entity.NhanVienBao?.TenNhanVien,
+                ThoiGianBao = entity.ThoiGianBao,
+                TenNguoiXuLy = entity.NhanVienXuLy?.TenNhanVien,
+                ThoiGianXong = entity.ThoiGianXong,
+                KetQua = entity.KetQua,
+                MaPhanCong = entity.MaPhanCong,
                 MaYeuCau = entity.MaYeuCau
             };
         }

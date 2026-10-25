@@ -383,7 +383,38 @@ namespace QLKSan.Data
             // B1: việc buồng phòng xử lý yêu cầu của khách
             ("35. Thêm PhanCongDonPhong.MaYeuCau", @"
                 IF COL_LENGTH('PhanCongDonPhong', 'MaYeuCau') IS NULL
-                    ALTER TABLE PhanCongDonPhong ADD MaYeuCau INT NULL CONSTRAINT FK_PCDP_YeuCauKhach FOREIGN KEY REFERENCES YeuCauKhach(MaYeuCau);")
+                    ALTER TABLE PhanCongDonPhong ADD MaYeuCau INT NULL CONSTRAINT FK_PCDP_YeuCauKhach FOREIGN KEY REFERENCES YeuCauKhach(MaYeuCau);"),
+
+            // B3: kiểm tra phòng, đồ minibar, phiếu kỹ thuật
+            ("36. Thêm PhanCongDonPhong.ThoiGianKiemTra, MaNhanVienKiemTra, KetQuaKiemTra, SoLanKhongDat", @"
+                IF COL_LENGTH('PhanCongDonPhong', 'ThoiGianKiemTra') IS NULL
+                    ALTER TABLE PhanCongDonPhong ADD ThoiGianKiemTra DATETIME NULL,
+                                                     MaNhanVienKiemTra VARCHAR(10) NULL CONSTRAINT FK_PCDP_NVKiemTra FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                                                     KetQuaKiemTra NVARCHAR(500) NULL,
+                                                     SoLanKhongDat INT NOT NULL CONSTRAINT DF_PCDP_SoLanKhongDat DEFAULT 0;"),
+            ("37. Thêm DichVu.LaMinibar", @"
+                IF COL_LENGTH('DichVu', 'LaMinibar') IS NULL
+                    ALTER TABLE DichVu ADD LaMinibar BIT NOT NULL CONSTRAINT DF_DichVu_LaMinibar DEFAULT 0;"),
+            ("38. Tạo bảng PhieuKyThuat", @"
+                IF OBJECT_ID('PhieuKyThuat', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE PhieuKyThuat (
+                        MaPhieu INT IDENTITY(1,1) PRIMARY KEY,
+                        MaPhong VARCHAR(10) NOT NULL CONSTRAINT FK_PhieuKyThuat_Phong FOREIGN KEY REFERENCES Phong(MaPhong),
+                        MoTa NVARCHAR(500) NOT NULL,
+                        MucDo NVARCHAR(20) NOT NULL CONSTRAINT DF_PhieuKyThuat_MucDo DEFAULT N'Thường',
+                        KhoaPhong BIT NOT NULL CONSTRAINT DF_PhieuKyThuat_KhoaPhong DEFAULT 0,
+                        TrangThai NVARCHAR(20) NOT NULL CONSTRAINT DF_PhieuKyThuat_TrangThai DEFAULT N'Mới',
+                        MaNhanVienBao VARCHAR(10) NULL CONSTRAINT FK_PhieuKyThuat_NVBao FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        ThoiGianBao DATETIME NOT NULL CONSTRAINT DF_PhieuKyThuat_ThoiGianBao DEFAULT GETDATE(),
+                        MaNhanVienXuLy VARCHAR(10) NULL CONSTRAINT FK_PhieuKyThuat_NVXuLy FOREIGN KEY REFERENCES NhanVien(MaNhanVien),
+                        ThoiGianXong DATETIME NULL,
+                        KetQua NVARCHAR(500) NULL,
+                        MaPhanCong VARCHAR(10) NULL,
+                        MaYeuCau INT NULL
+                    );
+                    CREATE INDEX IX_PhieuKyThuat_Phong ON PhieuKyThuat(MaPhong, TrangThai);
+                END")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

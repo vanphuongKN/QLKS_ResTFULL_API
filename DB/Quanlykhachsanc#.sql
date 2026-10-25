@@ -165,6 +165,7 @@ CREATE TABLE DichVu (
     DonViTinh NVARCHAR(20),
     TrangThai NVARCHAR(50) DEFAULT N'Sẵn sàng',     -- Sẵn sàng | Đã hết
     LaTraiNghiem BIT NOT NULL DEFAULT 0,            -- giới thiệu ở mục "Trải nghiệm" trang chủ (không ghi giá)
+    LaMinibar BIT NOT NULL DEFAULT 0,               -- đồ minibar: nhân viên buồng phòng ghi vào bảng kê của khách
     MoTa NVARCHAR(500) NULL
 );
 
@@ -422,19 +423,45 @@ CREATE TABLE GiaoCa (
 );
 CREATE INDEX IX_GiaoCa_KetThuc ON GiaoCa(KetThuc DESC);
 
+-- Phiếu kỹ thuật: sự cố cần sửa trong phòng; KhoaPhong = phòng chuyển Bảo trì tới khi sửa xong
+CREATE TABLE PhieuKyThuat (
+    MaPhieu INT IDENTITY(1,1) PRIMARY KEY,
+    MaPhong VARCHAR(10) NOT NULL,
+    MoTa NVARCHAR(500) NOT NULL,
+    MucDo NVARCHAR(20) NOT NULL DEFAULT N'Thường',  -- Thường | Khẩn
+    KhoaPhong BIT NOT NULL DEFAULT 0,
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'Mới', -- Mới | Đang sửa | Đã xong | Đã huỷ
+    MaNhanVienBao VARCHAR(10) NULL,
+    ThoiGianBao DATETIME NOT NULL DEFAULT GETDATE(),
+    MaNhanVienXuLy VARCHAR(10) NULL,
+    ThoiGianXong DATETIME NULL,
+    KetQua NVARCHAR(500) NULL,
+    MaPhanCong VARCHAR(10) NULL,                    -- việc buồng phòng báo sự cố
+    MaYeuCau INT NULL,                              -- yêu cầu khách loại Kỹ thuật
+    CONSTRAINT FK_PhieuKyThuat_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
+    CONSTRAINT FK_PhieuKyThuat_NVBao FOREIGN KEY (MaNhanVienBao) REFERENCES NhanVien(MaNhanVien),
+    CONSTRAINT FK_PhieuKyThuat_NVXuLy FOREIGN KEY (MaNhanVienXuLy) REFERENCES NhanVien(MaNhanVien)
+);
+CREATE INDEX IX_PhieuKyThuat_Phong ON PhieuKyThuat(MaPhong, TrangThai);
+
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,
     MaPhong VARCHAR(10) NOT NULL,
     MaNhanVien VARCHAR(10) NULL,                          -- NULL = chưa giao
     MaDatPhong VARCHAR(10) NULL,                          -- phiếu vừa trả phòng tạo ra công việc
     LoaiCongViec NVARCHAR(50) NOT NULL DEFAULT N'Dọn sau trả phòng',
-    TrangThai NVARCHAR(50) NOT NULL DEFAULT N'Chờ giao',  -- Chờ giao | Đã giao | Đang dọn | Hoàn thành | Sự cố
+    TrangThai NVARCHAR(50) NOT NULL DEFAULT N'Chờ giao',  -- Chờ giao | Đã giao | Đang dọn | Chờ kiểm tra | Hoàn thành | Sự cố
     ThoiGianTao DATETIME NOT NULL DEFAULT GETDATE(),
     ThoiGianGiao DATETIME NULL,
     ThoiGianBatDau DATETIME NULL,
     ThoiGianHoanThanh DATETIME NULL,
     GhiChu NVARCHAR(500) NULL,
     MaYeuCau INT NULL,                                    -- yêu cầu khách (Buồng phòng) mà việc này xử lý
+    ThoiGianKiemTra DATETIME NULL,                        -- kiểm tra phòng sau khi dọn
+    MaNhanVienKiemTra VARCHAR(10) NULL,
+    KetQuaKiemTra NVARCHAR(500) NULL,
+    SoLanKhongDat INT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_PCDP_NVKiemTra FOREIGN KEY (MaNhanVienKiemTra) REFERENCES NhanVien(MaNhanVien),
     CONSTRAINT FK_PCDP_Phong FOREIGN KEY (MaPhong) REFERENCES Phong(MaPhong),
     CONSTRAINT FK_PCDP_YeuCauKhach FOREIGN KEY (MaYeuCau) REFERENCES YeuCauKhach(MaYeuCau),
     CONSTRAINT FK_PCDP_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien),
@@ -593,6 +620,12 @@ INSERT INTO DichVu (MaDichVu, TenDichVu, GiaDichVu, DonViTinh, TrangThai, LaTrai
 ('DV04', N'Spa & Massage',      500000, N'Lượt', N'Sẵn sàng', 1, N'Liệu trình massage và chăm sóc cơ thể giúp cân bằng lại sau những ngày dài di chuyển.'),
 ('DV05', N'Ăn sáng Buffet',     200000, N'Vé',   N'Sẵn sàng', 1, N'Bữa sáng tự chọn với nguyên liệu địa phương, phục vụ mỗi sáng trong không gian yên tĩnh.'),
 ('DV06', N'Đưa đón sân bay',    300000, N'Lượt', N'Đã hết',   1, N'Xe đón tận sân bay và đưa quý khách về khách sạn, sắp xếp trước theo lịch trình.');
+
+-- Đồ minibar (buồng phòng ghi khi kiểm tra phòng)
+INSERT INTO DichVu (MaDichVu, TenDichVu, GiaDichVu, DonViTinh, TrangThai, LaTraiNghiem, LaMinibar, MoTa) VALUES
+('DV07', N'Minibar - Nước khoáng', 40000, N'Chai', N'Sẵn sàng', 0, 1, NULL),
+('DV08', N'Minibar - Bia',         70000, N'Lon',  N'Sẵn sàng', 0, 1, NULL),
+('DV09', N'Minibar - Snack',       60000, N'Gói',  N'Sẵn sàng', 0, 1, NULL);
 
 -- Quy tắc giá: cuối tuần luôn áp dụng; dịp lễ sắp tới; ưu đãi Suite mùa thấp điểm
 INSERT INTO QuyTacGia (MaQuyTac, TenQuyTac, MaLoai, TuNgay, DenNgay, CacThu, PhanTramDieuChinh, UuTien, KichHoat) VALUES

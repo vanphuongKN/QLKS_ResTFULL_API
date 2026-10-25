@@ -103,8 +103,29 @@ namespace QLKSan.Controllers
         [Audit("Dọn phòng xong", "Buồng phòng")]
         public async Task<ActionResult<HousekeepingTaskDto>> Complete(string maPhanCong)
         {
-            var task = await _housekeepingService.CompleteTaskAsync(maPhanCong, User.GetMaNhanVien(), LaQuanLy);
+            var task = await _housekeepingService.CompleteTaskAsync(maPhanCong, User.GetMaNhanVien(), LaQuanLy, User.IsInAnyRole(AppRoles.RoomInspectors));
             return task.ToDto();
+        }
+
+        /// <summary>
+        /// Kiểm tra phòng sau khi dọn (theo danh mục của hạng phòng). Đạt: hoàn thành, phòng sẵn sàng đón khách.
+        /// Chưa đạt: trả lại nhân viên dọn lại, ghi các mục chưa đạt.
+        /// </summary>
+        [HttpPost("tasks/{maPhanCong}/inspect")]
+        [Authorize(Roles = AppRoles.RoomInspectors)]
+        [Audit("Kiểm tra phòng", "Buồng phòng")]
+        public async Task<ActionResult<HousekeepingTaskDto>> Inspect(string maPhanCong, InspectTaskRequest request)
+        {
+            var task = await _housekeepingService.InspectAsync(maPhanCong, request.Dat, request.MucChuaDat, request.GhiChu, User.GetMaNhanVien());
+            return task.ToDto();
+        }
+
+        /// <summary>Ghi đồ minibar khách đã dùng vào bảng kê của khách đang ở tại phòng; trả về tổng tiền vừa ghi.</summary>
+        [HttpPost("rooms/{maPhong}/minibar")]
+        [Audit("Ghi minibar", "Phòng")]
+        public async Task<ActionResult<decimal>> PostMinibar(string maPhong, MinibarRequest request)
+        {
+            return await _housekeepingService.PostMinibarAsync(maPhong, request.Items, $"Nhân viên {User.Identity?.Name}");
         }
 
         /// <summary>Báo sự cố khi dọn phòng: phòng chuyển sang Bảo trì.</summary>

@@ -107,6 +107,16 @@ namespace QLKSan.Business
                 y.KetQua = $"Đã chuyển buồng phòng ({task.MaPhanCong})";
                 await _context.SaveChangesAsync();
             }
+            // Yêu cầu kỹ thuật tại một phòng: mở phiếu kỹ thuật (không khoá phòng vì khách đang ở)
+            if (r.Loai == GuestRequestTypes.KyThuat && maPhong != null)
+            {
+                var phong = await _context.Phongs.FindAsync(maPhong);
+                var phieu = await MaintenanceService.OpenAsync(_context, phong, y.NoiDung, MaintenanceService.MucDoThuong, false, maNhanVien, null, y.MaYeuCau);
+                await _context.SaveChangesAsync();
+                y.TrangThai = GuestRequestStatus.InProgress;
+                y.KetQua = $"Đã chuyển kỹ thuật (phiếu #{phieu.MaPhieu})";
+                await _context.SaveChangesAsync();
+            }
             return (await Query().FirstAsync(x => x.MaYeuCau == y.MaYeuCau)).ToDto();
         }
 

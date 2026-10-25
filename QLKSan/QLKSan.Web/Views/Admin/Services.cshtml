@@ -40,6 +40,10 @@
                             {
                                 <span class="badge bg-secondary ms-2 small mb-2">Đã hết</span>
                             }
+                            @if (svc.LaMinibar)
+                            {
+                                <span class="badge bg-light text-dark ms-2 small mb-2"><i class="fas fa-wine-bottle me-1"></i>Minibar</span>
+                            }
                             @if (svc.LaTraiNghiem)
                             {
                                 <span class="badge bg-gold-light text-gold ms-2 small mb-2" title="Hiển thị ở mục Trải nghiệm trang chủ"><i class="fas fa-star me-1"></i>Trải nghiệm</span>
@@ -114,6 +118,10 @@
                         <input class="form-check-input" type="checkbox" name="laTraiNghiem" value="true" id="addServiceTN">
                         <label class="form-check-label" for="addServiceTN">Giới thiệu ở mục "Trải nghiệm" trên trang chủ</label>
                     </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="laMinibar" value="true" id="addServiceMB">
+                        <label class="form-check-label" for="addServiceMB">Đồ minibar (buồng phòng ghi được vào bảng kê)</label>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Mô tả cho khách</label>
                         <textarea name="moTa" class="form-control" rows="2" maxlength="500" placeholder="Một câu giới thiệu ngắn, hiển thị trên trang chủ"></textarea>
@@ -155,6 +163,10 @@
                         <input class="form-check-input" type="checkbox" name="laTraiNghiem" value="true" id="editServiceTN">
                         <label class="form-check-label" for="editServiceTN">Giới thiệu ở mục "Trải nghiệm" trên trang chủ</label>
                     </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="laMinibar" value="true" id="editServiceMB">
+                        <label class="form-check-label" for="editServiceMB">Đồ minibar (buồng phòng ghi được vào bảng kê)</label>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Mô tả cho khách</label>
                         <textarea name="moTa" id="editServiceMoTa" class="form-control" rows="2" maxlength="500" placeholder="Một câu giới thiệu ngắn, hiển thị trên trang chủ"></textarea>
@@ -178,6 +190,7 @@
         document.getElementById('editServiceGia').value = Math.floor(s.giaDichVu);
         document.getElementById('editServiceDvt').value = s.donViTinh;
         document.getElementById('editServiceTN').checked = s.laTraiNghiem;
+        document.getElementById('editServiceMB').checked = s.laMinibar;
         document.getElementById('editServiceMoTa').value = s.moTa || '';
         new bootstrap.Modal(document.getElementById('editServiceModal')).show();
     }

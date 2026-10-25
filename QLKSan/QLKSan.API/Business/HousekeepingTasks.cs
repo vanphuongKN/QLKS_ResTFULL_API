@@ -17,6 +17,7 @@ namespace QLKSan.Business
         public const string DonTheoYeuCau = "Dọn theo yêu cầu";
         public const string DonSauDoiPhong = "Dọn sau đổi phòng";
         public const string YeuCauKhach = "Yêu cầu của khách";
+        public const string DonSauSuaChua = "Dọn sau sửa chữa";
 
         // Tầng suy ra từ số phòng: bỏ 2 chữ số cuối (101 → 1, 1203 → 12)
         public static int TangCua(string soPhong)
@@ -34,11 +35,12 @@ namespace QLKSan.Business
             y.KetQua = ketQua;
         }
 
-        // Công việc đang mở: chưa hoàn thành và chưa báo sự cố
+        // Công việc đang mở: chưa hoàn thành và chưa báo sự cố (kể cả đã dọn, chờ kiểm tra)
         public static bool IsOpen(HousekeepingTaskStatus status)
             => status == HousekeepingTaskStatus.Unassigned
             || status == HousekeepingTaskStatus.Assigned
-            || status == HousekeepingTaskStatus.InProgress;
+            || status == HousekeepingTaskStatus.InProgress
+            || status == HousekeepingTaskStatus.AwaitingInspection;
 
         // Mỗi phòng chỉ có tối đa 1 công việc đang mở
         public static async Task<PhanCongDonPhong> EnsureOpenTaskAsync(ApplicationDbContext context, string maPhong, string maDatPhong, string loaiCongViec)
@@ -47,7 +49,8 @@ namespace QLKSan.Business
                 .FirstOrDefaultAsync(t => t.MaPhong == maPhong
                     && (t.TrangThai == HousekeepingTaskStatus.Unassigned
                      || t.TrangThai == HousekeepingTaskStatus.Assigned
-                     || t.TrangThai == HousekeepingTaskStatus.InProgress));
+                     || t.TrangThai == HousekeepingTaskStatus.InProgress
+                     || t.TrangThai == HousekeepingTaskStatus.AwaitingInspection));
             if (existing != null) return existing;
 
             var task = new PhanCongDonPhong
@@ -70,7 +73,8 @@ namespace QLKSan.Business
                 .Where(t => t.MaPhong == maPhong
                     && (t.TrangThai == HousekeepingTaskStatus.Unassigned
                      || t.TrangThai == HousekeepingTaskStatus.Assigned
-                     || t.TrangThai == HousekeepingTaskStatus.InProgress))
+                     || t.TrangThai == HousekeepingTaskStatus.InProgress
+                     || t.TrangThai == HousekeepingTaskStatus.AwaitingInspection))
                 .ToListAsync();
             foreach (var task in tasks)
             {
@@ -81,9 +85,22 @@ namespace QLKSan.Business
             }
         }
 
-        // Phòng hết bảo trì: các công việc báo sự cố của phòng coi như đã xử lý
-        public static async Task ResolveIssuesAsync(ApplicationDbContext context, string maPhong)
+        // Phòng hết bảo trì: các công việc báo sự cố của phòng coi như đã xử lý; closeTickets: đóng luôn phiếu kỹ thuật khoá phòng
+        // (lễ tân / quản lý đổi trạng thái phòng thủ công)
+        public static async Task ResolveIssuesAsync(ApplicationDbContext context, string maPhong, bool closeTickets = true)
         {
+            if (closeTickets)
+            {
+                var phieu = await context.PhieuKyThuats
+                    .Where(p => p.MaPhong == maPhong && p.KhoaPhong && (p.TrangThai == GuestRequestStatus.New || p.TrangThai == GuestRequestStatus.InProgress))
+                    .ToListAsync();
+                foreach (var p in phieu)
+                {
+                    p.TrangThai = GuestRequestStatus.Done;
+                    p.ThoiGianXong = DateTime.Now;
+                    p.KetQua = $"Đóng khi phòng hết bảo trì (đổi trạng thái thủ công {DateTime.Now:dd/MM HH:mm})";
+                }
+            }
             var issues = await context.PhanCongDonPhongs
                 .Where(t => t.MaPhong == maPhong && t.TrangThai == HousekeepingTaskStatus.Issue)
                 .ToListAsync();

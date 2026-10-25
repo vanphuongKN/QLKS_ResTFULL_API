@@ -2,8 +2,8 @@
 @model IEnumerable<QLKSan.Models.DTOs.HousekeepingTaskDto>
 @{
     ViewData["Title"] = "Việc của tôi";
-    var dangLam = Model.Where(t => t.TrangThai != HousekeepingTaskStatus.Completed).ToList();
-    var daXong = Model.Where(t => t.TrangThai == HousekeepingTaskStatus.Completed).ToList();
+    var daXong = Model.Where(t => t.TrangThai is HousekeepingTaskStatus.Completed or HousekeepingTaskStatus.AwaitingInspection).ToList();
+    var dangLam = Model.Except(daXong).ToList();
 }
 
 <div class="page-header">
@@ -14,6 +14,10 @@
     <div class="text-end">
         <div class="fw-bold text-navy">@User.GetHoTen()</div>
         <small class="text-muted">@dangLam.Count việc cần làm · @daXong.Count việc đã xong hôm nay</small>
+        <div class="d-flex gap-2 justify-content-end mt-2">
+            <a asp-action="Minibar" class="btn btn-sm btn-outline-navy"><i class="fas fa-wine-bottle me-1"></i>Ghi minibar</a>
+            <a asp-action="Maintenance" class="btn btn-sm btn-outline-navy"><i class="fas fa-screwdriver-wrench me-1"></i>Kỹ thuật</a>
+        </div>
     </div>
 </div>
 
@@ -46,6 +50,10 @@
                     </div>
                     <h4 class="text-navy fw-bold mb-0" style="font-family:'Cormorant Garamond', serif">Phòng @t.SoPhong <small class="text-muted fs-6">· tầng @t.Tang</small></h4>
                     <small class="text-gold fw-bold text-uppercase d-block mb-2" style="letter-spacing:1px">@t.TenLoaiPhong</small>
+                    @if (t.SoLanKhongDat > 0 && !string.IsNullOrEmpty(t.KetQuaKiemTra))
+                    {
+                        <p class="small text-danger fw-semibold mb-1"><i class="fas fa-rotate-left me-2"></i>Dọn lại — @t.KetQuaKiemTra</p>
+                    }
                     @if (!string.IsNullOrEmpty(t.LyDoUuTien)) { <p class="small fw-semibold mb-1 @(t.UuTien == 1 ? "text-danger" : "text-navy")"><i class="fas fa-bell me-2"></i>@t.LyDoUuTien</p> }
                     <p class="text-muted small mb-1"><i class="fas fa-broom me-2"></i>@t.LoaiCongViec</p>
                     <p class="text-muted small mb-3">
@@ -102,7 +110,7 @@
         <div class="card-body p-0">
             <div class="p-3 border-bottom"><h6 class="fw-bold mb-0 text-navy"><i class="fas fa-check-circle text-success me-2"></i>Đã hoàn thành hôm nay</h6></div>
             <table class="table table-custom mb-0">
-                <thead><tr><th>Phòng</th><th>Công việc</th><th>Bắt đầu</th><th>Hoàn thành</th></tr></thead>
+                <thead><tr><th>Phòng</th><th>Công việc</th><th>Bắt đầu</th><th>Hoàn thành</th><th>Kiểm tra</th></tr></thead>
                 <tbody>
                     @foreach (var t in daXong)
                     {
@@ -111,6 +119,9 @@
                             <td>@t.LoaiCongViec</td>
                             <td>@(t.ThoiGianBatDau?.ToString("HH:mm") ?? "—")</td>
                             <td>@(t.ThoiGianHoanThanh?.ToString("HH:mm") ?? "—")</td>
+                            <td>@if (t.TrangThai == HousekeepingTaskStatus.AwaitingInspection) { <span class="badge bg-primary">Chờ kiểm tra</span> }
+                                else if (!string.IsNullOrEmpty(t.KetQuaKiemTra)) { <span class="badge bg-success" title="@t.TenNguoiKiemTra">@t.KetQuaKiemTra</span> }
+                                else { <span class="text-muted small">—</span> }</td>
                         </tr>
                     }
                 </tbody>

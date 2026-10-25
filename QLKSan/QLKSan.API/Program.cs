@@ -58,6 +58,7 @@ namespace QLKSan
             builder.Services.Configure<HotelPolicy>(builder.Configuration.GetSection(HotelPolicy.SectionName));
             builder.Services.Configure<HotelInfo>(builder.Configuration.GetSection(HotelInfo.SectionName));
             builder.Services.Configure<LoyaltyPolicy>(builder.Configuration.GetSection(LoyaltyPolicy.SectionName));
+            builder.Services.Configure<HousekeepingPolicy>(builder.Configuration.GetSection(HousekeepingPolicy.SectionName));
 
             // Cấu hình nghiệp vụ: quản lý sửa trên web (bảng CauHinh); mục chưa lưu thì dùng các mục appsettings.json ở trên.
             // Ghi đè IOptions<T> theo phạm vi request để mọi service đang nhận IOptions đọc được cấu hình mới nhất.
@@ -81,6 +82,7 @@ namespace QLKSan
             builder.Services.AddScoped<IFrontDeskService, FrontDeskService>();
             builder.Services.AddScoped<IStayService, StayService>();
             builder.Services.AddScoped<IGuestRequestService, GuestRequestService>();
+            builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
             builder.Services.AddScoped<IPromotionService, PromotionService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<ICustomerProfileService, CustomerProfileService>();

@@ -18,6 +18,7 @@ namespace QLKSan.Mappings
                 DonViTinh = entity.DonViTinh,
                 TrangThai = entity.TrangThai,
                 LaTraiNghiem = entity.LaTraiNghiem,
+                LaMinibar = entity.LaMinibar,
                 MoTa = entity.MoTa
             };
         }
@@ -31,6 +32,7 @@ namespace QLKSan.Mappings
                 GiaDichVu = request.GiaDichVu,
                 DonViTinh = request.DonViTinh,
                 LaTraiNghiem = request.LaTraiNghiem,
+                LaMinibar = request.LaMinibar,
                 MoTa = request.MoTa
             };
         }
