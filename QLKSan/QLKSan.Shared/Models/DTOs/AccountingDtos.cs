@@ -14,10 +14,16 @@ namespace QLKSan.Models.DTOs
         public DateTime NgayLapHoaDon { get; set; }
         public decimal TongTienCanThanhToan { get; set; }
         public decimal TienCoc { get; set; }
+
+        // Phần cọc thực trừ vào hoá đơn (không quá tổng hoá đơn) và phần cọc thừa đã hoàn lại khách
+        public decimal CocDaTru { get; set; }
+        public decimal CocThua { get; set; }
         public decimal DaThu { get; set; }
         public decimal DaHoan { get; set; }
         public InvoiceStatus TrangThai { get; set; }
         public string TenNhanVienLap { get; set; }
+
+        // Các phương thức đã thu (tách thanh toán: nối bằng " + ")
         public string PhuongThuc { get; set; }
     }
 
@@ -29,6 +35,8 @@ namespace QLKSan.Models.DTOs
         public string TenNhanVienLap { get; set; }
         public decimal DaThu { get; set; }
         public decimal DaHoan { get; set; }
+        public decimal CocDaTru { get; set; }
+        public decimal CocThua { get; set; }
 
         // Số tiền tối đa còn có thể hoàn (tổng giá trị hoá đơn − đã hoàn)
         public decimal CoTheHoan { get; set; }
@@ -50,6 +58,7 @@ namespace QLKSan.Models.DTOs
         public decimal TienDichVu { get; set; }
         public decimal PhuThu { get; set; }
         public decimal GiamGia { get; set; }
+        public decimal GiamGiaThanhVien { get; set; }
         public decimal ThueVAT { get; set; }
 
         public List<RevenueByDayDto> TheoNgay { get; set; } = new List<RevenueByDayDto>();

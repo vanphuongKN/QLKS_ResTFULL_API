@@ -665,10 +665,10 @@ FROM HoaDon h
 JOIN (VALUES
     ('TT01', 'HD01', N'Tiền mặt',            N'Khách thanh toán trực tiếp'),
     ('TT02', 'HD02', N'Chuyển khoản',        N'Chuyển khoản Vietcombank'),
-    ('TT03', 'HD03', N'Thanh toán qua VISA', NULL),
+    ('TT03', 'HD03', N'Thẻ tín dụng', NULL),
     ('TT04', 'HD04', N'Chuyển khoản',        NULL),
     ('TT05', 'HD05', N'Tiền mặt',            N'Đã trừ tiền cọc 600.000đ'),
-    ('TT06', 'HD06', N'Thanh toán qua VISA', NULL)
+    ('TT06', 'HD06', N'Thẻ tín dụng', NULL)
 ) v (MaThanhToan, MaHoaDon, PhuongThuc, GhiChu) ON v.MaHoaDon = h.MaHoaDon;
 
 -- Kế toán hoàn 100.000đ cho HD03 vì khách phàn nàn cách âm (đánh giá DG03)

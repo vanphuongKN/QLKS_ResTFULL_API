@@ -84,6 +84,7 @@ namespace QLKSan.Models.DTOs
         public string MaThanhToan { get; set; }
         public PaymentType LoaiGiaoDich { get; set; }
         public string MaNhanVien { get; set; }
+        public string TenNhanVien { get; set; }
         public string PhuongThuc { get; set; }
         public DateTime NgayThanhToan { get; set; }
         public decimal SoTienDaTra { get; set; }

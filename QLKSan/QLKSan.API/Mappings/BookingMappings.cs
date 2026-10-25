@@ -196,6 +196,7 @@ namespace QLKSan.Mappings
                 MaThanhToan = entity.MaThanhToan,
                 LoaiGiaoDich = entity.LoaiGiaoDich,
                 MaNhanVien = entity.MaNhanVien,
+                TenNhanVien = entity.NhanVien?.TenNhanVien,
                 PhuongThuc = entity.PhuongThuc,
                 NgayThanhToan = entity.NgayThanhToan,
                 SoTienDaTra = entity.SoTienDaTra,

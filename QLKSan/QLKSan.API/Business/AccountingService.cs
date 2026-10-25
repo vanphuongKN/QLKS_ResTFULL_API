@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
@@ -19,9 +20,12 @@ namespace QLKSan.Business
     {
         private readonly ApplicationDbContext _context;
 
-        public AccountingService(ApplicationDbContext context)
+        private readonly LoyaltyPolicy _loyalty;
+
+        public AccountingService(ApplicationDbContext context, IOptions<LoyaltyPolicy> loyalty)
         {
             _context = context;
+            _loyalty = loyalty.Value;
         }
 
         private IQueryable<HoaDon> InvoiceQuery()
@@ -34,6 +38,14 @@ namespace QLKSan.Business
 
         private static decimal DaThu(HoaDon h) => h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Payment).Sum(t => t.SoTienDaTra) ?? 0;
         private static decimal DaHoan(HoaDon h) => h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Refund).Sum(t => t.SoTienDaTra) ?? 0;
+
+        // Cọc thực trừ vào hoá đơn: không vượt tổng hoá đơn (phần thừa đã hoàn lại khách qua sổ cọc)
+        private static decimal CocDaTru(HoaDon h) => Math.Min(h.TienCoc, Math.Round(h.TongTienCanThanhToan, 0));
+        private static decimal CocThua(HoaDon h) => h.TienCoc - CocDaTru(h);
+
+        private static string CacPhuongThuc(HoaDon h) => string.Join(" + ", h.ThanhToans?
+            .Where(t => t.LoaiGiaoDich == PaymentType.Payment && t.SoTienDaTra > 0).OrderBy(t => t.NgayThanhToan)
+            .Select(t => t.PhuongThuc).Distinct() ?? Enumerable.Empty<string>());
 
         // Phần khách trả bằng điểm thưởng: không hoàn thành tiền
         private static decimal TraBangDiem(HoaDon h) => h.ThanhToans?
@@ -70,17 +82,24 @@ namespace QLKSan.Business
                 NgayLapHoaDon = h.NgayLapHoaDon,
                 TongTienCanThanhToan = h.TongTienCanThanhToan,
                 TienCoc = h.TienCoc,
+                CocDaTru = CocDaTru(h),
+                CocThua = CocThua(h),
                 DaThu = DaThu(h),
                 DaHoan = DaHoan(h),
                 TrangThai = h.TrangThai,
                 TenNhanVienLap = h.NhanVienLap?.TenNhanVien,
-                PhuongThuc = h.ThanhToans?.Where(t => t.LoaiGiaoDich == PaymentType.Payment).OrderBy(t => t.NgayThanhToan).Select(t => t.PhuongThuc).FirstOrDefault()
+                PhuongThuc = CacPhuongThuc(h)
             }).ToList();
         }
 
         public async Task<InvoiceDetailDto> GetInvoiceDetailAsync(string maHoaDon)
         {
-            var h = await InvoiceQuery().FirstOrDefaultAsync(x => x.MaHoaDon == maHoaDon)
+            // Chi tiết: kèm người thu từng giao dịch và sổ cọc của phiếu (phương thức, người thu thật)
+            var h = await InvoiceQuery()
+                .Include(x => x.ThanhToans).ThenInclude(t => t.NhanVien)
+                .Include(x => x.PhieuDatPhong).ThenInclude(p => p.GiaoDichCocs).ThenInclude(g => g.NhanVien)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(x => x.MaHoaDon == maHoaDon)
                 ?? throw new NotFoundException($"Không tìm thấy hóa đơn '{maHoaDon}'.");
 
             var booking = h.PhieuDatPhong.ToDto();
@@ -93,6 +112,8 @@ namespace QLKSan.Business
                 TenNhanVienLap = h.NhanVienLap?.TenNhanVien,
                 DaThu = daThu,
                 DaHoan = daHoan,
+                CocDaTru = CocDaTru(h),
+                CocThua = CocThua(h),
                 CoTheHoan = h.TrangThai == InvoiceStatus.Paid ? Math.Max(0, Math.Round(h.TongTienCanThanhToan, 0) - TraBangDiem(h) - daHoan) : 0,
                 GiaoDich = h.ThanhToans.OrderBy(t => t.NgayThanhToan).Select(t => t.ToDto()).ToList()
             };
@@ -110,6 +131,8 @@ namespace QLKSan.Business
                     ?? throw new NotFoundException($"Không tìm thấy hóa đơn '{maHoaDon}'.");
                 if (h.TrangThai != InvoiceStatus.Paid)
                     throw new ConflictException("Chỉ hoàn tiền cho hoá đơn đã thanh toán.");
+                if (!PaymentMethods.TaiQuay.Contains(phuongThuc))
+                    throw new BusinessException("Phương thức hoàn tiền phải là tiền mặt, thẻ tín dụng hoặc chuyển khoản.");
 
                 // Tổng đã thu (gồm cả tiền cọc) = tổng giá trị hoá đơn; không hoàn quá phần còn lại, không hoàn phần trả bằng điểm
                 var coTheHoan = Math.Round(h.TongTienCanThanhToan, 0) - TraBangDiem(h) - DaHoan(h);
@@ -140,12 +163,12 @@ namespace QLKSan.Business
                     NoiDungChuyenKhoan = $"Hoàn tiền hóa đơn {maHoaDon}"
                 });
 
-                // Trừ lại điểm tích luỹ tương ứng số tiền hoàn (1 điểm / 10.000đ)
+                // Trừ lại điểm tích luỹ tương ứng số tiền hoàn (theo mức tích điểm của chương trình thành viên)
                 var khachHang = h.PhieuDatPhong?.KhachHang;
                 if (khachHang != null)
                 {
                     var truoc = khachHang.DiemTichLuy;
-                    khachHang.DiemTichLuy = Math.Max(0, khachHang.DiemTichLuy - (int)(soTien / 10000));
+                    khachHang.DiemTichLuy = Math.Max(0, khachHang.DiemTichLuy - (int)(soTien / _loyalty.SoTienMotDiem));
                     if (khachHang.DiemTichLuy != truoc)
                         await PointLedger.AddAsync(_context, khachHang.MaKhachHang, khachHang.DiemTichLuy - truoc, PointLedger.HoanTien,
                             $"Hoàn tiền hoá đơn {maHoaDon}: {lyDo}", maHoaDon, maNhanVien);
@@ -191,6 +214,7 @@ namespace QLKSan.Business
                 TienDichVu = paidInvoices.Sum(h => h.TongTienDichVu),
                 PhuThu = paidInvoices.Sum(h => h.TienPhat),
                 GiamGia = paidInvoices.Sum(h => h.GiamGiaKhuyenMai),
+                GiamGiaThanhVien = paidInvoices.Sum(h => h.GiamGiaThanhVien),
                 ThueVAT = Math.Round(paidInvoices.Sum(h => h.ThueVAT), 0)
             };
             report.DoanhThuThuan = report.TongDoanhThu - report.TongHoanTien;
@@ -232,9 +256,10 @@ namespace QLKSan.Business
                 .Select(g => new RevenueByMethodDto { PhuongThuc = g.Key, SoGiaoDich = g.Count(), SoTien = g.Sum(t => t.SoTienDaTra) })
                 .OrderByDescending(x => x.SoTien)
                 .ToList();
-            var tienCoc = paidInvoices.Sum(h => h.TienCoc);
+            // Cọc chỉ tính phần thực trừ vào hoá đơn (cọc thừa đã hoàn lại khách) để tổng các phương thức = doanh thu thuần
+            var tienCoc = paidInvoices.Sum(CocDaTru);
             if (tienCoc > 0)
-                report.TheoPhuongThuc.Add(new RevenueByMethodDto { PhuongThuc = "Tiền cọc (thu khi nhận phòng)", SoGiaoDich = paidInvoices.Count(h => h.TienCoc > 0), SoTien = tienCoc });
+                report.TheoPhuongThuc.Add(new RevenueByMethodDto { PhuongThuc = "Tiền cọc đã trừ vào hoá đơn", SoGiaoDich = paidInvoices.Count(h => h.TienCoc > 0), SoTien = tienCoc });
             foreach (var g in refunds.GroupBy(t => t.PhuongThuc ?? "Không rõ"))
                 report.TheoPhuongThuc.Add(new RevenueByMethodDto { PhuongThuc = $"Hoàn tiền ({g.Key})", SoGiaoDich = g.Count(), SoTien = -g.Sum(t => t.SoTienDaTra) });
 
@@ -397,6 +422,7 @@ namespace QLKSan.Business
                 ("Tiền dịch vụ", report.TienDichVu),
                 ("Phụ thu trả muộn", report.PhuThu),
                 ("Giảm giá khuyến mãi", -report.GiamGia),
+                ("Ưu đãi hạng thành viên", -report.GiamGiaThanhVien),
                 ("Thuế VAT (8%)", report.ThueVAT),
                 ("Tổng doanh thu", report.TongDoanhThu),
                 ("Hoàn tiền", -report.TongHoanTien),
@@ -410,8 +436,8 @@ namespace QLKSan.Business
                 ws.Cell(i + 3, 2).Value = XLCellValue.FromObject(rows[i].Value);
                 ws.Cell(i + 3, 2).Style.NumberFormat.Format = money;
             }
-            ws.Range(9, 1, 9, 2).Style.Font.Bold = true;
-            ws.Range(11, 1, 11, 2).Style.Font.Bold = true;
+            ws.Range(10, 1, 10, 2).Style.Font.Bold = true;
+            ws.Range(12, 1, 12, 2).Style.Font.Bold = true;
             ws.Columns().AdjustToContents();
 
             AddTable(workbook, "Theo ngày", new[] { "Ngày", "Số hoá đơn", "Doanh thu", "Hoàn tiền" },
@@ -424,8 +450,8 @@ namespace QLKSan.Business
                 report.TheoPhuongThuc.Select(x => new object[] { x.PhuongThuc, x.SoGiaoDich, x.SoTien }), money);
             AddTable(workbook, "Theo nhân viên thu", new[] { "Nhân viên", "Số giao dịch", "Số tiền thu" },
                 report.TheoNhanVien.Select(x => new object[] { x.TenNhanVien, x.SoGiaoDich, x.SoTienThu }), money);
-            AddTable(workbook, "Hoá đơn", new[] { "Mã HĐ", "Mã phiếu", "Khách hàng", "Phòng", "Ngày lập", "Tổng tiền", "Tiền cọc", "Đã thu", "Đã hoàn", "Phương thức", "Người lập" },
-                invoices.Select(x => new object[] { x.MaHoaDon, x.MaDatPhong, x.HoTenKhachHang, x.SoPhong, x.NgayLapHoaDon, x.TongTienCanThanhToan, x.TienCoc, x.DaThu, x.DaHoan, x.PhuongThuc, x.TenNhanVienLap }), money);
+            AddTable(workbook, "Hoá đơn", new[] { "Mã HĐ", "Mã phiếu", "Khách hàng", "Phòng", "Ngày lập", "Tổng tiền", "Cọc trừ vào HĐ", "Cọc thừa đã hoàn", "Đã thu", "Đã hoàn", "Phương thức", "Người lập" },
+                invoices.Select(x => new object[] { x.MaHoaDon, x.MaDatPhong, x.HoTenKhachHang, x.SoPhong, x.NgayLapHoaDon, x.TongTienCanThanhToan, x.CocDaTru, x.CocThua, x.DaThu, x.DaHoan, x.PhuongThuc, x.TenNhanVienLap }), money);
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);

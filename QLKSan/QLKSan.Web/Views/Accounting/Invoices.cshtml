@@ -53,7 +53,7 @@
                     <th>Phòng</th>
                     <th>Ngày lập</th>
                     <th class="text-end">Tổng tiền</th>
-                    <th class="text-end">Tiền cọc</th>
+                    <th class="text-end">Cọc trừ vào HĐ</th>
                     <th class="text-end">Đã thu</th>
                     <th class="text-end">Đã hoàn</th>
                     <th>Trạng thái</th>
@@ -71,7 +71,7 @@
                             <td>@h.SoPhong</td>
                             <td><small>@h.NgayLapHoaDon.ToString("dd/MM/yyyy HH:mm")</small><br /><small class="text-muted">@h.TenNhanVienLap</small></td>
                             <td class="text-end fw-bold">@h.TongTienCanThanhToan.ToString("N0")</td>
-                            <td class="text-end">@(h.TienCoc > 0 ? h.TienCoc.ToString("N0") : "—")</td>
+                            <td class="text-end">@(h.CocDaTru > 0 ? h.CocDaTru.ToString("N0") : "—")@if (h.CocThua > 0) { <br /><small class="text-muted" title="Cọc thừa đã hoàn lại khách khi thanh toán">+@h.CocThua.ToString("N0") đã hoàn</small> }</td>
                             <td class="text-end">@h.DaThu.ToString("N0")<br /><small class="text-muted">@h.PhuongThuc</small></td>
                             <td class="text-end @(h.DaHoan > 0 ? "text-danger" : "")">@(h.DaHoan > 0 ? "-" + h.DaHoan.ToString("N0") : "—")</td>
                             <td>
@@ -85,7 +85,7 @@
                     <tr class="bg-light fw-bold">
                         <td colspan="4" class="text-end">Tổng (@Model.Count() hoá đơn)</td>
                         <td class="text-end">@Model.Sum(h => h.TongTienCanThanhToan).ToString("N0")</td>
-                        <td class="text-end">@Model.Sum(h => h.TienCoc).ToString("N0")</td>
+                        <td class="text-end">@Model.Sum(h => h.CocDaTru).ToString("N0")</td>
                         <td class="text-end">@Model.Sum(h => h.DaThu).ToString("N0")</td>
                         <td class="text-end text-danger">@(Model.Sum(h => h.DaHoan) > 0 ? "-" + Model.Sum(h => h.DaHoan).ToString("N0") : "—")</td>
                         <td colspan="2"></td>
