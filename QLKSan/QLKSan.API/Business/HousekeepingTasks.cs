@@ -18,6 +18,26 @@ namespace QLKSan.Business
         public const string DonSauDoiPhong = "Dọn sau đổi phòng";
         public const string YeuCauKhach = "Yêu cầu của khách";
         public const string DonSauSuaChua = "Dọn sau sửa chữa";
+        public const string DonHangNgay = "Dọn hằng ngày";
+        public const string ChinhTrangToi = "Chỉnh trang buổi tối";
+
+        // Việc phục vụ phòng có khách theo ngày: khách treo "Không làm phiền" thì bỏ qua
+        public static bool LaViecTheoNgay(string loai) => loai == DonHangNgay || loai == ChinhTrangToi;
+
+        // Khách trả phòng / đổi phòng: việc theo ngày chưa làm của phiếu không còn ý nghĩa
+        public static async Task CloseDailyTasksAsync(ApplicationDbContext context, string maDatPhong, string lyDo)
+        {
+            var tasks = await context.PhanCongDonPhongs
+                .Where(t => t.MaDatPhong == maDatPhong && (t.LoaiCongViec == DonHangNgay || t.LoaiCongViec == ChinhTrangToi)
+                    && (t.TrangThai == HousekeepingTaskStatus.Unassigned || t.TrangThai == HousekeepingTaskStatus.Assigned || t.TrangThai == HousekeepingTaskStatus.InProgress))
+                .ToListAsync();
+            foreach (var t in tasks)
+            {
+                t.TrangThai = HousekeepingTaskStatus.Completed;
+                t.ThoiGianHoanThanh = DateTime.Now;
+                t.GhiChu = string.IsNullOrEmpty(t.GhiChu) ? $"Bỏ qua: {lyDo}" : $"{t.GhiChu} | Bỏ qua: {lyDo}";
+            }
+        }
 
         // Tầng suy ra từ số phòng: bỏ 2 chữ số cuối (101 → 1, 1203 → 12)
         public static int TangCua(string soPhong)

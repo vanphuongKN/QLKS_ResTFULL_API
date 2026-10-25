@@ -35,6 +35,25 @@ namespace QLKSan.Models.DTOs
         public string TenNguoiKiemTra { get; set; }
         public string KetQuaKiemTra { get; set; }
         public int SoLanKhongDat { get; set; }
+
+        // Phòng có khách: giờ dọn khách muốn
+        public string GioDonMongMuon { get; set; }
+    }
+
+    // GET/PUT /api/housekeeping/stays/{maDatPhong}/preferences
+    public class HousekeepingPreferencesDto
+    {
+        public bool KhongLamPhienHomNay { get; set; }
+        public string GioDonMongMuon { get; set; }
+        public bool TuChoiDonHangNgay { get; set; }
+        public bool DuocChinhTrang { get; set; }
+    }
+
+    // POST /api/housekeeping/daily-tasks: số việc vừa tạo
+    public class DailyTasksResultDto
+    {
+        public int DonHangNgay { get; set; }
+        public int ChinhTrangToi { get; set; }
     }
 
     // Phiếu kỹ thuật (sự cố cần sửa trong phòng)

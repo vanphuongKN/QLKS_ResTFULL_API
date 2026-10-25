@@ -173,6 +173,8 @@ namespace QLKSan.Business
                 // Phòng cũ cần dọn lại trước khi đón khách khác
                 var cu = chiTiet.Phong;
                 cu.TrangThai = RoomStatus.Cleaning;
+                await HousekeepingTasks.CloseDailyTasksAsync(_context, maDatPhong, $"khách đổi sang phòng {moi.SoPhong}");
+                await _context.SaveChangesAsync();
                 await HousekeepingTasks.EnsureOpenTaskAsync(_context, cu.MaPhong, maDatPhong, HousekeepingTasks.DonSauDoiPhong);
 
                 var giaMoi = request.GiuGiaCu ? chiTiet.GiaThueThucTe : moi.LoaiPhong.GiaThueNgay;

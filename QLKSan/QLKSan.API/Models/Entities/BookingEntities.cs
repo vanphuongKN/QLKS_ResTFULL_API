@@ -124,6 +124,14 @@ namespace QLKSan.Models.Entities
         [StringLength(30)]
         public string? NguonDat { get; set; }
 
+        // Buồng phòng: "Không làm phiền" áp dụng cho ngày này, giờ dọn khách muốn, khách từ chối dọn hằng ngày cả kỳ nghỉ
+        public DateTime? KhongLamPhienNgay { get; set; }
+
+        [StringLength(30)]
+        public string? GioDonMongMuon { get; set; }
+
+        public bool TuChoiDonHangNgay { get; set; }
+
         public KhachHang KhachHang { get; set; }
         public NhanVien NhanVien { get; set; }
         public HoaDon HoaDon { get; set; }

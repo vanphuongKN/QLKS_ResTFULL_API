@@ -204,6 +204,9 @@ CREATE TABLE PhieuDatPhong (
     YeuCauDacBiet NVARCHAR(500) NULL,               -- yêu cầu riêng của khách khi đặt online
     GioDenDuKien NVARCHAR(30) NULL,                 -- khung giờ dự kiến đến
     NguonDat NVARCHAR(30) NULL,                     -- Online | Điện thoại | Email | Tại quầy | Đại lý | Vãng lai
+    KhongLamPhienNgay DATE NULL,                    -- buồng phòng: khách "Không làm phiền" ngày này
+    GioDonMongMuon NVARCHAR(30) NULL,               -- giờ dọn khách muốn
+    TuChoiDonHangNgay BIT NOT NULL DEFAULT 0,       -- khách từ chối dọn hằng ngày cả kỳ nghỉ
     CONSTRAINT FK_PhieuDat_KhachHang FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
     CONSTRAINT FK_PhieuDat_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
 );

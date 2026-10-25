@@ -49,7 +49,7 @@
     <div>
         <p class="page-label">Buồng phòng</p>
         <h2>Công việc dọn phòng</h2>
-        <p class="page-desc">Việc được tạo khi khách trả phòng, đổi phòng hoặc gửi yêu cầu buồng phòng; xếp theo ưu tiên khách sắp đến. Hiện có @countAvailable phòng sạch sẵn sàng đón khách.</p>
+        <p class="page-desc">Việc được tạo khi khách trả phòng, đổi phòng, gửi yêu cầu, sau sửa chữa, và mỗi ngày cho phòng có khách (dọn hằng ngày, chỉnh trang buổi tối); xếp theo ưu tiên khách sắp đến. Hiện có @countAvailable phòng sạch sẵn sàng đón khách.</p>
     </div>
 </div>
 
@@ -121,6 +121,9 @@
         <h5 class="text-navy fw-bold mb-0"><i class="fas fa-building text-gold me-2"></i>Sơ đồ buồng phòng
             <a asp-action="Minibar" class="btn btn-sm btn-outline-navy ms-2"><i class="fas fa-wine-bottle me-1"></i>Ghi minibar</a>
             <a asp-action="Maintenance" class="btn btn-sm btn-outline-navy ms-1"><i class="fas fa-screwdriver-wrench me-1"></i>Kỹ thuật</a></h5>
+        <form asp-action="GenerateDaily" method="post" class="m-0">
+            <button type="submit" class="btn btn-sm btn-outline-gold" title="Dọn hằng ngày phòng có khách + chỉnh trang buổi tối (hệ thống cũng tự tạo định kỳ)"><i class="fas fa-calendar-day me-1"></i>Tạo việc trong ngày</button>
+        </form>
         <div class="hk-legend">
             <span class="is-clean">Sạch</span><span class="is-dirty">Chưa dọn</span><span class="is-occupied">Có khách</span><span class="is-ooo">Bảo trì</span>
         </div>
@@ -206,6 +209,7 @@
                         <td>@if (coTheGiao) { <input type="checkbox" class="form-check-input" name="maPhanCongs" value="@t.MaPhanCong" form="bulkForm" data-tang="@t.Tang" aria-label="Chọn phòng @t.SoPhong" /> }</td>
                         <td class="nowrap"><strong>Phòng @t.SoPhong</strong><br /><small class="text-muted">Tầng @t.Tang · @t.TenLoaiPhong</small></td>
                         <td>@t.LoaiCongViec<br /><small class="text-muted">Tạo lúc @t.ThoiGianTao.ToString("dd/MM HH:mm")</small>
+                            @if (!string.IsNullOrEmpty(t.GioDonMongMuon)) { <br /><small class="text-navy"><i class="fas fa-clock me-1"></i>Khách muốn dọn: @t.GioDonMongMuon</small> }
                             @if (!string.IsNullOrEmpty(t.GhiChu)) { <br /><small class="@(t.TrangThai == HousekeepingTaskStatus.Issue ? "text-danger" : "text-dark")">@t.GhiChu</small> }
                         </td>
                         <td><span class="prio @u.Css">@u.Nhan</span>@if (!string.IsNullOrEmpty(t.LyDoUuTien)) { <br /><small class="text-muted">@t.LyDoUuTien</small> }</td>

@@ -191,6 +191,9 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | POST | `/api/housekeeping/tasks/assign-bulk` | FrontDesk | Giao nhiều việc chưa bắt đầu cho một nhân viên `{ "MaNhanVien", "MaPhanCongs": [...] }` (vd: cả tầng) |
 | POST | `/api/housekeeping/tasks/{id}/start` · `/complete` · `/issue` | Buồng phòng | Bắt đầu / dọn xong (phòng trống → "Chờ kiểm tra"; người có quyền kiểm tra tự hoàn thành thì coi như đạt) / báo sự cố (tự mở phiếu kỹ thuật khoá phòng) |
 | POST | `/api/housekeeping/tasks/{id}/inspect` | RoomInspectors (Admin, Lễ tân) | Kiểm tra phòng `{ "Dat", "MucChuaDat": [...], "GhiChu" }` theo danh mục của hạng phòng (cấu hình `Housekeeping` trong appsettings.json). Đạt: phòng sẵn sàng; chưa đạt: trả lại nhân viên dọn lại |
+| POST | `/api/housekeeping/daily-tasks` | FrontDesk | Tạo ngay việc "Dọn hằng ngày" (khách ở tiếp, từ `GioDonHangNgay`) và "Chỉnh trang buổi tối" (khách VIP / hạng phòng trong `ChinhTrangToi.HangPhong`, từ `ChinhTrangToi.GioBatDau`) còn thiếu; tác vụ nền cũng tự chạy mỗi `ChuKyTaoViecPhut` phút. Không trùng trong ngày |
+| PUT | `/api/housekeeping/stays/{maDatPhong}/preferences` | FrontDesk | Dặn dò buồng phòng `{ "KhongLamPhienHomNay", "GioDonMongMuon", "TuChoiDonHangNgay" }`; việc theo ngày chưa làm được bỏ qua tương ứng |
+| POST | `/api/housekeeping/tasks/{id}/dnd` | Buồng phòng | Gặp biển "Không làm phiền": bỏ qua việc dọn hằng ngày / chỉnh trang, ghi DND cho phiếu hôm nay |
 | POST | `/api/housekeeping/rooms/{maPhong}/minibar` | Admin, Lễ tân, Buồng phòng | Ghi đồ minibar `{ "Items": [{ "MaDichVu", "SoLuong" }] }` vào bảng kê của khách đang ở; chỉ dịch vụ đánh dấu `LaMinibar` |
 | GET | `/api/maintenance?loc` | Admin, Lễ tân, Buồng phòng | Phiếu kỹ thuật: `mo` (mới / đang sửa, khẩn trước), `xong`, trống: 30 ngày |
 | POST | `/api/maintenance` | Admin, Lễ tân, Buồng phòng | Mở phiếu `{ "MaPhong", "MoTa", "MucDo": "Thường" \| "Khẩn", "KhoaPhong" }`; khoá phòng → Bảo trì (bỏ qua khi phòng có khách) |

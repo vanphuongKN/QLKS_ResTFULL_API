@@ -68,6 +68,7 @@ namespace QLKSan
             builder.Services.AddScoped<IOptions<HotelPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetPolicy()));
             builder.Services.AddScoped<IOptions<LoyaltyPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetLoyalty()));
             builder.Services.AddHostedService<NoShowCleanupService>();
+            builder.Services.AddHostedService<DailyHousekeepingService>();
 
             builder.Services.AddScoped<IRoomAvailabilityService, RoomAvailabilityService>();
             builder.Services.AddScoped<IAuthService, AuthService>();

@@ -72,6 +72,31 @@ namespace QLKSan.Controllers
             return RedirectToAction(nameof(Tasks));
         }
 
+        // Tạo ngay việc dọn hằng ngày / chỉnh trang buổi tối còn thiếu
+        [HttpPost]
+        [Authorize(Roles = WebRoles.FrontDesk)]
+        public async Task<IActionResult> GenerateDaily()
+        {
+            try
+            {
+                var r = await _housekeepingApi.GenerateDailyAsync();
+                TempData["SuccessMessage"] = r.DonHangNgay + r.ChinhTrangToi == 0
+                    ? "Việc trong ngày đã đủ, không cần tạo thêm."
+                    : $"Đã tạo {r.DonHangNgay} việc dọn hằng ngày, {r.ChinhTrangToi} việc chỉnh trang buổi tối.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không tạo được việc. " + ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Tasks));
+        }
+
+        // Nhân viên gặp biển "Không làm phiền"
+        [HttpPost]
+        [Authorize(Roles = WebRoles.HousekeepingWorkers)]
+        public Task<IActionResult> SkipDnd(string id)
+            => RunAsync(_housekeepingApi.SkipDndAsync(id), "Đã ghi khách không làm phiền, bỏ qua việc hôm nay.", "Không thể cập nhật. ", "MyTasks");
+
         // ===== Ghi minibar =====
 
         [HttpGet]

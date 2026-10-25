@@ -120,6 +120,37 @@ namespace QLKSan.Controllers
             return task.ToDto();
         }
 
+        /// <summary>Tạo ngay việc dọn hằng ngày / chỉnh trang buổi tối còn thiếu trong ngày (tác vụ nền cũng tự chạy định kỳ).</summary>
+        [HttpPost("daily-tasks")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        public async Task<ActionResult<DailyTasksResultDto>> GenerateDaily()
+        {
+            var (don, chinhTrang) = await _housekeepingService.GenerateDailyTasksAsync(DateTime.Now);
+            return new DailyTasksResultDto { DonHangNgay = don, ChinhTrangToi = chinhTrang };
+        }
+
+        /// <summary>
+        /// Dặn dò buồng phòng cho khách đang ở: không làm phiền hôm nay, giờ dọn mong muốn, từ chối dọn hằng ngày (cả kỳ nghỉ).
+        /// Việc theo ngày chưa bắt đầu được bỏ qua tương ứng.
+        /// </summary>
+        [HttpPut("stays/{maDatPhong}/preferences")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Dặn dò buồng phòng", "Phiếu đặt phòng")]
+        public async Task<ActionResult<HousekeepingPreferencesDto>> SetPreferences(string maDatPhong, HousekeepingPreferencesRequest request)
+        {
+            return await _housekeepingService.SetPreferencesAsync(maDatPhong, request.KhongLamPhienHomNay, request.GioDonMongMuon, request.TuChoiDonHangNgay,
+                $"Nhân viên {User.Identity?.Name}");
+        }
+
+        /// <summary>Nhân viên gặp biển "Không làm phiền": bỏ qua việc dọn hằng ngày / chỉnh trang, ghi DND cho phiếu hôm nay.</summary>
+        [HttpPost("tasks/{maPhanCong}/dnd")]
+        [Audit("Khách không làm phiền", "Buồng phòng")]
+        public async Task<ActionResult<HousekeepingTaskDto>> SkipDnd(string maPhanCong)
+        {
+            var task = await _housekeepingService.SkipForDndAsync(maPhanCong, User.GetMaNhanVien(), LaQuanLy);
+            return task.ToDto();
+        }
+
         /// <summary>Ghi đồ minibar khách đã dùng vào bảng kê của khách đang ở tại phòng; trả về tổng tiền vừa ghi.</summary>
         [HttpPost("rooms/{maPhong}/minibar")]
         [Audit("Ghi minibar", "Phòng")]

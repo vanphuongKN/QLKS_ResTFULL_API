@@ -110,8 +110,12 @@ Phía Web chỉ cần `ApiSettings:BaseUrl` trong `QLKSan.Web/appsettings.json`.
 - **Thu ngân:**
   - bảng kê lưu trú từng đêm trước khi chốt; lập hoá đơn theo số đêm thực tế, giá theo mùa/cuối tuần/lễ, phụ thu trả muộn, khuyến mãi, ưu đãi hạng thành viên và trừ tiền cọc;
   - nhận thanh toán: đổi điểm, tách tối đa 3 khoản theo phương thức, thông tin xuất hoá đơn VAT công ty.
-- **Buồng phòng:** nhận việc, dọn xong, báo sự cố.
-- **Kế toán:** danh sách hoá đơn, hoàn tiền (phần đã trả bằng điểm không được hoàn), báo cáo doanh thu và công suất (xuất Excel).
+- **Buồng phòng:**
+  - sơ đồ buồng phòng theo tầng, việc xếp ưu tiên theo khách sắp đến (VIP, giờ đến), giao việc theo nhóm / cả tầng;
+  - dọn sau trả phòng / đổi phòng / sửa chữa, dọn hằng ngày phòng có khách, chỉnh trang buổi tối (cấu hình `Housekeeping` trong `appsettings.json`), "Không làm phiền" và giờ dọn khách muốn;
+  - nhân viên dọn xong → quản lý / lễ tân kiểm tra theo danh mục của hạng phòng (chưa đạt thì trả lại dọn lại);
+  - ghi minibar vào bảng kê của khách, phiếu kỹ thuật cho sự cố (khoá phòng tới khi sửa xong), yêu cầu khách loại Buồng phòng / Kỹ thuật tự chuyển thành việc.
+- **Kế toán:** danh sách hoá đơn (cọc trừ vào hoá đơn và cọc thừa đã hoàn tách riêng, đủ các phương thức khi tách thanh toán), hoàn tiền (phần đã trả bằng điểm không được hoàn), báo cáo doanh thu và công suất có ưu đãi hạng thành viên (xuất Excel).
 - **Quản trị:** loại phòng (thông tin và bộ ảnh), phòng, dịch vụ (đánh dấu mục "Trải nghiệm"), nhân viên, khuyến mãi, bảng giá theo mùa, đánh giá.
 
 ## Kiểm thử

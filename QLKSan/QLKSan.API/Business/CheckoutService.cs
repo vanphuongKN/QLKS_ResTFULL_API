@@ -301,6 +301,8 @@ namespace QLKSan.Business
                     {
                         phong.TrangThai = RoomStatus.Cleaning;
                         // Tạo công việc dọn phòng để lễ tân giao cho nhân viên buồng phòng
+                        await HousekeepingTasks.CloseDailyTasksAsync(_context, hoaDon.MaDatPhong, "khách đã trả phòng");
+                        await _context.SaveChangesAsync();
                         await HousekeepingTasks.EnsureOpenTaskAsync(_context, phong.MaPhong, hoaDon.MaDatPhong, HousekeepingTasks.DonSauTraPhong);
                     }
                 }

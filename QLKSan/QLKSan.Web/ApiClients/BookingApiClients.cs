@@ -220,6 +220,9 @@ namespace QLKSan.ApiClients
         Task AssignAsync(string maPhanCong, string maNhanVien);
         Task<int> AssignBulkAsync(List<string> maPhanCongs, string maNhanVien);
         Task InspectAsync(string maPhanCong, InspectTaskRequest request);
+        Task<DailyTasksResultDto> GenerateDailyAsync();
+        Task<HousekeepingPreferencesDto> SetPreferencesAsync(string maDatPhong, HousekeepingPreferencesRequest request);
+        Task SkipDndAsync(string maPhanCong);
         Task<decimal> PostMinibarAsync(string maPhong, MinibarRequest request);
         Task StartAsync(string maPhanCong);
         Task CompleteAsync(string maPhanCong);
@@ -242,6 +245,13 @@ namespace QLKSan.ApiClients
 
         public Task InspectAsync(string maPhanCong, InspectTaskRequest request)
             => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/inspect", request);
+
+        public Task<DailyTasksResultDto> GenerateDailyAsync() => HttpPostAsync<DailyTasksResultDto>("api/housekeeping/daily-tasks");
+
+        public Task<HousekeepingPreferencesDto> SetPreferencesAsync(string maDatPhong, HousekeepingPreferencesRequest request)
+            => HttpPutAsync<HousekeepingPreferencesDto>($"api/housekeeping/stays/{Uri.EscapeDataString(maDatPhong)}/preferences", request);
+
+        public Task SkipDndAsync(string maPhanCong) => HttpPostAsync($"api/housekeeping/tasks/{Uri.EscapeDataString(maPhanCong)}/dnd");
 
         public Task<decimal> PostMinibarAsync(string maPhong, MinibarRequest request)
             => HttpPostAsync<decimal>($"api/housekeeping/rooms/{Uri.EscapeDataString(maPhong)}/minibar", request);

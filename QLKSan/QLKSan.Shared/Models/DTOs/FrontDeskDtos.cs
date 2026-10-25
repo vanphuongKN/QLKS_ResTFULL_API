@@ -155,6 +155,11 @@ namespace QLKSan.Models.DTOs
         public bool QuaHanTra { get; set; }
 
         public List<CompanionDto> KhachDiCung { get; set; } = new List<CompanionDto>();
+
+        // Buồng phòng: không làm phiền hôm nay, giờ dọn khách muốn, từ chối dọn hằng ngày
+        public bool KhongLamPhien { get; set; }
+        public string GioDonMongMuon { get; set; }
+        public bool TuChoiDonHangNgay { get; set; }
     }
 
     // GET /api/bookings/{id}/stay-dates/quote: báo giá khi gia hạn / rút ngắn / đổi ngày (giá từng đêm theo quy tắc giá)

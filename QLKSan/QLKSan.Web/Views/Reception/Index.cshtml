@@ -92,6 +92,8 @@
                 @if (dangO)
                 {
                     <li><a class="dropdown-item" href="@Url.Action("Requests", new { maDatPhong = k.MaDatPhong })"><i class="fas fa-bell-concierge me-2"></i>Ghi yêu cầu của khách</a></li>
+                    <li><button type="button" class="dropdown-item" data-fd-modal="hkModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong"
+                                data-dnd="@(k.KhongLamPhien ? "1" : "0")" data-gio="@k.GioDonMongMuon" data-tuchoidon="@(k.TuChoiDonHangNgay ? "1" : "0")"><i class="fas fa-broom me-2"></i>Dặn dò buồng phòng</button></li>
                 }
             </ul>
         </div>
@@ -132,6 +134,9 @@
                     @if (!string.IsNullOrEmpty(k.MaKhuyenMai)) { <span><i class="fas fa-tag"></i>@k.MaKhuyenMai</span> }
                     @if (k.TienCoc > 0) { <span><i class="fas fa-wallet"></i>Cọc @FormatHelper.ToVND(k.TienCoc)</span> }
                     @if (!string.IsNullOrEmpty(k.NguonDat) && k.NguonDat != BookingSources.Online) { <span class="note-source"><i class="fas @IconNguon(k.NguonDat)"></i>@k.NguonDat</span> }
+                    @if (k.KhongLamPhien) { <span class="note-danger"><i class="fas fa-moon"></i>Không làm phiền hôm nay</span> }
+                    @if (!string.IsNullOrEmpty(k.GioDonMongMuon)) { <span><i class="fas fa-broom"></i>Dọn: @k.GioDonMongMuon</span> }
+                    @if (k.TuChoiDonHangNgay) { <span><i class="fas fa-leaf"></i>Không dọn hằng ngày</span> }
                     @if (k.KhachDiCung.Count > 0) { <span title="@string.Join(", ", k.KhachDiCung.Select(x => x.HoTen))"><i class="fas fa-user-plus"></i>@k.KhachDiCung.Count người đi cùng</span> }
                     @if (canhBaoPhong != null) { <span class="note-danger"><i class="fas fa-triangle-exclamation"></i>@canhBaoPhong — đổi phòng khác hoặc chờ buồng phòng</span> }
                 </div>
@@ -443,6 +448,22 @@
         </form>
     </div>
 </div>
+<div class="modal fade fd-modal" id="hkModal" tabindex="-1" aria-labelledby="hkTitle">
+    <div class="modal-dialog">
+        <form asp-action="SetHousekeepingPrefs" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="hkTitle">Dặn dò buồng phòng</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" data-field="id" />
+                <p class="mb-3" data-field="tieuDe"></p>
+                <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="khongLamPhienHomNay" value="true" id="hkDnd" /><label class="form-check-label" for="hkDnd">Không làm phiền hôm nay (bỏ qua dọn phòng, chỉnh trang)</label></div>
+                <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="tuChoiDonHangNgay" value="true" id="hkTuChoi" /><label class="form-check-label" for="hkTuChoi">Khách không cần dọn hằng ngày trong kỳ nghỉ</label></div>
+                <label class="form-label fw-semibold" for="hkGio">Giờ dọn khách muốn</label>
+                <input name="gioDonMongMuon" id="hkGio" class="form-control" maxlength="30" placeholder="VD: Sau 14:00" />
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Lưu</button></div>
+        </form>
+    </div>
+</div>
 <div class="modal fade fd-modal" id="depositModal" tabindex="-1" aria-labelledby="dpTitle">
     <div class="modal-dialog">
         <form asp-action="AddDeposit" method="post" class="modal-content">
@@ -499,6 +520,11 @@
                         JSON.parse(b.getAttribute('data-dicung') || '[]').forEach(function (x) { themNguoi(f('dicung'), x); });
                     }
                     if (m.id === 'stayModal') moDoiNgay(m, b);
+                    if (m.id === 'hkModal') {
+                        document.getElementById('hkDnd').checked = b.getAttribute('data-dnd') === '1';
+                        document.getElementById('hkTuChoi').checked = b.getAttribute('data-tuchoidon') === '1';
+                        document.getElementById('hkGio').value = b.getAttribute('data-gio') || '';
+                    }
                     if (f('hoanCocBox')) {
                         f('hoanCocBox').hidden = coc <= 0;
                         m.querySelector('[name=hoanCoc]').checked = false;

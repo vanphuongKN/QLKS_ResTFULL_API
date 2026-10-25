@@ -184,12 +184,17 @@ namespace QLKSan.Business
         public async Task<List<HousekeepingTaskDto>> PrioritizeAsync(IEnumerable<PhanCongDonPhong> tasks)
         {
             var den = await KhachDenHomNayAsync();
+            tasks = tasks.ToList();
+            var maPhieu = tasks.Where(t => t.MaDatPhong != null).Select(t => t.MaDatPhong).Distinct().ToList();
+            var gioDon = await _context.PhieuDatPhongs.Where(p => maPhieu.Contains(p.MaDatPhong) && p.GioDonMongMuon != null)
+                .ToDictionaryAsync(p => p.MaDatPhong, p => p.GioDonMongMuon);
             return tasks.Select(t =>
                 {
                     var dto = t.ToDto();
                     SetPriority(dto, den.GetValueOrDefault(t.MaPhong));
                     if (t.TrangThai == HousekeepingTaskStatus.AwaitingInspection)
                         dto.DanhMucKiemTra = _policy.DanhMucCho(t.Phong?.MaLoai);
+                    if (t.MaDatPhong != null && gioDon.TryGetValue(t.MaDatPhong, out var gio)) dto.GioDonMongMuon = gio;
                     return dto;
                 })
                 .OrderBy(t => t.TrangThai == HousekeepingTaskStatus.Completed)
@@ -348,6 +353,116 @@ namespace QLKSan.Business
                 $"[Minibar {DateTime.Now:dd/MM HH:mm} - {nguoiGhi}] " + string.Join(", ", dong.Select(i => $"{dichVu[i.MaDichVu].TenDichVu} × {i.SoLuong}")));
             await _context.SaveChangesAsync();
             return tong;
+        }
+
+        public async Task<(int DonHangNgay, int ChinhTrangToi)> GenerateDailyTasksAsync(DateTime now)
+        {
+            var today = now.Date;
+            var dangO = await _context.PhieuDatPhongs
+                .Include(p => p.KhachHang)
+                .Include(p => p.ChiTietDatPhongs).ThenInclude(c => c.Phong)
+                .Where(p => p.TrangThai == BookingStatus.CheckedIn && p.NgayCheckOutDuKien > today)
+                .ToListAsync();
+            var daCo = (await _context.PhanCongDonPhongs
+                    .Where(t => t.ThoiGianTao >= today && t.MaDatPhong != null
+                             && (t.LoaiCongViec == HousekeepingTasks.DonHangNgay || t.LoaiCongViec == HousekeepingTasks.ChinhTrangToi))
+                    .Select(t => new { t.MaDatPhong, t.LoaiCongViec }).ToListAsync())
+                .Select(x => (x.MaDatPhong, x.LoaiCongViec)).ToHashSet();
+
+            int donPhong = 0, chinhTrang = 0;
+            foreach (var p in dangO)
+            {
+                var phong = p.ChiTietDatPhongs.FirstOrDefault()?.Phong;
+                if (phong == null || p.KhongLamPhienNgay?.Date == today) continue;
+
+                // Dọn hằng ngày: khách ở từ hôm trước, chưa từ chối dọn
+                if (now.Hour >= _policy.GioDonHangNgay && !p.TuChoiDonHangNgay
+                    && (p.NgayCheckInThucTe ?? p.NgayCheckInDuKien).Date < today && !daCo.Contains((p.MaDatPhong, HousekeepingTasks.DonHangNgay)))
+                {
+                    await AddDailyTaskAsync(p, phong.MaPhong, HousekeepingTasks.DonHangNgay);
+                    donPhong++;
+                }
+                // Chỉnh trang buổi tối: khách VIP hoặc hạng phòng cao (cấu hình), khách còn ở qua đêm nay
+                if (now.Hour >= _policy.ChinhTrangToi.GioBatDau && _policy.DuocChinhTrang(p.KhachHang?.LaVIP ?? false, phong.MaLoai)
+                    && !daCo.Contains((p.MaDatPhong, HousekeepingTasks.ChinhTrangToi)))
+                {
+                    await AddDailyTaskAsync(p, phong.MaPhong, HousekeepingTasks.ChinhTrangToi);
+                    chinhTrang++;
+                }
+            }
+            await _context.SaveChangesAsync();
+            return (donPhong, chinhTrang);
+        }
+
+        private async Task AddDailyTaskAsync(PhieuDatPhong p, string maPhong, string loai)
+        {
+            _context.PhanCongDonPhongs.Add(new PhanCongDonPhong
+            {
+                MaPhanCong = await IdGenerator.NextAsync(_context.PhanCongDonPhongs.Select(t => t.MaPhanCong), "PC", 4),
+                MaPhong = maPhong,
+                MaDatPhong = p.MaDatPhong,
+                LoaiCongViec = loai,
+                TrangThai = HousekeepingTaskStatus.Unassigned,
+                ThoiGianTao = DateTime.Now,
+                GhiChu = string.IsNullOrEmpty(p.GioDonMongMuon) ? null : $"Khách muốn dọn: {p.GioDonMongMuon}"
+            });
+            // Lưu từng việc để mã phân công kế tiếp không trùng
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<HousekeepingPreferencesDto> SetPreferencesAsync(string maDatPhong, bool khongLamPhienHomNay, string gioDonMongMuon, bool tuChoiDonHangNgay, string nguoi)
+        {
+            var p = await _context.PhieuDatPhongs.Include(x => x.KhachHang).Include(x => x.ChiTietDatPhongs).ThenInclude(c => c.Phong)
+                .FirstOrDefaultAsync(x => x.MaDatPhong == maDatPhong)
+                ?? throw new NotFoundException($"Không tìm thấy phiếu đặt phòng '{maDatPhong}'.");
+            if (p.TrangThai != BookingStatus.CheckedIn)
+                throw new ConflictException("Chỉ dặn dò buồng phòng cho khách đang lưu trú.");
+
+            var today = DateTime.Today;
+            p.KhongLamPhienNgay = khongLamPhienHomNay ? today : (p.KhongLamPhienNgay?.Date == today ? null : p.KhongLamPhienNgay);
+            p.GioDonMongMuon = string.IsNullOrWhiteSpace(gioDonMongMuon) ? null : gioDonMongMuon.Trim();
+            p.TuChoiDonHangNgay = tuChoiDonHangNgay;
+
+            // Việc theo ngày chưa bắt đầu: bỏ qua khi khách không làm phiền / từ chối dọn
+            if (khongLamPhienHomNay || tuChoiDonHangNgay)
+            {
+                var viec = await _context.PhanCongDonPhongs
+                    .Where(t => t.MaDatPhong == maDatPhong && (t.TrangThai == HousekeepingTaskStatus.Unassigned || t.TrangThai == HousekeepingTaskStatus.Assigned)
+                             && (t.LoaiCongViec == HousekeepingTasks.DonHangNgay || t.LoaiCongViec == HousekeepingTasks.ChinhTrangToi))
+                    .ToListAsync();
+                foreach (var t in viec.Where(t => khongLamPhienHomNay || t.LoaiCongViec == HousekeepingTasks.DonHangNgay))
+                    BoQua(t, khongLamPhienHomNay ? $"Khách không làm phiền ({nguoi})" : $"Khách từ chối dọn hằng ngày ({nguoi})");
+            }
+            await _context.SaveChangesAsync();
+            return new HousekeepingPreferencesDto
+            {
+                KhongLamPhienHomNay = p.KhongLamPhienNgay?.Date == today,
+                GioDonMongMuon = p.GioDonMongMuon,
+                TuChoiDonHangNgay = p.TuChoiDonHangNgay,
+                DuocChinhTrang = _policy.DuocChinhTrang(p.KhachHang?.LaVIP ?? false, p.ChiTietDatPhongs.FirstOrDefault()?.Phong?.MaLoai)
+            };
+        }
+
+        private static void BoQua(PhanCongDonPhong t, string lyDo)
+        {
+            t.TrangThai = HousekeepingTaskStatus.Completed;
+            t.ThoiGianHoanThanh = DateTime.Now;
+            t.GhiChu = string.IsNullOrEmpty(t.GhiChu) ? $"Bỏ qua: {lyDo}" : $"{t.GhiChu} | Bỏ qua: {lyDo}";
+        }
+
+        public async Task<PhanCongDonPhong> SkipForDndAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy)
+        {
+            var task = await FindTaskAsync(maPhanCong);
+            EnsureCanAct(task, maNhanVienThucHien, laQuanLy);
+            if (!HousekeepingTasks.LaViecTheoNgay(task.LoaiCongViec) || task.MaDatPhong == null)
+                throw new BusinessException("Chỉ bỏ qua việc dọn hằng ngày / chỉnh trang của phòng có khách.");
+            if (task.TrangThai is not (HousekeepingTaskStatus.Assigned or HousekeepingTaskStatus.InProgress or HousekeepingTaskStatus.Unassigned))
+                throw new ConflictException("Công việc đã kết thúc.");
+            var p = await _context.PhieuDatPhongs.FindAsync(task.MaDatPhong);
+            if (p != null) p.KhongLamPhienNgay = DateTime.Today;
+            BoQua(task, $"Khách treo biển Không làm phiền lúc {DateTime.Now:HH:mm}");
+            await _context.SaveChangesAsync();
+            return task;
         }
 
         public async Task<PhanCongDonPhong> ReportIssueAsync(string maPhanCong, string ghiChu, string maNhanVienThucHien, bool laQuanLy)

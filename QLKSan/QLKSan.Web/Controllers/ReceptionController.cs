@@ -17,10 +17,12 @@ namespace QLKSan.Controllers
         private readonly IFrontDeskApiClient _frontDeskApi;
         private readonly IRoomTypeApiClient _roomTypeApi;
         private readonly IGuestRequestApiClient _guestRequestApi;
+        private readonly IHousekeepingApiClient _housekeepingApi;
 
         public ReceptionController(IRoomApiClient roomApi, IBookingApiClient bookingApi, ICustomerApiClient customerApi, IFrontDeskApiClient frontDeskApi,
-            IRoomTypeApiClient roomTypeApi, IGuestRequestApiClient guestRequestApi)
+            IRoomTypeApiClient roomTypeApi, IGuestRequestApiClient guestRequestApi, IHousekeepingApiClient housekeepingApi)
         {
+            _housekeepingApi = housekeepingApi;
             _roomApi = roomApi;
             _bookingApi = bookingApi;
             _customerApi = customerApi;
@@ -175,6 +177,23 @@ namespace QLKSan.Controllers
                 TempData["ErrorMessage"] = "Không thể đổi ngày lưu trú. " + ex.UserMessage;
             }
             return RedirectToAction("Index");
+        }
+
+        // Dặn dò buồng phòng: không làm phiền hôm nay, giờ dọn khách muốn, từ chối dọn hằng ngày
+        [HttpPost]
+        public async Task<IActionResult> SetHousekeepingPrefs(string id, bool khongLamPhienHomNay, string gioDonMongMuon, bool tuChoiDonHangNgay)
+        {
+            try
+            {
+                var r = await _housekeepingApi.SetPreferencesAsync(id, new HousekeepingPreferencesRequest
+                    { KhongLamPhienHomNay = khongLamPhienHomNay, GioDonMongMuon = gioDonMongMuon, TuChoiDonHangNgay = tuChoiDonHangNgay });
+                TempData["SuccessMessage"] = $"Đã lưu dặn dò buồng phòng cho phiếu {id}" + (r.KhongLamPhienHomNay ? " — không làm phiền hôm nay." : ".");
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không lưu được dặn dò buồng phòng. " + ex.UserMessage;
+            }
+            return Redirect(Url.Action(nameof(Index)) + "#dango");
         }
 
         // Khai báo người đi cùng (thay toàn bộ danh sách)

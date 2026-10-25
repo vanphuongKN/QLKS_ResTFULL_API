@@ -414,7 +414,14 @@ namespace QLKSan.Data
                         MaYeuCau INT NULL
                     );
                     CREATE INDEX IX_PhieuKyThuat_Phong ON PhieuKyThuat(MaPhong, TrangThai);
-                END")
+                END"),
+
+            // B2: không làm phiền, giờ dọn khách muốn, từ chối dọn hằng ngày
+            ("39. Thêm PhieuDatPhong.KhongLamPhienNgay, GioDonMongMuon, TuChoiDonHangNgay", @"
+                IF COL_LENGTH('PhieuDatPhong', 'TuChoiDonHangNgay') IS NULL
+                    ALTER TABLE PhieuDatPhong ADD KhongLamPhienNgay DATE NULL,
+                                                  GioDonMongMuon NVARCHAR(30) NULL,
+                                                  TuChoiDonHangNgay BIT NOT NULL CONSTRAINT DF_PhieuDat_TuChoiDon DEFAULT 0;")
         };
 
         private static string DropUniqueConstraintSql(string table, string column) => $@"

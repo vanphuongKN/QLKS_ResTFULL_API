@@ -2,6 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QLKSan.Models.Requests
 {
+    // PUT /api/housekeeping/stays/{maDatPhong}/preferences: dặn dò buồng phòng cho khách đang ở
+    public class HousekeepingPreferencesRequest
+    {
+        public bool KhongLamPhienHomNay { get; set; }
+
+        [StringLength(30)]
+        public string GioDonMongMuon { get; set; }
+
+        public bool TuChoiDonHangNgay { get; set; }
+    }
+
     // POST /api/housekeeping/tasks/{id}/inspect: kiểm tra phòng sau khi dọn
     public class InspectTaskRequest
     {

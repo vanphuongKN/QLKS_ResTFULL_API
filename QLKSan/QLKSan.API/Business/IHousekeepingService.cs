@@ -27,6 +27,15 @@ namespace QLKSan.Business
         // Việc kèm mức ưu tiên (khách VIP / khách đến hôm nay / yêu cầu của khách), đã sắp theo ưu tiên
         Task<List<HousekeepingTaskDto>> PrioritizeAsync(IEnumerable<PhanCongDonPhong> tasks);
 
+        // Tạo việc dọn hằng ngày (từ GioDonHangNgay) và chỉnh trang buổi tối (từ ChinhTrangToi.GioBatDau) cho phòng có khách; không trùng trong ngày
+        Task<(int DonHangNgay, int ChinhTrangToi)> GenerateDailyTasksAsync(DateTime now);
+
+        // Dặn dò buồng phòng cho phiếu đang ở; bật "Không làm phiền" hôm nay thì việc theo ngày chưa bắt đầu được bỏ qua
+        Task<HousekeepingPreferencesDto> SetPreferencesAsync(string maDatPhong, bool khongLamPhienHomNay, string gioDonMongMuon, bool tuChoiDonHangNgay, string nguoi);
+
+        // Nhân viên gặp biển "Không làm phiền": bỏ qua việc theo ngày, ghi DND cho phiếu hôm nay
+        Task<PhanCongDonPhong> SkipForDndAsync(string maPhanCong, string maNhanVienThucHien, bool laQuanLy);
+
         // Bảng buồng phòng: mọi phòng theo tầng, việc đang mở, khách đến / đi hôm nay
         Task<List<HousekeepingRoomDto>> GetBoardAsync();
 

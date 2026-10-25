@@ -243,7 +243,10 @@ namespace QLKSan.Business
                 NguonDat = p.NguonDat,
                 DaXuLy = daXuLy,
                 QuaHanTra = p.TrangThai == BookingStatus.CheckedIn && p.NgayCheckOutDuKien.Date < today,
-                KhachDiCung = p.KhachDiCungs?.OrderBy(k => k.MaKhachDiCung).Select(k => k.ToDto()).ToList() ?? new List<CompanionDto>()
+                KhachDiCung = p.KhachDiCungs?.OrderBy(k => k.MaKhachDiCung).Select(k => k.ToDto()).ToList() ?? new List<CompanionDto>(),
+                KhongLamPhien = p.KhongLamPhienNgay?.Date == today,
+                GioDonMongMuon = p.GioDonMongMuon,
+                TuChoiDonHangNgay = p.TuChoiDonHangNgay
             };
         }
     }
