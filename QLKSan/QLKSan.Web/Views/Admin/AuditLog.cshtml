@@ -1,0 +1,82 @@
+@model QLKSan.Models.DTOs.AuditLogPageDto
+@{
+    ViewData["Title"] = "Nhật ký thao tác";
+    var soTrang = Math.Max(1, (int)Math.Ceiling(Model.TongSo / (double)Model.SoDong));
+    string PageUrl(int trang) => Url.Action("AuditLog", new
+    {
+        tuNgay = ((DateTime?)ViewBag.TuNgay)?.ToString("yyyy-MM-dd"),
+        denNgay = ((DateTime?)ViewBag.DenNgay)?.ToString("yyyy-MM-dd"),
+        doiTuong = ViewBag.DoiTuong,
+        nguoiDung = ViewBag.NguoiDung,
+        tuKhoa = ViewBag.TuKhoa,
+        trang
+    });
+    string VaiTro(string v) => v switch { "Admin" => "Quản lý", "Receptionist" => "Lễ tân", "Housekeeping" => "Buồng phòng", "Accountant" => "Kế toán", "Customer" => "Khách hàng", _ => v ?? "" };
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Hệ thống</p>
+        <h2>Nhật ký thao tác</h2>
+        <p class="page-desc">Ghi tự động mỗi thao tác thay đổi dữ liệu thành công: ai làm, lúc nào, trên đối tượng nào và dữ liệu gửi lên (không lưu mật khẩu).</p>
+    </div>
+</div>
+
+<form method="get" class="card p-3 mb-4">
+    <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-2"><label class="form-label small mb-1">Từ ngày</label><input type="date" name="tuNgay" class="form-control form-control-sm" value="@(((DateTime?)ViewBag.TuNgay)?.ToString("yyyy-MM-dd"))" /></div>
+        <div class="col-6 col-md-2"><label class="form-label small mb-1">Đến ngày</label><input type="date" name="denNgay" class="form-control form-control-sm" value="@(((DateTime?)ViewBag.DenNgay)?.ToString("yyyy-MM-dd"))" /></div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Đối tượng</label>
+            <select name="doiTuong" class="form-select form-select-sm">
+                <option value="">Tất cả</option>
+                @foreach (var x in Model.DoiTuongs) { <option value="@x" selected="@(x == (string)ViewBag.DoiTuong)">@x</option> }
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small mb-1">Người thực hiện</label>
+            <select name="nguoiDung" class="form-select form-select-sm">
+                <option value="">Tất cả</option>
+                @foreach (var x in Model.NguoiDungs) { <option value="@x" selected="@(x == (string)ViewBag.NguoiDung)">@x</option> }
+            </select>
+        </div>
+        <div class="col-8 col-md-3"><label class="form-label small mb-1">Từ khoá</label><input name="tuKhoa" class="form-control form-control-sm" value="@ViewBag.TuKhoa" placeholder="Mã phiếu, hoá đơn, hành động…" /></div>
+        <div class="col-4 col-md-1"><button type="submit" class="btn-gold btn-sm w-100"><i class="fas fa-search"></i></button></div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="p-3 d-flex justify-content-between align-items-center">
+        <span class="small text-muted">@Model.TongSo thao tác · trang @Model.Trang / @soTrang</span>
+    </div>
+    @if (!Model.Dong.Any())
+    {
+        <p class="text-muted small px-3 pb-3 mb-0">Không có thao tác nào trong khoảng đã chọn.</p>
+    }
+    else
+    {
+        @* Đã phân trang phía máy chủ nên không gắn công cụ bảng phía trình duyệt *@
+        <table class="table table-custom mb-0" data-no-tools>
+            <thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
+            <tbody>
+                @foreach (var n in Model.Dong)
+                {
+                    <tr>
+                        <td class="small text-nowrap">@n.ThoiGian.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td><strong>@(n.TenDangNhap ?? "—")</strong><div class="text-muted small">@VaiTro(n.VaiTro)</div></td>
+                        <td><span class="audit-action @(n.HanhDong.StartsWith("Xoá") || n.HanhDong.StartsWith("Huỷ") || n.HanhDong.Contains("khoá") ? "is-danger" : "")">@n.HanhDong</span></td>
+                        <td class="small">@n.DoiTuong<div class="text-muted">@n.MaDoiTuong</div></td>
+                        <td class="small audit-detail" title="@n.ChiTiet">@n.ChiTiet</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    @if (soTrang > 1)
+    {
+        <nav class="p-3 d-flex gap-2 justify-content-end">
+            @if (Model.Trang > 1) { <a class="btn btn-sm btn-outline-secondary" href="@PageUrl(Model.Trang - 1)">‹ Trước</a> }
+            @if (Model.Trang < soTrang) { <a class="btn btn-sm btn-outline-secondary" href="@PageUrl(Model.Trang + 1)">Sau ›</a> }
+        </nav>
+    }
+</div>

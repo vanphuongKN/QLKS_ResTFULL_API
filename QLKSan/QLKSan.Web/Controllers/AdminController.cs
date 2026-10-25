@@ -1,228 +1,435 @@
-using System;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QLKSan.Business;
-using QLKSan.Models.Entities;
+using QLKSan.ApiClients;
+using QLKSan.Enums;
+using QLKSan.Extensions;
+using QLKSan.Infrastructure;
+using QLKSan.Models.DTOs;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Controllers
 {
+    [Authorize(Roles = WebRoles.Admin)]
     public class AdminController : Controller
     {
-        private readonly IAdminService _adminService;
-        public AdminController(IAdminService adminService) { _adminService = adminService; }
+        private readonly IDashboardApiClient _dashboardApi;
+        private readonly IRoomTypeApiClient _roomTypeApi;
+        private readonly IRoomApiClient _roomApi;
+        private readonly IServiceApiClient _serviceApi;
+        private readonly IStaffApiClient _staffApi;
+        private readonly IPromotionApiClient _promotionApi;
+        private readonly IReviewApiClient _reviewApi;
+        private readonly IPricingRuleApiClient _pricingApi;
+        private readonly IAuditLogApiClient _auditApi;
+        private readonly ISettingsApiClient _settingsApi;
+        private readonly IAmenityApiClient _amenityApi;
+        private readonly HotelInfoProvider _hotelInfo;
+
+        public AdminController(IDashboardApiClient dashboardApi, IRoomTypeApiClient roomTypeApi, IRoomApiClient roomApi,
+            IServiceApiClient serviceApi, IStaffApiClient staffApi, IPromotionApiClient promotionApi, IReviewApiClient reviewApi,
+            IPricingRuleApiClient pricingApi, IAuditLogApiClient auditApi, ISettingsApiClient settingsApi, HotelInfoProvider hotelInfo,
+            IAmenityApiClient amenityApi)
+        {
+            _amenityApi = amenityApi;
+            _auditApi = auditApi;
+            _settingsApi = settingsApi;
+            _hotelInfo = hotelInfo;
+            _dashboardApi = dashboardApi;
+            _roomTypeApi = roomTypeApi;
+            _roomApi = roomApi;
+            _serviceApi = serviceApi;
+            _staffApi = staffApi;
+            _promotionApi = promotionApi;
+            _reviewApi = reviewApi;
+            _pricingApi = pricingApi;
+        }
+
+        // Gọi API và ghi kết quả vào TempData (thông báo lỗi lấy từ API), rồi quay về trang danh sách
+        private async Task<IActionResult> RunAsync(Func<Task> action, string successMessage, string redirectAction)
+        {
+            try
+            {
+                await action();
+                TempData["SuccessMessage"] = successMessage;
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(redirectAction);
+        }
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            ViewBag.Revenue = await _adminService.GetTotalRevenueAsync();
-            ViewBag.WeeklyRevenue = await _adminService.GetWeeklyRevenueAsync();
-            ViewBag.Bookings = await _adminService.GetTotalBookingsAsync();
-            ViewBag.Customers = await _adminService.GetTotalCustomersAsync();
-            ViewBag.Promotions = await _adminService.GetAllPromotionsAsync();
-            ViewBag.YearlyRevenue = await _adminService.GetYearlyRevenueHistoryAsync(DateTime.Now.Year);
-            return View();
+            return View(await _dashboardApi.GetAsync());
         }
 
         // ===== ROOM TYPES =====
         [HttpGet]
         public async Task<IActionResult> RoomTypes()
         {
-            ViewBag.RoomTypes = await _adminService.GetAllRoomTypesAsync();
+            ViewBag.RoomTypes = await _roomTypeApi.GetAllAsync();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddRoomType(string tenLoai, int soNguoiToiDa, decimal giaThueNgay, decimal giaThueGio, string moTa)
+        public Task<IActionResult> AddRoomType(RoomTypeRequest request)
+            => RunAsync(() => _roomTypeApi.CreateAsync(request), "Thêm loại phòng thành công!", "RoomTypes");
+
+        [HttpPost]
+        public Task<IActionResult> EditRoomType(string maLoai, RoomTypeRequest request)
+            => RunAsync(() => _roomTypeApi.UpdateAsync(maLoai, request), "Cập nhật loại phòng thành công!", "RoomTypes");
+
+        // Bộ ảnh của hạng phòng (ảnh đầu tiên là ảnh đại diện trên trang khách)
+        [HttpGet]
+        public async Task<IActionResult> RoomTypeImages(string id)
         {
-            var maLoai = await _adminService.GenerateNextRoomTypeIdAsync();
-            var rt = new LoaiPhong { MaLoai = maLoai, TenLoai = tenLoai, SoNguoiToiDa = soNguoiToiDa, GiaThueNgay = giaThueNgay, GiaThueGio = giaThueGio, MoTa = moTa };
-            bool ok = await _adminService.AddRoomTypeAsync(rt);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Thêm loại phòng thành công!" : "Lỗi thêm loại phòng.";
-            return RedirectToAction("RoomTypes");
+            var detail = string.IsNullOrEmpty(id) ? null : await _roomTypeApi.GetDetailAsync(id);
+            if (detail == null) return NotFound();
+            return View(detail);
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditRoomType(string maLoai, string tenLoai, int soNguoiToiDa, decimal giaThueNgay, decimal giaThueGio, string moTa)
+        public async Task<IActionResult> UploadRoomTypeImage(string maLoai, IFormFile file)
         {
-            var rt = new LoaiPhong { MaLoai = maLoai, TenLoai = tenLoai, SoNguoiToiDa = soNguoiToiDa, GiaThueNgay = giaThueNgay, GiaThueGio = giaThueGio, MoTa = moTa };
-            bool ok = await _adminService.UpdateRoomTypeAsync(rt);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Cập nhật loại phòng thành công!" : "Lỗi cập nhật.";
-            return RedirectToAction("RoomTypes");
+            if (file == null || file.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn ảnh cần tải lên.";
+            }
+            else
+            {
+                try
+                {
+                    using var stream = file.OpenReadStream();
+                    await _roomTypeApi.UploadImageAsync(maLoai, stream, file.FileName, file.ContentType);
+                    TempData["SuccessMessage"] = "Đã tải ảnh lên.";
+                }
+                catch (ApiException ex)
+                {
+                    TempData["ErrorMessage"] = ex.UserMessage;
+                }
+            }
+            return RedirectToAction(nameof(RoomTypeImages), new { id = maLoai });
         }
 
         [HttpPost]
-        public async Task<IActionResult> DeleteRoomType(string maLoai)
+        public async Task<IActionResult> DeleteRoomTypeImage(string maLoai, string maHinhAnh)
         {
-            bool ok = await _adminService.DeleteRoomTypeAsync(maLoai);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Xóa loại phòng thành công!" : "Không thể xóa (có phòng đang dùng loại này).";
-            return RedirectToAction("RoomTypes");
+            try
+            {
+                await _roomTypeApi.DeleteImageAsync(maLoai, maHinhAnh);
+                TempData["SuccessMessage"] = "Đã xoá ảnh.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(RoomTypeImages), new { id = maLoai });
         }
+
+        [HttpPost]
+        public Task<IActionResult> DeleteRoomType(string maLoai)
+            => RunAsync(() => _roomTypeApi.DeleteAsync(maLoai), "Xóa loại phòng thành công!", "RoomTypes");
 
         // ===== ROOMS =====
         [HttpGet]
         public async Task<IActionResult> Rooms()
         {
-            ViewBag.Rooms = await _adminService.GetAllRoomsAsync();
-            ViewBag.RoomTypes = await _adminService.GetAllRoomTypesAsync();
+            ViewBag.Rooms = await _roomApi.GetAllAsync();
+            ViewBag.RoomTypes = await _roomTypeApi.GetAllAsync();
+            ViewBag.Amenities = await _amenityApi.GetAllAsync();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddRoom(string soPhong, string maLoai)
+        public Task<IActionResult> SetRoomAmenities(string maPhong, List<string> maTienIchs, bool apDungCaHang)
+            => RunAsync(() => _roomApi.SetAmenitiesAsync(maPhong, new RoomAmenitiesRequest { MaTienIchs = maTienIchs ?? new List<string>(), ApDungCaHang = apDungCaHang }),
+                apDungCaHang ? "Đã cập nhật tiện nghi cho mọi phòng cùng hạng." : $"Đã cập nhật tiện nghi phòng {maPhong}.", "Rooms");
+
+        // ===== TIỆN NGHI =====
+        [HttpGet]
+        public async Task<IActionResult> Amenities()
         {
-            var maPhong = "P" + soPhong.Trim();
-            var room = new Phong { MaPhong = maPhong, SoPhong = soPhong, MaLoai = maLoai };
-            bool ok = await _adminService.AddRoomAsync(room);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Thêm phòng thành công!" : "Lỗi thêm phòng.";
-            return RedirectToAction("Rooms");
+            ViewBag.Rooms = await _roomApi.GetAllAsync();
+            return View(await _amenityApi.GetAllAsync());
         }
 
         [HttpPost]
-        public async Task<IActionResult> DeleteRoom(string maPhong)
-        {
-            bool ok = await _adminService.DeleteRoomAsync(maPhong);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Xóa phòng thành công!" : "Không thể xóa (phòng có liên kết).";
-            return RedirectToAction("Rooms");
-        }
+        public Task<IActionResult> AddAmenity(AmenityRequest model)
+            => RunAsync(() => _amenityApi.CreateAsync(model), $"Đã thêm tiện nghi \"{model.TenTienIch}\".", "Amenities");
 
         [HttpPost]
-        public async Task<IActionResult> EditRoom(string maPhong, string soPhong, string maLoai)
-        {
-            var room = new Phong { MaPhong = maPhong, SoPhong = soPhong, MaLoai = maLoai };
-            bool ok = await _adminService.UpdateRoomAsync(room);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Cập nhật phòng thành công!" : "Lỗi cập nhật.";
-            return RedirectToAction("Rooms");
-        }
+        public Task<IActionResult> EditAmenity(string maTienIch, AmenityRequest model)
+            => RunAsync(() => _amenityApi.UpdateAsync(maTienIch, model), "Đã cập nhật tiện nghi.", "Amenities");
+
+        [HttpPost]
+        public Task<IActionResult> DeleteAmenity(string maTienIch)
+            => RunAsync(() => _amenityApi.DeleteAsync(maTienIch), "Đã xoá tiện nghi.", "Amenities");
+
+        [HttpPost]
+        public Task<IActionResult> AddRoom(string soPhong, string maLoai)
+            => RunAsync(() => _roomApi.CreateAsync(new RoomRequest { SoPhong = soPhong, MaLoai = maLoai }), "Thêm phòng thành công!", "Rooms");
+
+        [HttpPost]
+        public Task<IActionResult> DeleteRoom(string maPhong)
+            => RunAsync(() => _roomApi.DeleteAsync(maPhong), "Xóa phòng thành công!", "Rooms");
+
+        [HttpPost]
+        public Task<IActionResult> EditRoom(string maPhong, string soPhong, string maLoai)
+            => RunAsync(() => _roomApi.UpdateAsync(maPhong, new RoomRequest { SoPhong = soPhong, MaLoai = maLoai }), "Cập nhật phòng thành công!", "Rooms");
 
         // ===== SERVICES =====
         [HttpGet]
         public async Task<IActionResult> Services()
         {
-            ViewBag.Services = await _adminService.GetAllServicesAsync();
+            ViewBag.Services = await _serviceApi.GetAllAsync();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddService(string tenDichVu, decimal giaDichVu, string donViTinh)
-        {
-            var maDichVu = await _adminService.GenerateNextServiceIdAsync();
-            var s = new DichVu { MaDichVu = maDichVu, TenDichVu = tenDichVu, GiaDichVu = giaDichVu, DonViTinh = donViTinh };
-            bool ok = await _adminService.AddServiceAsync(s);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Thêm dịch vụ thành công!" : "Lỗi thêm dịch vụ.";
-            return RedirectToAction("Services");
-        }
+        public Task<IActionResult> AddService(ServiceRequest request)
+            => RunAsync(() => _serviceApi.CreateAsync(request), "Thêm dịch vụ thành công!", "Services");
 
         [HttpPost]
-        public async Task<IActionResult> DeleteService(string maDichVu)
-        {
-            bool ok = await _adminService.DeleteServiceAsync(maDichVu);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Xóa dịch vụ thành công!" : "Không thể xóa.";
-            return RedirectToAction("Services");
-        }
+        public Task<IActionResult> DeleteService(string maDichVu)
+            => RunAsync(() => _serviceApi.DeleteAsync(maDichVu), "Xóa dịch vụ thành công!", "Services");
 
         [HttpPost]
-        public async Task<IActionResult> ToggleServiceStatus(string maDichVu)
-        {
-            bool ok = await _adminService.ToggleServiceStatusAsync(maDichVu);
-            if (ok) TempData["SuccessMessage"] = "Đã thay đổi trạng thái dịch vụ!";
-            else TempData["ErrorMessage"] = "Lỗi khi đổi trạng thái dịch vụ.";
-            return RedirectToAction("Services");
-        }
+        public Task<IActionResult> SetServiceStatus(string maDichVu, ServiceStatus trangThai)
+            => RunAsync(() => _serviceApi.SetStatusAsync(maDichVu, trangThai),
+                $"Đã chuyển dịch vụ sang \"{trangThai.GetDisplayName()}\".", "Services");
 
         [HttpPost]
-        public async Task<IActionResult> EditService(string maDichVu, string tenDichVu, decimal giaDichVu, string donViTinh)
-        {
-            var s = new DichVu { MaDichVu = maDichVu, TenDichVu = tenDichVu, GiaDichVu = giaDichVu, DonViTinh = donViTinh };
-            bool ok = await _adminService.UpdateServiceAsync(s);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Cập nhật dịch vụ thành công!" : "Lỗi cập nhật.";
-            return RedirectToAction("Services");
-        }
+        public Task<IActionResult> EditService(string maDichVu, ServiceRequest request)
+            => RunAsync(() => _serviceApi.UpdateAsync(maDichVu, request), "Cập nhật dịch vụ thành công!", "Services");
 
         // ===== STAFF =====
         [HttpGet]
         public async Task<IActionResult> Staff()
         {
-            ViewBag.Staff = await _adminService.GetAllStaffAsync();
+            ViewBag.Staff = await _staffApi.GetAllAsync();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddStaff(string tenNhanVien, string chucVu, string sdt, string email, string tenDangNhap, string matKhau)
+        public Task<IActionResult> AddStaff(string tenNhanVien, string chucVu, string sdt, string email, string tenDangNhap, string matKhau, Role? vaiTro)
         {
-            var phoneRegex = new System.Text.RegularExpressions.Regex(@"^(0[3|5|7|8|9])+([0-9]{8})\b");
-            if (!phoneRegex.IsMatch(sdt?.Trim() ?? ""))
+            var request = new CreateStaffRequest
             {
-                TempData["ErrorMessage"] = "Số điện thoại nhân viên không hợp lệ.";
-                return RedirectToAction("Staff");
-            }
-            if ((matKhau?.Length ?? 0) < 6)
-            {
-                TempData["ErrorMessage"] = "Mật khẩu nhân viên phải từ 6 ký tự trở lên.";
-                return RedirectToAction("Staff");
-            }
-
-            var maNhanVien = await _adminService.GenerateNextStaffIdAsync();
-            var nv = new NhanVien { MaNhanVien = maNhanVien, TenNhanVien = tenNhanVien, ChucVu = chucVu, SDT = sdt, Email = email, NgayVaoLam = DateTime.Now };
-            bool ok = await _adminService.AddStaffAsync(nv, tenDangNhap, matKhau);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Thêm nhân viên thành công!" : "Lỗi.";
-            return RedirectToAction("Staff");
+                TenNhanVien = tenNhanVien, ChucVu = chucVu, SDT = sdt?.Trim(), Email = email,
+                TenDangNhap = tenDangNhap, MatKhau = matKhau, VaiTro = vaiTro
+            };
+            return RunAsync(() => _staffApi.CreateAsync(request), "Thêm nhân viên thành công!", "Staff");
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditStaff(string maNhanVien, string tenNhanVien, string chucVu, string sdt, string email)
+        public Task<IActionResult> EditStaff(string maNhanVien, string tenNhanVien, string chucVu, string sdt, string email,
+            Role? vaiTro, EmployeeStatus? trangThai)
         {
-            var phoneRegex = new System.Text.RegularExpressions.Regex(@"^(0[3|5|7|8|9])+([0-9]{8})\b");
-            if (!phoneRegex.IsMatch(sdt?.Trim() ?? ""))
+            var request = new UpdateStaffRequest
             {
-                TempData["ErrorMessage"] = "Số điện thoại nhân viên không hợp lệ.";
-                return RedirectToAction("Staff");
-            }
-
-            var nv = new NhanVien { MaNhanVien = maNhanVien, TenNhanVien = tenNhanVien, ChucVu = chucVu, SDT = sdt, Email = email };
-            bool ok = await _adminService.UpdateStaffAsync(nv);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Cập nhật nhân viên thành công!" : "Lỗi cập nhật.";
-            return RedirectToAction("Staff");
+                TenNhanVien = tenNhanVien, ChucVu = chucVu, SDT = sdt?.Trim(), Email = email, VaiTro = vaiTro, TrangThai = trangThai
+            };
+            return RunAsync(() => _staffApi.UpdateAsync(maNhanVien, request), "Cập nhật nhân viên thành công!", "Staff");
         }
 
         [HttpPost]
-        public async Task<IActionResult> DeleteStaff(string maNhanVien)
-        {
-            bool ok = await _adminService.DeleteStaffAsync(maNhanVien);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Xóa nhân viên thành công!" : "Không thể xóa.";
-            return RedirectToAction("Staff");
-        }
+        public Task<IActionResult> ResetPassword(string maNhanVien, string matKhauMoi)
+            => RunAsync(() => _staffApi.ResetPasswordAsync(maNhanVien, matKhauMoi), "Đã đặt lại mật khẩu cho nhân viên.", "Staff");
+
+        [HttpPost]
+        public Task<IActionResult> DeleteStaff(string maNhanVien)
+            => RunAsync(() => _staffApi.DeleteAsync(maNhanVien), "Xóa nhân viên thành công!", "Staff");
 
         // ===== PROMOTIONS =====
         [HttpGet]
         public async Task<IActionResult> Promotions()
         {
-            ViewBag.Promotions = await _adminService.GetAllPromotionsAsync();
+            ViewBag.Promotions = await _promotionApi.GetAllAsync();
+            ViewBag.RoomTypes = await _roomTypeApi.GetAllAsync();
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddPromotion(KhuyenMai p)
+        public Task<IActionResult> AddPromotion(PromotionRequest p)
         {
             if (!ModelState.IsValid)
             {
-                // Note: The UI for AddPromotion is likely a modal or part of Promotions view. 
-                // We should redirect back with error if not valid, or return view. 
-                // Returning view for a single page might require repopulating ViewBag.
                 TempData["ErrorMessage"] = "Dữ liệu khuyến mãi không hợp lệ. Vui lòng kiểm tra lại.";
-                return RedirectToAction("Promotions");
+                return Task.FromResult<IActionResult>(RedirectToAction("Promotions"));
             }
-            
-            bool ok = await _adminService.AddPromotionAsync(p);
-            TempData[ok ? "SuccessMessage" : "ErrorMessage"] = ok ? "Thêm khuyến mãi thành công!" : "Lỗi thêm khuyến mãi (có thể trùng mã).";
-            return RedirectToAction("Promotions");
+
+            return RunAsync(() => _promotionApi.CreateAsync(p), "Thêm khuyến mãi thành công!", "Promotions");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> EditPromotion(string maKhuyenMai, PromotionRequest p)
+        {
+            p.MaKhuyenMai = maKhuyenMai;
+            ModelState.Remove(nameof(PromotionRequest.MaKhuyenMai));
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return Task.FromResult<IActionResult>(RedirectToAction("Promotions"));
+            }
+            return RunAsync(() => _promotionApi.UpdateAsync(maKhuyenMai, p), $"Đã cập nhật khuyến mãi {maKhuyenMai}.", "Promotions");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SetPromotionStatus(string maKhuyenMai, bool kichHoat)
+            => RunAsync(() => _promotionApi.SetActiveAsync(maKhuyenMai, kichHoat), $"Đã {(kichHoat ? "bật" : "tắt")} mã {maKhuyenMai}.", "Promotions");
+
+        [HttpPost]
+        public Task<IActionResult> DeletePromotion(string maKhuyenMai)
+            => RunAsync(() => _promotionApi.DeleteAsync(maKhuyenMai), $"Đã xoá mã {maKhuyenMai}.", "Promotions");
+
+        // ===== PRICING RULES (giá theo mùa / cuối tuần / lễ) =====
+        [HttpGet]
+        public async Task<IActionResult> Pricing()
+        {
+            ViewBag.Rules = await _pricingApi.GetAllAsync();
+            ViewBag.RoomTypes = await _roomTypeApi.GetAllAsync();
+            return View();
+        }
+
+        [HttpPost]
+        public Task<IActionResult> AddPricingRule(PricingRuleRequest rule)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return Task.FromResult<IActionResult>(RedirectToAction("Pricing"));
+            }
+
+            return RunAsync(() => _pricingApi.CreateAsync(rule), $"Đã thêm quy tắc giá \"{rule.TenQuyTac}\".", "Pricing");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> EditPricingRule(string id, PricingRuleRequest rule)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return Task.FromResult<IActionResult>(RedirectToAction("Pricing"));
+            }
+            return RunAsync(() => _pricingApi.UpdateAsync(id, rule), $"Đã cập nhật quy tắc {id}.", "Pricing");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SetPricingRuleStatus(string id, bool kichHoat)
+            => RunAsync(() => _pricingApi.SetActiveAsync(id, kichHoat), $"Đã {(kichHoat ? "bật" : "tắt")} quy tắc {id}.", "Pricing");
+
+        [HttpPost]
+        public Task<IActionResult> DeletePricingRule(string id)
+            => RunAsync(() => _pricingApi.DeleteAsync(id), $"Đã xoá quy tắc {id}.", "Pricing");
+
+        // ===== CẤU HÌNH KHÁCH SẠN =====
+        [HttpGet]
+        public async Task<IActionResult> Settings(string tab = "thong-tin")
+        {
+            ViewBag.Tab = tab;
+            return View(await _settingsApi.GetAsync());
+        }
+
+        private async Task<IActionResult> SaveSettingsAsync(Func<Task> save, string tab, string message)
+        {
+            // Các dòng để trống trong bảng phụ thu / hạng thành viên không tính là lỗi nhập liệu
+            foreach (var key in ModelState.Keys.Where(k => k.Contains('[')).ToList())
+                if (string.IsNullOrEmpty(ModelState[key]?.AttemptedValue)) ModelState.Remove(key);
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(Settings), new { tab });
+            }
+            try
+            {
+                await save();
+                _hotelInfo.Invalidate();
+                TempData["SuccessMessage"] = message;
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Settings), new { tab });
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SaveHotelInfo(HotelInfoSettingsDto model)
+            => SaveSettingsAsync(() => _settingsApi.SaveHotelInfoAsync(model), "thong-tin", "Đã lưu thông tin khách sạn — footer và trang khách đã cập nhật.");
+
+        [HttpPost]
+        public Task<IActionResult> SavePolicy(HotelPolicySettingsDto model)
+        {
+            model.PhuThuTraMuon = model.PhuThuTraMuon.Where(m => m.DenGio > 0).ToList();
+            return SaveSettingsAsync(() => _settingsApi.SavePolicyAsync(model), "chinh-sach", "Đã lưu chính sách lưu trú — áp dụng cho hoá đơn lập từ bây giờ.");
+        }
+
+        [HttpPost]
+        public Task<IActionResult> SaveLoyalty(LoyaltySettingsDto model)
+        {
+            // Quyền lợi nhập mỗi dòng một ý trong ô văn bản
+            foreach (var h in model.Hangs)
+                h.QuyenLoi = h.QuyenLoi.SelectMany(q => (q ?? "").Split('\n')).Select(q => q.Trim()).Where(q => q.Length > 0).ToList();
+            model.Hangs = model.Hangs.Where(h => !string.IsNullOrWhiteSpace(h.Ten)).ToList();
+            return SaveSettingsAsync(() => _settingsApi.SaveLoyaltyAsync(model), "thanh-vien", "Đã lưu chương trình thành viên.");
+        }
+
+        // ===== NHẬT KÝ THAO TÁC =====
+        [HttpGet]
+        public async Task<IActionResult> AuditLog(DateTime? tuNgay, DateTime? denNgay, string doiTuong, string nguoiDung, string tuKhoa, int trang = 1)
+        {
+            tuNgay ??= DateTime.Today.AddDays(-6);
+            denNgay ??= DateTime.Today;
+            ViewBag.TuNgay = tuNgay;
+            ViewBag.DenNgay = denNgay;
+            ViewBag.DoiTuong = doiTuong;
+            ViewBag.NguoiDung = nguoiDung;
+            ViewBag.TuKhoa = tuKhoa;
+            return View(await _auditApi.SearchAsync(tuNgay, denNgay, doiTuong, nguoiDung, tuKhoa, trang));
         }
 
         // ===== REVIEWS =====
         [HttpGet]
-        public async Task<IActionResult> Reviews()
+        public async Task<IActionResult> Reviews(int? soSao = null, bool chuaPhanHoi = false, bool? an = null)
         {
-            ViewBag.Reviews = await _adminService.GetAllReviewsAsync();
+            // Thống kê luôn tính trên toàn bộ đánh giá; danh sách theo bộ lọc
+            var all = await _reviewApi.GetAllAsync();
+            ViewBag.AllReviews = all;
+            ViewBag.Reviews = soSao == null && !chuaPhanHoi && an == null ? all : await _reviewApi.GetAllAsync(soSao, chuaPhanHoi, an);
+            ViewBag.SoSao = soSao;
+            ViewBag.ChuaPhanHoi = chuaPhanHoi;
+            ViewBag.An = an;
             return View();
         }
+
+        // Thao tác trên một đánh giá rồi quay lại đúng bộ lọc đang xem
+        private async Task<IActionResult> ReviewActionAsync(Func<Task> action, string successMessage, int? soSao, bool chuaPhanHoi, bool? an)
+        {
+            try
+            {
+                await action();
+                TempData["SuccessMessage"] = successMessage;
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = ex.UserMessage;
+            }
+            return RedirectToAction(nameof(Reviews), new { soSao, chuaPhanHoi = chuaPhanHoi ? true : (bool?)null, an });
+        }
+
+        [HttpPost]
+        public Task<IActionResult> ReplyReview(string maDanhGia, string noiDung, int? soSao, bool chuaPhanHoi, bool? an)
+            => ReviewActionAsync(() => _reviewApi.ReplyAsync(maDanhGia, noiDung), "Đã gửi phản hồi — phản hồi hiển thị công khai trên trang hạng phòng.", soSao, chuaPhanHoi, an);
+
+        [HttpPost]
+        public Task<IActionResult> DeleteReviewReply(string maDanhGia, int? soSao, bool chuaPhanHoi, bool? an)
+            => ReviewActionAsync(() => _reviewApi.DeleteReplyAsync(maDanhGia), "Đã gỡ phản hồi.", soSao, chuaPhanHoi, an);
+
+        [HttpPost]
+        public Task<IActionResult> SetReviewVisibility(string maDanhGia, bool hide, int? soSao, bool chuaPhanHoi, bool? an)
+            => ReviewActionAsync(() => _reviewApi.SetHiddenAsync(maDanhGia, hide),
+                hide ? "Đã ẩn đánh giá khỏi trang khách (vẫn tính vào điểm trung bình)." : "Đã hiện lại đánh giá.", soSao, chuaPhanHoi, an);
     }
 }

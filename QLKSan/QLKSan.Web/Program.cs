@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using QLKSan.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using QLKSan.ApiClients;
+using QLKSan.Infrastructure;
 
 namespace QLKSan
 {
@@ -10,104 +11,69 @@ namespace QLKSan
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            builder.Services.AddControllersWithViews();
-            builder.Services.AddScoped<QLKSan.Business.IRoomService, QLKSan.Business.RoomService>();
-            builder.Services.AddScoped<QLKSan.Business.IReceptionService, QLKSan.Business.ReceptionService>();
-            builder.Services.AddScoped<QLKSan.Business.IServiceManager, QLKSan.Business.ServiceManager>();
-            builder.Services.AddScoped<QLKSan.Business.ICheckoutService, QLKSan.Business.CheckoutService>();
-            builder.Services.AddScoped<QLKSan.Business.IHousekeepingService, QLKSan.Business.HousekeepingService>();
-            builder.Services.AddScoped<QLKSan.Business.IAdminService, QLKSan.Business.AdminService>();
-            builder.Services.AddScoped<QLKSan.Business.ICustomerService, QLKSan.Business.CustomerService>();
+            builder.Services.AddControllersWithViews(options =>
+            {
+                // API trả 401 → đăng xuất và quay về trang đăng nhập
+                options.Filters.Add<ApiUnauthorizedFilter>();
+                // Chống CSRF: mọi request POST/PUT/DELETE phải kèm antiforgery token (form tag helper tự sinh token)
+                options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+            });
 
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            // Đăng nhập bằng cookie; JWT nhận từ API được lưu trong cookie để gọi API
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Auth/Login";
+                    options.LogoutPath = "/Auth/Logout";
+                    options.AccessDeniedPath = "/Auth/AccessDenied";
+                    options.Cookie.Name = "QLKSan.Auth";
+                    options.Cookie.HttpOnly = true;
+                    options.SlidingExpiration = false;
+                });
+            builder.Services.AddAuthorization();
+
+            // Web không truy cập CSDL: mọi dữ liệu lấy từ QLKSan.API qua các typed HttpClient.
+            // JwtTokenHandler tự gắn Bearer token của người dùng đang đăng nhập.
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddTransient<JwtTokenHandler>();
+            var apiBaseUrl = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
+            MediaUrl.Configure(apiBaseUrl);
+            void AddApiClient<TClient, TImplementation>()
+                where TClient : class
+                where TImplementation : class, TClient
+            {
+                builder.Services.AddHttpClient<TClient, TImplementation>(c => c.BaseAddress = apiBaseUrl)
+                    .AddHttpMessageHandler<JwtTokenHandler>();
+            }
+
+            AddApiClient<IAuthApiClient, AuthApiClient>();
+            AddApiClient<IRoomApiClient, RoomApiClient>();
+            AddApiClient<IRoomTypeApiClient, RoomTypeApiClient>();
+            AddApiClient<IServiceApiClient, ServiceApiClient>();
+            AddApiClient<IStaffApiClient, StaffApiClient>();
+            AddApiClient<IPromotionApiClient, PromotionApiClient>();
+            AddApiClient<IReviewApiClient, ReviewApiClient>();
+            AddApiClient<IDashboardApiClient, DashboardApiClient>();
+            AddApiClient<IAuditLogApiClient, AuditLogApiClient>();
+            AddApiClient<ISettingsApiClient, SettingsApiClient>();
+            AddApiClient<IAmenityApiClient, AmenityApiClient>();
+            AddApiClient<IBookingApiClient, BookingApiClient>();
+            AddApiClient<IFrontDeskApiClient, FrontDeskApiClient>();
+            AddApiClient<IGuestRequestApiClient, GuestRequestApiClient>();
+            AddApiClient<ICustomerApiClient, CustomerApiClient>();
+            AddApiClient<IInvoiceApiClient, InvoiceApiClient>();
+            AddApiClient<IHousekeepingApiClient, HousekeepingApiClient>();
+            AddApiClient<IMaintenanceApiClient, MaintenanceApiClient>();
+            AddApiClient<IReportApiClient, ReportApiClient>();
+            AddApiClient<INightAuditApiClient, NightAuditApiClient>();
+            AddApiClient<IPricingRuleApiClient, PricingRuleApiClient>();
+            AddApiClient<IHotelApiClient, HotelApiClient>();
+
+            // Thông tin khách sạn dùng chung cho footer và trang chủ (lưu đệm trong bộ nhớ)
+            builder.Services.AddMemoryCache();
+            builder.Services.AddScoped<HotelInfoProvider>();
 
             var app = builder.Build();
-
-            // TẠM THỜI: QLKSan.API đã chạy đoạn này (Data/DatabaseSchemaFixer.cs). Xoá khi Web không còn truy cập DB trực tiếp (Giai đoạn 5).
-            // Dynamic Database Schema Fixes (e.g. drop duplicate unique constraints on nullable columns)
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var context = services.GetRequiredService<ApplicationDbContext>();
-                    using (var command = context.Database.GetDbConnection().CreateCommand())
-                    {
-                        context.Database.OpenConnection();
-                        command.CommandText = @"
-                            DECLARE @ConstraintName NVARCHAR(200);
-                            DECLARE @Sql NVARCHAR(MAX);
-
-                            -- 1. KhachHang.MaDangNhap
-                            SELECT @ConstraintName = tc.CONSTRAINT_NAME 
-                            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                            JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                            WHERE tc.TABLE_NAME = 'KhachHang' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'MaDangNhap';
-                            IF @ConstraintName IS NOT NULL
-                            BEGIN
-                                SET @Sql = 'ALTER TABLE KhachHang DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
-                                EXEC sp_executesql @Sql;
-                            END
-
-                            -- 2. KhachHang.CCCD_Passport
-                            SET @ConstraintName = NULL;
-                            SELECT @ConstraintName = tc.CONSTRAINT_NAME 
-                            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                            JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                            WHERE tc.TABLE_NAME = 'KhachHang' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'CCCD_Passport';
-                            IF @ConstraintName IS NOT NULL
-                            BEGIN
-                                SET @Sql = 'ALTER TABLE KhachHang DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
-                                EXEC sp_executesql @Sql;
-                            END
-
-                            -- 3. NhanVien.MaDangNhap
-                            SET @ConstraintName = NULL;
-                            SELECT @ConstraintName = tc.CONSTRAINT_NAME 
-                            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-                            JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                            WHERE tc.TABLE_NAME = 'NhanVien' AND tc.CONSTRAINT_TYPE = 'UNIQUE' AND ccu.COLUMN_NAME = 'MaDangNhap';
-                            IF @ConstraintName IS NOT NULL
-                            BEGIN
-                                SET @Sql = 'ALTER TABLE NhanVien DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
-                                EXEC sp_executesql @Sql;
-                            END
-
-                            -- 4. PhieuDatPhong.MaKhuyenMai Column
-                            IF NOT EXISTS (
-                                SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-                                WHERE TABLE_NAME = 'PhieuDatPhong' AND COLUMN_NAME = 'MaKhuyenMai'
-                            )
-                            BEGIN
-                                ALTER TABLE PhieuDatPhong ADD MaKhuyenMai VARCHAR(10) NULL;
-                            END
-
-                            -- 5. Fix Unicode: Convert VARCHAR to NVARCHAR for columns that may store Vietnamese text
-                            IF EXISTS (
-                                SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-                                WHERE TABLE_NAME = 'TaiKhoan' AND COLUMN_NAME = 'TenDangNhap' AND DATA_TYPE = 'varchar'
-                            )
-                            BEGIN
-                                ALTER TABLE TaiKhoan ALTER COLUMN TenDangNhap NVARCHAR(50) NOT NULL;
-                            END
-
-                            IF EXISTS (
-                                SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-                                WHERE TABLE_NAME = 'TaiKhoan' AND COLUMN_NAME = 'MatKhau' AND DATA_TYPE = 'varchar'
-                            )
-                            BEGIN
-                                ALTER TABLE TaiKhoan ALTER COLUMN MatKhau NVARCHAR(255) NOT NULL;
-                            END
-                        ";
-                        command.ExecuteNonQuery();
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    System.Console.WriteLine($"Error running db schema fix: {ex.Message}");
-                }
-            }
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -120,6 +86,7 @@ namespace QLKSan
             app.UseHttpsRedirection();
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapStaticAssets();

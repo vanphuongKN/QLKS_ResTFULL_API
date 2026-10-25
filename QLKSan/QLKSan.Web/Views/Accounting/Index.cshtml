@@ -1,0 +1,101 @@
+@model QLKSan.Models.DTOs.AccountingOverviewDto
+@{
+    ViewData["Title"] = "Tổng quan kế toán";
+    var d = Model;
+    DateTime tuNgay = ViewBag.TuNgay;
+    DateTime denNgay = ViewBag.DenNgay;
+    decimal? Delta(decimal nay, decimal truoc) => truoc == 0 ? null : Math.Round((nay - truoc) * 100m / truoc, 1);
+    var kpi = new[]
+    {
+        ("Doanh thu thuần", FormatHelper.ToVND(d.KyNay.DoanhThuThuan), Delta(d.KyNay.DoanhThuThuan, d.KyTruoc.DoanhThuThuan), $"{d.SoHoaDon} hoá đơn · đã trừ hoàn {d.TongHoanTien:N0} ₫"),
+        ("Công suất trung bình", d.KyNay.CongSuat.ToString("0.#") + "%", Delta(d.KyNay.CongSuat, d.KyTruoc.CongSuat), $"{d.KyNay.DemPhongDaBan} đêm phòng đã bán"),
+        ("ADR", FormatHelper.ToVND(d.KyNay.ADR), Delta(d.KyNay.ADR, d.KyTruoc.ADR), "Giá trung bình mỗi đêm phòng"),
+        ("RevPAR", FormatHelper.ToVND(d.KyNay.RevPAR), Delta(d.KyNay.RevPAR, d.KyTruoc.RevPAR), "Doanh thu phòng / phòng sẵn có")
+    };
+    var viec = new[]
+    {
+        (d.HoaDonChuaThanhToan.ToString(), "Hoá đơn chưa thanh toán", d.TienChuaThanhToan > 0 ? FormatHelper.ToVND(d.TienChuaThanhToan) : "", "fa-file-invoice", Url.Action("Invoices", new { trangThai = "Unpaid" }), d.HoaDonChuaThanhToan > 0 ? "warn" : ""),
+        (d.HoaDonCongTyChuaXuat.ToString(), "HĐ công ty chưa ghi số hoá đơn điện tử", "", "fa-building-columns", Url.Action("VatInvoices", new { chuaXuat = true }), d.HoaDonCongTyChuaXuat > 0 ? "warn" : ""),
+        (d.SoCaChenhLech.ToString(), "Ca lễ tân lệch tiền mặt", d.TongChenhLech != 0 ? d.TongChenhLech.ToString("N0") + " ₫" : "", "fa-cash-register", Url.Action("Reconciliation", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") }), d.SoCaChenhLech > 0 ? "danger" : ""),
+        (d.SoPhieuGiuCoc.ToString(), "Phiếu đang giữ cọc (nợ phải trả khách)", d.CocDangGiu > 0 ? FormatHelper.ToVND(d.CocDangGiu) : "", "fa-wallet", Url.Action("Reconciliation", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") }), ""),
+        (d.CocGiuLaiKhiHuy > 0 ? FormatHelper.ToVND(d.CocGiuLaiKhiHuy) : "0", "Cọc giữ lại khi khách huỷ (theo ngày nhận dự kiến, chưa vào doanh thu)", "", "fa-ban", Url.Action("Reconciliation", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") }), d.CocGiuLaiKhiHuy > 0 ? "warn" : "")
+    };
+    var tongKenh = Math.Max(1, d.TheoKenh.Sum(k => k.DoanhThu));
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Kế toán</p>
+        <h2>Tổng quan kế toán</h2>
+        <p class="page-desc">@tuNgay.ToString("dd/MM/yyyy") – @denNgay.ToString("dd/MM/yyyy") · so với @d.KyTruoc.TuNgay.ToString("dd/MM") – @d.KyTruoc.DenNgay.ToString("dd/MM") (cùng số ngày liền trước)</p>
+    </div>
+    <a href="@Url.Action("Export", new { tuNgay = tuNgay.ToString("yyyy-MM-dd"), denNgay = denNgay.ToString("yyyy-MM-dd") })" class="btn-gold text-decoration-none"><i class="fas fa-file-excel me-2"></i>Xuất Excel</a>
+</div>
+
+@await Component.InvokeAsync("NightAuditBanner")
+
+<form method="get" class="card p-3 mb-4">
+    <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Từ ngày</label><input type="date" name="tuNgay" value="@tuNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+        <div class="col-6 col-md-3"><label class="form-label small fw-semibold">Đến ngày</label><input type="date" name="denNgay" value="@denNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+        <div class="col-md-6 d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn btn-gold btn-sm"><i class="fas fa-sync me-1"></i>Xem</button>
+            <a class="btn btn-outline-secondary btn-sm" href="@Url.Action("Index")">Tháng này</a>
+            <a class="btn btn-outline-secondary btn-sm" href="@Url.Action("Index", new { tuNgay = DateTime.Today.AddDays(-29).ToString("yyyy-MM-dd"), denNgay = DateTime.Today.ToString("yyyy-MM-dd") })">30 ngày qua</a>
+        </div>
+    </div>
+</form>
+
+<div class="kpi-grid mb-4">
+    @foreach (var (ten, giaTri, delta, ghiChu) in kpi)
+    {
+        <div class="kpi-card">
+            <span class="kpi-label">@ten</span>
+            <div class="kpi-value kpi-value--sm">@giaTri</div>
+            <span class="kpi-sub">
+                @if (delta != null) { <span class="kpi-delta @(delta >= 0 ? "up" : "down")"><i class="fas @(delta >= 0 ? "fa-arrow-up" : "fa-arrow-down")"></i> @Math.Abs(delta.Value).ToString("0.#")%</span> }
+                else { <span class="kpi-delta">—</span> }
+                @ghiChu
+            </span>
+        </div>
+    }
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card p-4 h-100">
+            <h6 class="dash-title mb-3">Việc cần đối soát</h6>
+            <div class="task-list">
+                @foreach (var (so, ten, phu, icon, url, muc) in viec)
+                {
+                    <a href="@url" class="task-row @(so == "0" ? "is-zero" : muc)">
+                        <i class="fas @icon"></i><span>@ten@if (!string.IsNullOrEmpty(phu)) { <small class="d-block text-muted">@phu</small> }</span><strong>@so</strong>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-7">
+        <div class="card h-100">
+            <div class="p-4 pb-2 d-flex justify-content-between align-items-baseline">
+                <h6 class="dash-title mb-0">Doanh thu theo kênh đặt phòng</h6>
+                <a asp-action="Reports" asp-route-tuNgay="@tuNgay.ToString("yyyy-MM-dd")" asp-route-denNgay="@denNgay.ToString("yyyy-MM-dd")" class="small text-gold">Báo cáo chi tiết</a>
+            </div>
+            <table class="table table-custom mb-0" data-no-tools>
+                <thead><tr><th>Kênh</th><th class="text-center">Lượt</th><th class="text-center">Đêm</th><th style="width:38%">Tỷ trọng</th><th class="text-end">Doanh thu</th></tr></thead>
+                <tbody>
+                    @if (!d.TheoKenh.Any()) { <tr><td colspan="5" class="text-center text-muted">Chưa có hoá đơn thanh toán trong kỳ.</td></tr> }
+                    @foreach (var k in d.TheoKenh)
+                    {
+                        var pct = k.DoanhThu * 100m / tongKenh;
+                        <tr>
+                            <td class="fw-semibold">@k.Kenh</td><td class="text-center">@k.SoLuot</td><td class="text-center">@k.SoDem</td>
+                            <td><div class="kpi-meter kpi-meter--light"><span style="width:@pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></span></div><small class="text-muted">@pct.ToString("0.#")%</small></td>
+                            <td class="text-end">@k.DoanhThu.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,200 @@
+@model QLKSan.Models.DTOs.CustomerDetailDto
+@using QLKSan.Enums
+@{
+    ViewData["Title"] = "Hồ sơ " + Model.HoTen;
+    var points = ViewBag.Points as List<QLKSan.Models.DTOs.PointHistoryDto> ?? new List<QLKSan.Models.DTOs.PointHistoryDto>();
+    var c = Model.LienHeDiaChis?.FirstOrDefault();
+    var tv = Model.ThanhVien;
+    var laAdmin = User.GetRole() == "Admin";
+    var dem = Model.PhieuDatPhongs.Count(b => b.TrangThai is BookingStatus.CheckedOut or BookingStatus.Completed);
+    var chiTieu = Model.PhieuDatPhongs.Where(b => b.HoaDon?.TrangThai == InvoiceStatus.Paid).Sum(b => b.HoaDon.TongTienCanThanhToan);
+    (string Nhan, string Css) TrangThai(BookingStatus s) => s switch
+    {
+        BookingStatus.Pending => ("Chờ duyệt", "badge-pending"),
+        BookingStatus.Approved => ("Đã duyệt", "badge-booked"),
+        BookingStatus.CheckedIn => ("Đang ở", "badge-occupied"),
+        BookingStatus.Cancelled => ("Đã huỷ", "badge-muted"),
+        _ => ("Hoàn thành", "badge-available")
+    };
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label"><a asp-action="Customers" class="text-reset text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Khách hàng</a></p>
+        <h2>
+            @Model.HoTen
+            @if (Model.LaVIP) { <span class="vip-badge"><i class="fas fa-crown me-1"></i>VIP</span> }
+        </h2>
+        <p class="page-desc">
+            #@Model.MaKhachHang · @(tv?.Hang ?? "Thành viên")
+            @if (Model.MaDangNhap == null) { <span>· khách vãng lai (chưa có tài khoản)</span> }
+        </p>
+    </div>
+    <button class="btn-gold" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="fas fa-pen me-2"></i>Sửa hồ sơ</button>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+@if (Model.HanChe)
+{
+    <div class="alert alert-danger mb-3"><i class="fas fa-ban me-2"></i><strong>Hạn chế đặt phòng trực tuyến:</strong> @Model.LyDoHanChe</div>
+}
+
+<div class="kpi-grid mb-4">
+    <div class="kpi-card"><span class="kpi-label">Kỳ nghỉ đã hoàn thành</span><div class="kpi-value">@dem</div><span class="kpi-sub">@Model.SoLanDatPhong phiếu đặt</span></div>
+    <div class="kpi-card"><span class="kpi-label">Tổng chi tiêu</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(chiTieu)</div><span class="kpi-sub">hoá đơn đã thanh toán</span></div>
+    <div class="kpi-card kpi-card--dark"><span class="kpi-label">Điểm hiện có</span><div class="kpi-value">@Model.DiemTichLuy.ToString("N0")</div><span class="kpi-sub">đã đổi @Model.DiemDaDoi.ToString("N0") điểm</span></div>
+    <div class="kpi-card"><span class="kpi-label">Hạng thành viên</span><div class="kpi-value kpi-value--sm">@(tv?.Hang ?? "—")</div><span class="kpi-sub">@(tv?.HangKeTiep != null ? $"còn {tv.DiemLenHang:N0} điểm lên {tv.HangKeTiep}" : "hạng cao nhất")</span></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-4">
+        <div class="card p-4 mb-4">
+            <h6 class="dash-title mb-3">Thông tin cá nhân</h6>
+            <dl class="profile-dl">
+                <dt>CCCD / Passport</dt><dd>@Model.CCCD_Passport</dd>
+                <dt>Ngày sinh</dt><dd>@Model.NgaySinh.ToString("dd/MM/yyyy")</dd>
+                <dt>Điện thoại</dt><dd>@(c?.SDT ?? "—")</dd>
+                <dt>Email</dt><dd>@(string.IsNullOrEmpty(c?.Email) ? "—" : c.Email)</dd>
+                <dt>Địa chỉ</dt><dd>@(string.IsNullOrEmpty(c?.DiaChi) ? "—" : c.DiaChi)@(string.IsNullOrEmpty(c?.QuocGia) ? "" : ", " + c.QuocGia)</dd>
+            </dl>
+        </div>
+
+        <div class="card p-4 mb-4 care-card">
+            <h6 class="dash-title mb-3"><i class="fas fa-heart text-gold me-2"></i>Chăm sóc khách</h6>
+            <div class="care-label">Sở thích lưu trú <small class="text-muted">(khách tự cập nhật được)</small></div>
+            <p>@(string.IsNullOrEmpty(Model.SoThich) ? "Chưa ghi nhận" : Model.SoThich)</p>
+            <div class="care-label">Ghi chú nội bộ <small class="text-muted">(khách không thấy)</small></div>
+            <p class="mb-0">@(string.IsNullOrEmpty(Model.GhiChuNoiBo) ? "Không có" : Model.GhiChuNoiBo)</p>
+        </div>
+
+        @if (laAdmin)
+        {
+            <div class="card p-4 mb-4">
+                <h6 class="dash-title mb-3">Điều chỉnh điểm</h6>
+                <form asp-action="AdjustPoints" method="post">
+                    <input type="hidden" name="maKhachHang" value="@Model.MaKhachHang" />
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold" for="adjDiem">Số điểm (âm để trừ)</label>
+                        <input type="number" name="soDiem" id="adjDiem" class="form-control" required step="1" placeholder="VD: 200 hoặc -50" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="adjLyDo">Lý do</label>
+                        <input name="lyDo" id="adjLyDo" class="form-control" required maxlength="255" placeholder="VD: Bù đắp sự cố điều hoà phòng 302" />
+                    </div>
+                    <button type="submit" class="btn btn-outline-gold w-100">Ghi điều chỉnh</button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <div class="col-xl-8">
+        <div class="card mb-4">
+            <div class="p-4 pb-2"><h6 class="dash-title mb-0">Lịch sử kỳ nghỉ</h6></div>
+            @if (!Model.PhieuDatPhongs.Any())
+            {
+                <p class="text-muted small px-4 pb-4 mb-0">Khách chưa có phiếu đặt phòng.</p>
+            }
+            else
+            {
+                <table class="table table-custom mb-0">
+                    <thead><tr><th>Phiếu</th><th>Phòng</th><th>Lưu trú</th><th>Hoá đơn</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var b in Model.PhieuDatPhongs.OrderByDescending(x => x.NgayCheckInDuKien))
+                        {
+                            var p = b.ChiTietDatPhongs.FirstOrDefault()?.Phong;
+                            var tt = TrangThai(b.TrangThai);
+                            <tr>
+                                <td><strong>@b.MaDatPhong</strong><div class="text-muted small">đặt @b.NgayDat.ToString("dd/MM/yyyy")</div></td>
+                                <td>@(p?.SoPhong ?? "—")<div class="text-muted small">@FormatHelper.TenHangPhong(p?.LoaiPhong?.TenLoai)</div></td>
+                                <td>@b.NgayCheckInDuKien.ToString("dd/MM") – @b.NgayCheckOutDuKien.ToString("dd/MM/yyyy")
+                                    @if (!string.IsNullOrEmpty(b.YeuCauDacBiet)) { <div class="text-muted small text-truncate" style="max-width:240px" title="@b.YeuCauDacBiet"><i class="fas fa-comment-dots text-gold me-1"></i>@b.YeuCauDacBiet</div> }
+                                </td>
+                                <td>
+                                    @if (b.HoaDon != null)
+                                    {
+                                        <a asp-controller="Invoice" asp-action="Print" asp-route-id="@b.HoaDon.MaHoaDon" target="_blank" class="text-gold">@b.HoaDon.MaHoaDon</a>
+                                        <div class="text-muted small">@FormatHelper.ToVND(b.HoaDon.TongTienCanThanhToan)</div>
+                                    }
+                                    else { <span class="text-muted">—</span> }
+                                </td>
+                                <td class="text-end"><span class="badge-status @tt.Css">@tt.Nhan</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="card">
+            <div class="p-4 pb-2 d-flex justify-content-between"><h6 class="dash-title mb-0">Lịch sử điểm</h6><small class="text-muted">Tổng = @points.Sum(x => x.SoDiem).ToString("N0") điểm</small></div>
+            @if (!points.Any())
+            {
+                <p class="text-muted small px-4 pb-4 mb-0">Chưa có thay đổi điểm.</p>
+            }
+            else
+            {
+                <table class="table table-custom mb-0">
+                    <thead><tr><th>Thời gian</th><th>Loại</th><th>Nội dung</th><th class="text-end">Điểm</th></tr></thead>
+                    <tbody>
+                        @foreach (var x in points)
+                        {
+                            <tr>
+                                <td class="small">@x.ThoiGian.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><span class="badge bg-light text-dark border">@x.Loai</span></td>
+                                <td class="small">@x.NoiDung@(x.TenNhanVien != null ? " · " + x.TenNhanVien : "")</td>
+                                <td class="text-end fw-bold @(x.SoDiem >= 0 ? "text-success" : "text-danger")">@(x.SoDiem > 0 ? "+" : "")@x.SoDiem.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Sửa hồ sơ khách -->
+<div class="modal fade" id="profileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Sửa hồ sơ @Model.HoTen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="UpdateCustomer" method="post">
+                <input type="hidden" name="maKhachHang" value="@Model.MaKhachHang" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Họ</label><input name="Ho" class="form-control" value="@Model.Ho" required maxlength="50" /></div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Tên</label><input name="Ten" class="form-control" value="@Model.Ten" required maxlength="50" /></div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Ngày sinh</label><input name="NgaySinh" type="date" class="form-control" value="@Model.NgaySinh.ToString("yyyy-MM-dd")" required /></div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">CCCD / Passport</label><input name="CCCD_Passport" class="form-control" value="@Model.CCCD_Passport" required pattern="[0-9]{9,12}" /></div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Điện thoại</label><input name="SDT" class="form-control" value="@c?.SDT" required pattern="0[35789][0-9]{8}" /></div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Email</label><input name="Email" type="email" class="form-control" value="@c?.Email" maxlength="100" /></div>
+                        <div class="col-md-8"><label class="form-label small fw-semibold">Địa chỉ</label><input name="DiaChi" class="form-control" value="@c?.DiaChi" maxlength="255" /></div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Quốc gia</label><input name="QuocGia" class="form-control" value="@(c?.QuocGia ?? "Việt Nam")" maxlength="50" /></div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="LaVIP" value="true" id="pfVip" @(Model.LaVIP ? "checked" : "")>
+                                <label class="form-check-label fw-semibold" for="pfVip"><i class="fas fa-crown text-gold me-1"></i>Khách VIP — lễ tân được nhắc khi khách đến</label>
+                            </div>
+                        </div>
+                        <div class="col-12"><label class="form-label small fw-semibold">Sở thích lưu trú</label><textarea name="SoThich" class="form-control" rows="2" maxlength="500" placeholder="Gối, tầng, loại giường, dị ứng, đồ uống yêu thích…">@Model.SoThich</textarea></div>
+                        <div class="col-12"><label class="form-label small fw-semibold">Ghi chú nội bộ (khách không thấy)</label><textarea name="GhiChuNoiBo" class="form-control" rows="2" maxlength="1000">@Model.GhiChuNoiBo</textarea></div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="HanChe" value="true" id="pfHanChe" @(Model.HanChe ? "checked" : "")>
+                                <label class="form-check-label fw-semibold text-danger" for="pfHanChe">Hạn chế đặt online</label>
+                            </div>
+                        </div>
+                        <div class="col-md-8"><input name="LyDoHanChe" class="form-control" value="@Model.LyDoHanChe" maxlength="255" placeholder="Lý do (bắt buộc khi hạn chế)" /></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold">Lưu hồ sơ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,122 @@
+@model QLKSan.Models.DTOs.DayCloseDto
+@{
+    Layout = null;
+    var s = Model.SoLieu;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chốt ngày @Model.Ngay.ToString("dd/MM/yyyy") - LUXE RESERVE</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #eceae6; font-family: "Segoe UI", Arial, sans-serif; color: #222; font-size: 13px; }
+        .toolbar { max-width: 210mm; margin: 16px auto 0; display: flex; gap: 8px; justify-content: flex-end; }
+        .toolbar button, .toolbar a { border: 1px solid #1f2a44; background: #fff; color: #1f2a44; padding: 8px 14px; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; }
+        .toolbar .primary { background: #1f2a44; color: #fff; }
+        .sheet { max-width: 210mm; margin: 12px auto 24px; background: #fff; padding: 16mm 16mm; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+        .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #c5a059; padding-bottom: 12px; }
+        .brand { font-family: Georgia, serif; font-size: 24px; letter-spacing: 3px; color: #1f2a44; font-weight: bold; }
+        .muted { color: #777; }
+        h1 { text-align: center; font-size: 20px; letter-spacing: 1px; margin: 20px 0 4px; color: #1f2a44; }
+        h2 { font-size: 14px; color: #1f2a44; margin: 18px 0 6px; }
+        .sub { text-align: center; margin-bottom: 16px; }
+        .kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+        .kpi div { border: 1px solid #e3dfd6; border-radius: 4px; padding: 8px; }
+        .kpi span { display: block; color: #777; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+        .kpi strong { font-size: 15px; color: #1f2a44; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ddd; padding: 5px 8px; }
+        th { background: #f5f3ef; text-align: left; font-weight: 600; }
+        td.num, th.num { text-align: right; white-space: nowrap; }
+        tfoot td { font-weight: 600; }
+        .sign { display: flex; justify-content: space-between; margin-top: 36px; text-align: center; }
+        .sign div { width: 40%; }
+        .sign p { margin: 0 0 56px; font-weight: 600; }
+        @@media (max-width: 640px) {
+            .sheet { padding: 20px 14px; margin: 8px; }
+            .toolbar { margin: 8px; }
+            .kpi { grid-template-columns: 1fr 1fr; }
+            table { font-size: 12px; }
+            th, td { padding: 4px; }
+        }
+        @@media print {
+            body { background: #fff; }
+            .toolbar { display: none; }
+            .sheet { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+            @@page { size: A4; margin: 14mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="@Url.Action("Index", "NightAudit")">← Chốt ngày</a>
+        <button type="button" class="primary" onclick="window.print()">In báo cáo</button>
+    </div>
+    <div class="sheet">
+        <div class="head">
+            <div><div class="brand">LUXE RESERVE</div><div class="muted">Báo cáo chốt ngày (night audit)</div></div>
+            <div style="text-align:right">Chốt lúc @Model.ThoiGianChot.ToString("HH:mm dd/MM/yyyy")<br /><span class="muted">bởi @(Model.TenNhanVien ?? "—")</span></div>
+        </div>
+        <h1>NGÀY @Model.Ngay.ToString("dd/MM/yyyy")</h1>
+        <p class="sub muted">Tiền phòng ghi nhận theo đêm theo giá đêm (quy tắc giá), trước giảm giá, chưa gồm VAT.@(string.IsNullOrEmpty(Model.GhiChu) ? "" : " Ghi chú: " + Model.GhiChu)</p>
+
+        <div class="kpi">
+            <div><span>Tiền phòng</span><strong>@s.TienPhong.ToString("N0") ₫</strong></div>
+            <div><span>Đêm phòng · công suất</span><strong>@s.DemPhongBan/@s.TongSoPhong · @s.CongSuat.ToString("0.#")%</strong></div>
+            <div><span>ADR</span><strong>@s.ADR.ToString("N0") ₫</strong></div>
+            <div><span>RevPAR</span><strong>@s.RevPAR.ToString("N0") ₫</strong></div>
+            <div><span>Doanh thu khác (cọc giữ lại)</span><strong>@s.DoanhThuKhac.ToString("N0") ₫</strong></div>
+            <div><span>Dịch vụ phát sinh</span><strong>@s.TienDichVu.ToString("N0") ₫</strong></div>
+            <div><span>Hoá đơn thanh toán</span><strong>@s.SoHoaDonThanhToan · @s.TongHoaDonThanhToan.ToString("N0") ₫</strong></div>
+            <div><span>Đến / đi / không đến</span><strong>@s.KhachDen / @s.KhachDi / @s.KhachKhongDen</strong></div>
+        </div>
+
+        <h2>Tiền thu / chi theo phương thức</h2>
+        <table>
+            <thead><tr><th>Phương thức</th><th class="num">Số GD</th><th class="num">Thu</th><th class="num">Chi</th><th class="num">Ròng</th></tr></thead>
+            <tbody>
+                @if (!s.TheoPhuongThuc.Any()) { <tr><td colspan="5" class="muted">Không có giao dịch.</td></tr> }
+                @foreach (var m in s.TheoPhuongThuc)
+                {
+                    <tr><td>@m.PhuongThuc</td><td class="num">@m.SoGiaoDich</td><td class="num">@m.Thu.ToString("N0")</td><td class="num">@m.Chi.ToString("N0")</td><td class="num">@m.Rong.ToString("N0")</td></tr>
+                }
+            </tbody>
+            <tfoot><tr><td>Cộng</td><td class="num">@s.TheoPhuongThuc.Sum(m => m.SoGiaoDich)</td><td class="num">@s.TheoPhuongThuc.Sum(m => m.Thu).ToString("N0")</td><td class="num">@s.TheoPhuongThuc.Sum(m => m.Chi).ToString("N0")</td><td class="num">@s.TheoPhuongThuc.Sum(m => m.Rong).ToString("N0")</td></tr></tfoot>
+        </table>
+
+        <h2>Đêm phòng (@s.CacDem.Count)</h2>
+        <table>
+            <thead><tr><th>Phòng</th><th>Phiếu</th><th>Khách</th><th>Quy tắc giá</th><th class="num">Giá đêm</th></tr></thead>
+            <tbody>
+                @if (!s.CacDem.Any()) { <tr><td colspan="5" class="muted">Không có.</td></tr> }
+                @foreach (var n in s.CacDem)
+                {
+                    <tr><td>P@(n.SoPhong)</td><td>@n.MaDatPhong</td><td>@n.HoTenKhachHang</td><td>@(n.QuyTac ?? "Giá thường")</td><td class="num">@n.Gia.ToString("N0")</td></tr>
+                }
+            </tbody>
+            <tfoot><tr><td colspan="4">Cộng tiền phòng</td><td class="num">@s.TienPhong.ToString("N0")</td></tr></tfoot>
+        </table>
+
+        @if (s.CocGiuLai.Any())
+        {
+            <h2>Cọc giữ lại ghi nhận doanh thu (@s.CocGiuLai.Count)</h2>
+            <table>
+                <thead><tr><th>Phiếu</th><th>Khách</th><th>Ngày nhận dự kiến</th><th class="num">Tiền cọc</th></tr></thead>
+                <tbody>
+                    @foreach (var c in s.CocGiuLai)
+                    {
+                        <tr><td>@c.MaDatPhong</td><td>@c.HoTenKhachHang</td><td>@c.NgayNhan.ToString("dd/MM/yyyy")</td><td class="num">@c.TienCoc.ToString("N0")</td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="sign">
+            <div><p>Người chốt</p>@Model.TenNhanVien</div>
+            <div><p>Kế toán / Quản lý</p></div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+@using QLKSan.Models.DTOs
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Ẩm thực";
+    ViewData["HeaderOverlay"] = true;
+    ViewData["FullWidth"] = true;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto { Ten = "LUXE RESERVE" };
+}
+
+<section class="lx-hero lx-hero--page" style="background-image:url('/images/room_ocean.png')">
+    <div class="lx-hero-inner">
+        <span class="lr-eyebrow">Ẩm thực</span>
+        <h1>Hương vị của <em>những buổi sớm</em></h1>
+        <p>Từ bữa sáng thong thả đến bữa tối riêng tư — ẩm thực là một phần của kỳ nghỉ, không chỉ là bữa ăn.</p>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-intro">
+        <div>
+            <span class="lr-eyebrow">Bữa sáng</span>
+            <h2>Bắt đầu ngày mới thật chậm</h2>
+            <p>Bữa sáng tự chọn với nguyên liệu tươi theo mùa, bánh nướng trong ngày và những món địa phương quen thuộc, phục vụ trong không gian yên tĩnh nhìn ra khung cảnh xung quanh.</p>
+            <p>Bữa sáng có thể được thêm vào kỳ nghỉ của bạn qua lễ tân và được ghi vào hoá đơn khi trả phòng.</p>
+        </div>
+        <div class="lx-intro-img"><img src="/images/hero.png" alt="Không gian ẩm thực tại @hotel.Ten" /></div>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-intro lx-intro--reverse">
+        <div>
+            <span class="lr-eyebrow">Phục vụ tại phòng</span>
+            <h2>Riêng tư theo cách của bạn</h2>
+            <p>Một bữa tối nhẹ sau chuyến bay dài, hay bữa sáng muộn trên ban công — hãy cho lễ tân biết, chúng tôi sẽ chuẩn bị theo thời gian bạn mong muốn.</p>
+            <p>Có yêu cầu về chế độ ăn hoặc dịp đặc biệt? Ghi chú ngay trong phần <strong>Yêu cầu riêng</strong> khi đặt phòng.</p>
+        </div>
+        <div class="lx-intro-img"><img src="/images/room_presidential.png" alt="Phục vụ tại phòng" /></div>
+    </div>
+</section>
+
+<section class="lx-cta">
+    <span class="lr-eyebrow">Đặt bàn &amp; yêu cầu</span>
+    <h2>Liên hệ lễ tân để sắp xếp</h2>
+    @if (!string.IsNullOrWhiteSpace(hotel.Hotline))
+    {
+        <p>Gọi <a href="tel:@hotel.Hotline.Replace(" ", "")" class="lr-link">@hotel.Hotline</a> hoặc nhắn trong phần yêu cầu riêng khi đặt phòng.</p>
+    }
+    <a href="@Url.Action("BookRoom", "Customer")" class="lr-btn lr-btn-primary">Đặt phòng</a>
+</section>

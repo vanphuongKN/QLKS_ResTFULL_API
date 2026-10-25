@@ -1,7 +1,7 @@
-@model QLKSan.ViewModels.CheckInViewModel
+@model QLKSan.Models.Requests.CheckInRequest
 @{
     ViewData["Title"] = "Đặt phòng khách vãng lai";
-    var availableRooms = ViewBag.AvailableRooms as IEnumerable<QLKSan.Models.Entities.Phong>;
+    var availableRooms = ViewBag.AvailableRooms as IEnumerable<QLKSan.Models.DTOs.RoomDto>;
 }
 <style>
     .form-label-upper {
@@ -15,8 +15,9 @@
 <form asp-action="WalkIn" method="post" id="checkinForm">
     <div class="page-header">
         <div>
-            <h2>Đặt phòng mới (Walk-In)</h2>
-            <p class="page-desc">Tạo mục đặt phòng chuyên nghiệp cho số cái PhieuDatPhong.<br>Đảm bảo thông tin khách hàng được xác minh so với hồ sơ chính thức.</p>
+            <p class="page-label">Lễ tân</p>
+            <h2>Nhận phòng khách vãng lai</h2>
+            <p class="page-desc">Khách đến trực tiếp, nhận phòng ngay hôm nay. Vui lòng kiểm tra CCCD / hộ chiếu trước khi xác nhận.</p>
             @if (TempData["SuccessMessage"] != null)
             {
                 <div class="alert alert-success mt-2">@TempData["SuccessMessage"]</div>
@@ -24,8 +25,8 @@
             <div asp-validation-summary="All" class="text-danger"></div>
         </div>
         <div class="d-flex gap-2">
-            <a asp-action="Index" class="btn btn-outline-navy">Quay lại Dashboard</a>
-            <button type="submit" class="btn-gold">Xác nhận đặt phòng</button>
+            <a asp-action="Index" class="btn btn-outline-navy">Quay lại</a>
+            <button type="submit" class="btn-gold">Xác nhận nhận phòng</button>
         </div>
     </div>
 
@@ -35,9 +36,10 @@
             <!-- Identity Verification -->
             <div class="card p-4 mb-4">
                 <h6 class="fw-bold mb-3"><i class="fas fa-user-check me-2 text-gold"></i>Xác nhận danh tính khách (CCCD/Passport)</h6>
+                <partial name="_GuestLookup" />
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label-upper">Tìm kiếm theo CCCD / Hộ chiếu</label>
+                        <label class="form-label-upper">CCCD / Hộ chiếu</label>
                         <div class="d-flex gap-2">
                             <input asp-for="CCCD_Passport" class="form-control form-control-lg-custom flex-fill" placeholder="Nhập số định danh...">
                         </div>
@@ -82,10 +84,8 @@
             <!-- Room Selection Grid -->
             <div class="card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-bed me-2 text-gold"></i>Chỉ định phòng (Phong)</h6>
-                    <div class="d-flex gap-2">
-                        <span class="badge-status badge-available">Sẵn sàng</span>
-                    </div>
+                    <h6 class="fw-bold mb-0"><i class="fas fa-bed me-2 text-gold"></i>Chọn phòng trống</h6>
+                    <small class="text-muted">@(availableRooms?.Count() ?? 0) phòng</small>
                 </div>
                 
                 <input type="hidden" asp-for="MaPhong" id="selectedRoomId" />
@@ -96,11 +96,11 @@
                     {
                         foreach (var room in availableRooms)
                         {
-                            <div class="col">
-                                <div class="room-select-card" onclick="selectRoom('@room.MaPhong', @(room.LoaiPhong?.GiaThueNgay ?? 0), @(room.LoaiPhong?.SoNguoiToiDa ?? 2), this)" style="cursor:pointer" id="room-card-@room.MaPhong">
+                            <div class="col-6 col-sm-4 col-xl-3">
+                                <div class="room-select-card h-100" onclick="selectRoom('@room.MaPhong', @(room.LoaiPhong?.GiaThueNgay ?? 0), @(room.LoaiPhong?.SoNguoiToiDa ?? 2), this)" style="cursor:pointer" id="room-card-@room.MaPhong">
                                     <div class="room-type-label">@(room.LoaiPhong?.TenLoai ?? "Standard")</div>
                                     <div class="room-num text-navy">@room.SoPhong</div>
-                                    <small class="text-success fw-bold">SẴN SÀNG</small>
+                                    <small class="text-muted nowrap" style="font-size:.75rem">@((room.LoaiPhong?.GiaThueNgay ?? 0).ToString("N0")) ₫/đêm</small>
                                 </div>
                             </div>
                         }
@@ -117,31 +117,34 @@
         <div class="col-lg-5">
             <div class="ledger-panel mb-4">
                 <h5>Chi tiết thanh toán</h5>
-                <p class="ledger-id text-muted" style="font-size: 0.85rem">Mã phiếu tạm: #PR-@DateTime.Now.ToString("HHmmss")</p>
+                <p class="ledger-id text-muted" style="font-size: 0.85rem">Ước tính theo giá niêm yết, giá cuối tuần / lễ tính khi lập hoá đơn</p>
 
                 <div class="mb-3">
                     <div class="ledger-label">Loại phòng</div>
                     <div class="d-flex justify-content-between">
                         <strong id="ledgerRoomName">Chưa chọn</strong>
-                        <span id="ledgerRoomPrice">0 VNĐ / đêm</span>
+                        <span id="ledgerRoomPrice">—</span>
                     </div>
                 </div>
                 <hr class="my-3">
                 <div class="mb-3">
                     <div class="ledger-label">Thời gian lưu trú</div>
                     <div class="d-flex justify-content-between">
-                        <strong id="ledgerDays">0 Đêm</strong>
-                        <span id="ledgerDates">...</span>
+                        <strong id="ledgerDays">—</strong>
+                        <span id="ledgerDates"></span>
                     </div>
                 </div>
                 <hr class="my-3">
                 <div class="mb-3">
                     <div class="ledger-label">Tiền cọc yêu cầu (50%)</div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="text-gold fs-5" id="ledgerDepositText">0 VNĐ</strong>
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <strong class="text-gold fs-5" id="ledgerDepositText">0 ₫</strong>
                         <input type="hidden" id="ledgerDeposit" name="TienCoc" value="0" />
+                        <select asp-for="PhuongThucCoc" class="form-select form-select-sm w-auto" aria-label="Phương thức thu cọc"
+                                asp-items="@(new SelectList(QLKSan.Enums.PaymentMethods.TaiQuay))"></select>
                     </div>
                 </div>
+                <button type="submit" class="btn-gold w-100 mt-2">Xác nhận nhận phòng</button>
 
             </div>
         </div>
@@ -175,7 +178,7 @@
             helpText.classList.remove('d-none');
 
             window.selectedRoomPrice = gia;
-            document.getElementById('ledgerRoomPrice').innerText = new Intl.NumberFormat('vi-VN').format(gia) + " VNĐ / đêm";
+            document.getElementById('ledgerRoomPrice').innerText = new Intl.NumberFormat('en-US').format(gia) + " ₫ / đêm";
             calculateLedger(gia);
         }
 
@@ -185,13 +188,13 @@
             if (!isNaN(checkIn) && !isNaN(checkOut) && checkOut > checkIn && gia) {
                 let diffTime = Math.abs(checkOut - checkIn);
                 let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                document.getElementById('ledgerDays').innerText = diffDays + " Đêm";
-                document.getElementById('ledgerDates').innerText = checkIn.toLocaleDateString() + " - " + checkOut.toLocaleDateString();
+                document.getElementById('ledgerDays').innerText = diffDays + " đêm";
+                document.getElementById('ledgerDates').innerText = checkIn.toLocaleDateString('vi-VN') + " – " + checkOut.toLocaleDateString('vi-VN');
                 let deposit = diffDays * gia * 0.5;
                 let depositInput = document.getElementById('ledgerDeposit');
                 if (depositInput) depositInput.value = deposit;
                 let depositText = document.getElementById('ledgerDepositText');
-                if (depositText) depositText.innerText = new Intl.NumberFormat('vi-VN').format(deposit) + " VNĐ";
+                if (depositText) depositText.innerText = new Intl.NumberFormat('en-US').format(deposit) + " ₫";
             }
         }
 
@@ -200,10 +203,10 @@
             if (!isNaN(ciDate)) {
                 ciDate.setDate(ciDate.getDate() + 1);
                 var minOut = ciDate.toISOString().split('T')[0];
-                document.getElementById('NgayCheckOut').min = minOut;
+                lrStaffUi.setMin(document.getElementById('NgayCheckOut'), minOut);
                 var currentOut = document.getElementById('NgayCheckOut').value;
                 if (currentOut && new Date(currentOut) <= new Date(this.value)) {
-                    document.getElementById('NgayCheckOut').value = minOut;
+                    lrStaffUi.setValue(document.getElementById('NgayCheckOut'), minOut);
                 }
             }
 
@@ -211,6 +214,13 @@
                 calculateLedger(window.selectedRoomPrice);
             }
         });
+        // Chọn sẵn phòng được truyền từ sơ đồ phòng (hoặc giữ lựa chọn khi form báo lỗi)
+        (function () {
+            var ma = document.getElementById('selectedRoomId').value;
+            var card = ma && document.getElementById('room-card-' + ma);
+            if (card) card.click();
+        })();
+
         document.getElementById('NgayCheckOut').addEventListener('change', () => {
             if (window.selectedRoomPrice > 0) {
                 calculateLedger(window.selectedRoomPrice);

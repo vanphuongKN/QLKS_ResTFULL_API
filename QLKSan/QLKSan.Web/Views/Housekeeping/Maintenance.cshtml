@@ -1,0 +1,141 @@
+@model List<QLKSan.Models.DTOs.MaintenanceTicketDto>
+@using QLKSan.Enums
+@using QLKSan.Models.DTOs
+@{
+    ViewData["Title"] = "Kỹ thuật";
+    var loc = ViewBag.Loc as string ?? "mo";
+    var rooms = ViewBag.Rooms as List<HousekeepingRoomDto> ?? new List<HousekeepingRoomDto>();
+    var laQuay = WebRoles.FrontDesk.Split(',').Any(User.IsInRole);
+    (string Css, string Nhan) TrangThai(GuestRequestStatus t) => t switch
+    {
+        GuestRequestStatus.InProgress => ("badge-booked", "Đang sửa"),
+        GuestRequestStatus.Done => ("badge-available", "Đã xong"),
+        GuestRequestStatus.Cancelled => ("badge-muted", "Đã huỷ"),
+        _ => ("badge-pending", "Mới")
+    };
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Bảo trì</p>
+        <h2>Phiếu kỹ thuật</h2>
+        <p class="page-desc">Sự cố từ buồng phòng báo, yêu cầu khách loại Kỹ thuật hoặc lễ tân ghi. Phiếu khoá phòng giữ phòng ở Bảo trì; sửa xong phiếu cuối cùng thì phòng chuyển sang Đang dọn và tự tạo việc dọn.</p>
+    </div>
+    <button type="button" class="btn-gold" data-bs-toggle="modal" data-bs-target="#newTicketModal"><i class="fas fa-plus me-2"></i>Mở phiếu</button>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="filter-chips mb-4">
+    <a href="@Url.Action("Maintenance", new { loc = "mo" })" class="@(loc == "mo" ? "active" : "")">Đang mở</a>
+    <a href="@Url.Action("Maintenance", new { loc = "xong" })" class="@(loc == "xong" ? "active" : "")">Đã xong (7 ngày)</a>
+    <a href="@Url.Action("Maintenance", new { loc = "tatca" })" class="@(loc == "tatca" ? "active" : "")">Tất cả (30 ngày)</a>
+</div>
+
+<div class="card">
+    @if (!Model.Any())
+    {
+        <p class="text-muted small p-4 mb-0 text-center">@(loc == "mo" ? "Không có sự cố nào đang chờ sửa." : "Chưa có phiếu nào.")</p>
+    }
+    @foreach (var p in Model)
+    {
+        var tt = TrangThai(p.TrangThai);
+        var mo = p.TrangThai is GuestRequestStatus.New or GuestRequestStatus.InProgress;
+        <div class="req-row @(p.MucDo == "Khẩn" && mo ? "is-late" : "") @(mo ? "" : "is-done")">
+            <div class="req-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+            <div class="req-main">
+                <div class="req-head">
+                    <span class="req-room">Phòng @p.SoPhong</span>
+                    <span class="badge-status @tt.Css">@tt.Nhan</span>
+                    @if (p.MucDo == "Khẩn") { <span class="badge-status badge-occupied">Khẩn</span> }
+                    @if (p.KhoaPhong) { <span class="badge-status badge-maintenance">Khoá phòng</span> }
+                </div>
+                <div class="req-text">@p.MoTa</div>
+                <div class="req-meta">
+                    <span><i class="fas fa-pen"></i>#@p.MaPhieu · @p.ThoiGianBao.ToString("HH:mm dd/MM") · @p.TenNguoiBao</span>
+                    @if (p.MaPhanCong != null) { <span><i class="fas fa-broom"></i>Từ việc @p.MaPhanCong</span> }
+                    @if (p.MaYeuCau != null) { <span><i class="fas fa-bell-concierge"></i>Yêu cầu khách #@p.MaYeuCau</span> }
+                    @if (p.ThoiGianXong != null) { <span><i class="fas fa-check"></i>@p.ThoiGianXong.Value.ToString("HH:mm dd/MM") · @p.TenNguoiXuLy</span> }
+                    @if (!string.IsNullOrEmpty(p.KetQua)) { <span class="text-dark"><i class="fas fa-comment"></i>@p.KetQua</span> }
+                </div>
+            </div>
+            @if (mo && laQuay)
+            {
+                <div class="req-actions">
+                    @if (p.TrangThai == GuestRequestStatus.New)
+                    {
+                        <form asp-action="UpdateTicket" method="post">
+                            <input type="hidden" name="id" value="@p.MaPhieu" /><input type="hidden" name="loc" value="@loc" />
+                            <input type="hidden" name="trangThai" value="@GuestRequestStatus.InProgress" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Đang sửa</button>
+                        </form>
+                    }
+                    <button type="button" class="btn btn-sm btn-gold" data-ticket="@p.MaPhieu" data-status="@GuestRequestStatus.Done" data-title="Sửa xong phiếu #@p.MaPhieu">Sửa xong</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-ticket="@p.MaPhieu" data-status="@GuestRequestStatus.Cancelled" data-title="Huỷ phiếu #@p.MaPhieu" title="Huỷ"><i class="fas fa-times"></i></button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="newTicketModal" tabindex="-1" aria-labelledby="ntTitle">
+    <div class="modal-dialog">
+        <form asp-action="CreateTicket" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="ntTitle">Mở phiếu kỹ thuật</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-sm-7">
+                        <label class="form-label fw-semibold" for="ntPhong">Phòng</label>
+                        <select name="MaPhong" id="ntPhong" class="form-select" required>
+                            <option value="">-- Chọn phòng --</option>
+                            @foreach (var r in rooms) { <option value="@r.MaPhong">Phòng @r.SoPhong@(r.TrangThai == RoomStatus.Occupied ? " (có khách)" : "")</option> }
+                        </select>
+                    </div>
+                    <div class="col-sm-5">
+                        <label class="form-label fw-semibold" for="ntMucDo">Mức độ</label>
+                        <select name="MucDo" id="ntMucDo" class="form-select"><option>Thường</option><option>Khẩn</option></select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="ntMoTa">Mô tả sự cố</label>
+                        <textarea name="MoTa" id="ntMoTa" class="form-control" rows="3" maxlength="500" required placeholder="VD: Điều hoà chảy nước, bóng đèn đầu giường hỏng"></textarea>
+                    </div>
+                    <div class="col-12 form-check ms-1">
+                        <input class="form-check-input" type="checkbox" name="KhoaPhong" value="true" id="ntKhoa" />
+                        <label class="form-check-label" for="ntKhoa">Khoá phòng (chuyển Bảo trì tới khi sửa xong — không áp dụng khi phòng có khách)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Mở phiếu</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="doneTicketModal" tabindex="-1" aria-labelledby="dtTitle">
+    <div class="modal-dialog">
+        <form asp-action="UpdateTicket" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="dtTitle">Cập nhật phiếu</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" id="dtId" /><input type="hidden" name="trangThai" id="dtStatus" /><input type="hidden" name="loc" value="@loc" />
+                <label class="form-label fw-semibold" for="dtKetQua">Kết quả / lý do</label>
+                <textarea name="ketQua" id="dtKetQua" class="form-control" rows="2" maxlength="500" placeholder="VD: Đã thay gioăng vòi sen"></textarea>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Lưu</button></div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-ticket]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                document.getElementById('dtId').value = b.getAttribute('data-ticket');
+                document.getElementById('dtStatus').value = b.getAttribute('data-status');
+                document.getElementById('dtTitle').textContent = b.getAttribute('data-title');
+                var kq = document.getElementById('dtKetQua');
+                kq.value = ''; kq.required = b.getAttribute('data-status') === '@GuestRequestStatus.Cancelled';
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('doneTicketModal')).show();
+            });
+        });
+    </script>
+}

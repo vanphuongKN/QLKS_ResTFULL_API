@@ -1,0 +1,231 @@
+@model QLKSan.Models.DTOs.BookingDto
+@using QLKSan.Models.DTOs
+@using QLKSan.Enums
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Phiếu đặt phòng " + Model.MaDatPhong;
+    var quote = ViewBag.Quote as PriceQuoteDto;
+    var review = ViewBag.Review as ReviewDto;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto();
+    var chiTiet = Model.ChiTietDatPhongs.FirstOrDefault();
+    var lp = chiTiet?.Phong?.LoaiPhong;
+    var soDem = Math.Max(1, (Model.NgayCheckOutDuKien.Date - Model.NgayCheckInDuKien.Date).Days);
+    var hd = Model.HoaDon;
+
+    // Tiến trình: đã đặt → đã xác nhận → đã nhận phòng → đã trả phòng
+    var buoc = Model.TrangThai switch
+    {
+        BookingStatus.Pending => 0,
+        BookingStatus.Approved => 1,
+        BookingStatus.CheckedIn => 2,
+        BookingStatus.CheckedOut or BookingStatus.Completed => 3,
+        _ => -1
+    };
+    var sapDen = (Model.TrangThai == BookingStatus.Pending || Model.TrangThai == BookingStatus.Approved) && Model.NgayCheckInDuKien.Date >= DateTime.Today;
+    var conNgay = (Model.NgayCheckInDuKien.Date - DateTime.Today).Days;
+    // Chính sách: khách tự huỷ được phiếu chưa nhận phòng, trước ngày nhận phòng
+    var coTheHuy = (Model.TrangThai == BookingStatus.Pending || Model.TrangThai == BookingStatus.Approved) && DateTime.Today < Model.NgayCheckInDuKien.Date;
+    var tamTinh = quote?.TongTien ?? (chiTiet?.GiaThueThucTe ?? 0) * soDem;
+}
+
+<a asp-action="MyStays" class="lr-link mb-4 d-inline-block" style="font-size:0.78rem"><i class="fas fa-arrow-left me-2"></i>Lịch sử kỳ nghỉ</a>
+
+<div class="lx-page-head">
+    <span class="lr-eyebrow">Phiếu đặt phòng @Model.MaDatPhong</span>
+    <h1>@FormatHelper.TenHangPhong(lp?.TenLoai ?? "Kỳ nghỉ của bạn")</h1>
+    <p>Đặt ngày @Model.NgayDat.ToString("dd/MM/yyyy")@(chiTiet?.Phong != null ? $" · Phòng {chiTiet.Phong.SoPhong}" : "")</p>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mb-4" role="alert"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mb-4" role="alert"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]</div>
+}
+
+@if (Model.TrangThai == BookingStatus.Cancelled)
+{
+    <div class="bs-banner cancelled"><i class="fas fa-ban me-2"></i>Phiếu đặt phòng này đã được huỷ.</div>
+}
+else
+{
+    <div class="bs-status">
+        <div class="@(buoc >= 0 ? "done" : "")">Đã đặt</div>
+        <div class="@(buoc >= 1 ? "done" : "")">Đã xác nhận</div>
+        <div class="@(buoc >= 2 ? "done" : "")">Đã nhận phòng</div>
+        <div class="@(buoc >= 3 ? "done" : "")">Đã trả phòng</div>
+    </div>
+}
+
+<div class="bk-layout">
+    <div>
+        @if (sapDen)
+        {
+            <div class="bk-card">
+                <span class="lr-eyebrow">Trước ngày đến</span>
+                <div class="d-flex flex-wrap align-items-end gap-4 mt-2 mb-3">
+                    <div class="bs-countdown">@(conNgay == 0 ? "Hôm nay" : $"Còn {conNgay} ngày")</div>
+                    <div style="color:var(--lr-text-muted)">
+                        @(Model.TrangThai == BookingStatus.Approved ? "Phòng của bạn đã được xác nhận." : "Lễ tân đang xác nhận yêu cầu của bạn.")
+                    </div>
+                </div>
+                <div class="bk-policy">
+                    <strong>Nhận phòng</strong> từ @(hotel.GioNhanPhong ?? "14:00") — vui lòng mang theo CCCD/hộ chiếu.
+                    @if (!string.IsNullOrEmpty(hotel.DiaChi))
+                    {
+                        <br /><strong>Địa chỉ:</strong> @hotel.DiaChi
+                        @if (!string.IsNullOrEmpty(hotel.BanDoUrl))
+                        {
+                            <a href="@hotel.BanDoUrl" target="_blank" rel="noopener" class="lr-link ms-2" style="font-size:0.72rem">Chỉ đường</a>
+                        }
+                    }
+                    @if (!string.IsNullOrEmpty(hotel.Hotline))
+                    {
+                        <br /><strong>Hotline:</strong> <a href="tel:@hotel.Hotline.Replace(" ", "")" class="text-reset">@hotel.Hotline</a>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="bk-card">
+            <h2>Lịch lưu trú</h2>
+            <div class="bs-dates">
+                <div><small>Nhận phòng</small><strong>@((Model.NgayCheckInThucTe ?? Model.NgayCheckInDuKien).ToString("dd/MM/yyyy"))</strong><small>@(Model.NgayCheckInThucTe?.ToString("HH:mm") ?? "từ " + (hotel.GioNhanPhong ?? "14:00"))</small></div>
+                <div><small>Trả phòng</small><strong>@((Model.NgayCheckOutThucTe ?? Model.NgayCheckOutDuKien).ToString("dd/MM/yyyy"))</strong><small>@(Model.NgayCheckOutThucTe?.ToString("HH:mm") ?? "trước " + (hotel.GioTraPhong ?? "12:00"))</small></div>
+                <div><small>Kỳ nghỉ</small><strong>@soDem đêm</strong><small>@Model.SoLuongKhach khách</small></div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.YeuCauDacBiet) || !string.IsNullOrEmpty(Model.GioDenDuKien))
+        {
+            <div class="bk-card">
+                <h2>Yêu cầu riêng</h2>
+                @if (!string.IsNullOrEmpty(Model.GioDenDuKien))
+                {
+                    <div class="bk-line"><span>Giờ đến dự kiến</span><span>@Model.GioDenDuKien</span></div>
+                }
+                @if (!string.IsNullOrEmpty(Model.YeuCauDacBiet))
+                {
+                    <p class="mb-0 mt-2" style="white-space:pre-line">@Model.YeuCauDacBiet</p>
+                }
+            </div>
+        }
+
+        @if (Model.SuDungDichVus.Any())
+        {
+            <div class="bk-card">
+                <h2>Dịch vụ đã sử dụng</h2>
+                @foreach (var dv in Model.SuDungDichVus.OrderBy(d => d.NgaySuDung))
+                {
+                    <div class="bk-line"><span>@dv.NgaySuDung.ToString("dd/MM") · @dv.TenDichVu × @dv.SoLuong</span><span>@FormatHelper.ToVND(dv.ThanhTien)</span></div>
+                }
+            </div>
+        }
+
+        @if (buoc == 3)
+        {
+            <div class="bk-card">
+                <h2>Đánh giá kỳ nghỉ</h2>
+                @if (review != null)
+                {
+                    <div class="rt-review" style="border-top:none;padding-top:0">
+                        @for (var i = 1; i <= 5; i++)
+                        {
+                            <i class="@(i <= review.SoSao ? "fas" : "far") fa-star"></i>
+                        }
+                        <p>@(string.IsNullOrEmpty(review.NoiDung) ? "(Không có nhận xét)" : review.NoiDung)</p>
+                        <small>Đã gửi ngày @review.NgayDanhGia.ToString("dd/MM/yyyy")@(review.AnDanh ? " · ẩn danh" : "")</small>
+                        @if (!string.IsNullOrEmpty(review.PhanHoi))
+                        {
+                            <div class="rt-reply"><strong>Phản hồi từ khách sạn</strong><p>@review.PhanHoi</p></div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p style="color:var(--lr-text-muted)">Chia sẻ cảm nhận giúp chúng tôi phục vụ bạn tốt hơn ở lần sau.</p>
+                    <a asp-action="Feedback" asp-route-maDatPhong="@Model.MaDatPhong" class="lr-btn lr-btn-primary">Đánh giá kỳ nghỉ</a>
+                }
+            </div>
+        }
+
+        @if (coTheHuy)
+        {
+            <form asp-action="CancelBooking" method="post" onsubmit="return confirmCancel(this)" class="mb-4">
+                <input type="hidden" name="id" value="@Model.MaDatPhong" />
+                <input type="hidden" name="veChiTiet" value="true" />
+                <input type="hidden" name="lyDo" />
+                <button type="submit" class="lr-btn lr-btn-ghost" style="border-color:#b42318;color:#b42318">Huỷ đặt phòng</button>
+                @if (!string.IsNullOrEmpty(hotel.ChinhSachHuy))
+                {
+                    <small class="d-block mt-2" style="color:var(--lr-text-muted)">@hotel.ChinhSachHuy</small>
+                }
+            </form>
+        }
+    </div>
+
+    <aside class="bk-summary">
+        <div class="bk-summary-img" style="background-image:url('@MediaUrl.Of(lp?.AnhDaiDien)')"></div>
+        <div class="bk-summary-body">
+            @if (hd != null)
+            {
+                <span class="lr-eyebrow">Hoá đơn @hd.MaHoaDon</span>
+                <h3>@(hd.TrangThai == InvoiceStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán")</h3>
+                <div class="bk-line"><span>Tiền phòng (@hd.SoDem đêm)</span><span>@FormatHelper.ToVND(hd.TongTienPhong)</span></div>
+                @if (hd.TongTienDichVu > 0)
+                {
+                    <div class="bk-line"><span>Dịch vụ</span><span>@FormatHelper.ToVND(hd.TongTienDichVu)</span></div>
+                }
+                @if (hd.TienPhat > 0)
+                {
+                    <div class="bk-line"><span>Phụ thu</span><span>@FormatHelper.ToVND(hd.TienPhat)</span></div>
+                }
+                @if (hd.GiamGiaKhuyenMai > 0)
+                {
+                    <div class="bk-line" style="color:#2e7d32"><span style="color:inherit">Ưu đãi</span><span>−@FormatHelper.ToVND(hd.GiamGiaKhuyenMai)</span></div>
+                }
+                @if (hd.GiamGiaThanhVien > 0)
+                {
+                    <div class="bk-line" style="color:#2e7d32"><span style="color:inherit">@hd.HangThanhVien</span><span>−@FormatHelper.ToVND(hd.GiamGiaThanhVien)</span></div>
+                }
+                <div class="bk-line"><span>VAT</span><span>@FormatHelper.ToVND(hd.ThueVAT)</span></div>
+                <div class="bk-sum-total"><span>Tổng cộng</span><strong>@FormatHelper.ToVND(hd.TongTienCanThanhToan)</strong></div>
+                <a href="@Url.Action("Print", "Invoice", new { id = hd.MaHoaDon })" target="_blank" class="lr-btn lr-btn-ghost w-100 mt-3">Xem hoá đơn</a>
+            }
+            else
+            {
+                <span class="lr-eyebrow">Tạm tính</span>
+                <h3>Tiền phòng</h3>
+                @if (quote != null)
+                {
+                    foreach (var dem in quote.CacDem)
+                    {
+                        <div class="bk-line night"><span>Đêm @dem.Dem.ToString("dd/MM")<span class="bk-tag">@dem.QuyTac</span></span><span>@FormatHelper.ToVND(dem.Gia)</span></div>
+                    }
+                }
+                else
+                {
+                    <div class="bk-line"><span>@soDem đêm × @FormatHelper.ToVND(chiTiet?.GiaThueThucTe ?? 0)</span><span>@FormatHelper.ToVND(tamTinh)</span></div>
+                }
+                @if (Model.TienCoc > 0)
+                {
+                    <div class="bk-line"><span>Đã đặt cọc</span><span>@FormatHelper.ToVND(Model.TienCoc)</span></div>
+                }
+                <div class="bk-sum-total"><span>Tổng tiền phòng</span><strong>@FormatHelper.ToVND(tamTinh)</strong></div>
+                <p class="bk-note">Chưa gồm VAT, ưu đãi@(string.IsNullOrEmpty(Model.MaKhuyenMai) ? "" : $" ({Model.MaKhuyenMai})") và dịch vụ phát sinh; thanh toán khi trả phòng.</p>
+            }
+        </div>
+    </aside>
+</div>
+
+<script>
+    // Hỏi lý do và xác nhận trước khi huỷ phiếu
+    function confirmCancel(form) {
+        var lyDo = prompt('Bạn chắc chắn muốn huỷ phiếu đặt phòng này?\nLý do huỷ (không bắt buộc):', '');
+        if (lyDo === null) return false;
+        form.querySelector('input[name=lyDo]').value = lyDo;
+        return true;
+    }
+</script>

@@ -1,0 +1,69 @@
+@using QLKSan.Models.DTOs
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Thư viện ảnh";
+    var albums = ViewBag.Albums as List<RoomTypeDetailDto> ?? new List<RoomTypeDetailDto>();
+
+    // Ảnh hạng phòng (bộ ảnh do quản trị tải lên, chưa có thì dùng ảnh đại diện), bỏ ảnh trùng trong cùng hạng
+    var anh = new List<(string Url, string ChuThich, string MaLoai)>();
+    foreach (var a in albums)
+    {
+        var ds = a.HinhAnhs.Select(h => h.DuongDan).ToList();
+        if (!ds.Any() && !string.IsNullOrEmpty(a.AnhDaiDien)) ds.Add(a.AnhDaiDien);
+        anh.AddRange(ds.Select(d => (MediaUrl.Of(d), FormatHelper.TenHangPhong(a.TenLoai), a.MaLoai)));
+    }
+    anh = anh.GroupBy(x => (x.Url, x.MaLoai)).Select(g => g.First()).ToList();
+}
+
+<div class="lx-page-head text-center">
+    <span class="lr-eyebrow">Thư viện ảnh</span>
+    <h1>Không gian @(albums.Count > 0 ? "của chúng tôi" : "")</h1>
+    <p>Chọn một ảnh để xem lớn; chọn tên hạng phòng để xem chi tiết và đặt phòng.</p>
+</div>
+
+<div class="lx-gallery-filter" role="tablist">
+    <button type="button" class="active" data-filter="">Tất cả</button>
+    @foreach (var a in albums)
+    {
+        <button type="button" data-filter="@a.MaLoai">@FormatHelper.TenHangPhong(a.TenLoai)</button>
+    }
+</div>
+
+@if (!anh.Any())
+{
+    <p class="text-center" style="color:var(--lr-text-muted)">Thư viện ảnh đang được cập nhật.</p>
+}
+<div class="lx-gallery">
+    @foreach (var x in anh)
+    {
+        <figure data-loai="@x.MaLoai">
+            <img src="@x.Url" alt="@x.ChuThich" loading="lazy" />
+            <figcaption><a asp-action="RoomType" asp-route-id="@x.MaLoai">@x.ChuThich</a></figcaption>
+        </figure>
+    }
+</div>
+
+<div class="lx-lightbox" id="lightbox" hidden>
+    <button type="button" aria-label="Đóng" onclick="this.parentElement.hidden = true">&times;</button>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // Ảnh lớn chỉ tạo khi mở để trang không có thẻ <img> rỗng
+            var box = document.getElementById('lightbox'), big = document.createElement('img');
+            document.querySelectorAll('.lx-gallery img').forEach(function (img) {
+                img.addEventListener('click', function () { big.src = img.src; big.alt = img.alt; box.appendChild(big); box.hidden = false; });
+            });
+            box.addEventListener('click', function (e) { if (e.target === box) box.hidden = true; });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') box.hidden = true; });
+            document.querySelectorAll('.lx-gallery-filter button').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var f = b.getAttribute('data-filter');
+                    document.querySelectorAll('.lx-gallery-filter button').forEach(function (x) { x.classList.toggle('active', x === b); });
+                    document.querySelectorAll('.lx-gallery figure').forEach(function (fig) { fig.hidden = !!f && fig.getAttribute('data-loai') !== f; });
+                });
+            });
+        })();
+    </script>
+}

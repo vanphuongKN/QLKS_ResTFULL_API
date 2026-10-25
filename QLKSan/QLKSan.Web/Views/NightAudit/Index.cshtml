@@ -1,0 +1,222 @@
+@model QLKSan.Models.DTOs.NightAuditPreviewDto
+@using QLKSan.Models.DTOs
+@{
+    ViewData["Title"] = "Chốt ngày";
+    var s = Model.SoLieu;
+    var st = Model.TinhTrang;
+    DateTime tuNgay = ViewBag.TuNgay;
+    DateTime denNgay = ViewBag.DenNgay;
+    var daChot = ViewBag.DaChot as List<DayCloseDto> ?? new List<DayCloseDto>();
+    var laQuanLy = User.IsInRole(WebRoles.Admin);
+    var thuRong = s.TheoPhuongThuc.Sum(m => m.Rong);
+    var canhBao = Model.QuaHanTra.Count + (Model.HoaDonChuaThanhToan > 0 ? 1 : 0) + Model.CaChuaChot.Count;
+    var homNay = Model.Ngay >= DateTime.Today;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Vận hành · Kế toán</p>
+        <h2>Chốt ngày</h2>
+        <p class="page-desc">
+            Áp dụng từ @st.NgayBatDau.ToString("dd/MM/yyyy") · chốt gần nhất: @(st.NgayChotGanNhat?.ToString("dd/MM/yyyy") ?? "chưa có")
+            · @(st.NgayCanChot != null ? $"cần chốt: {st.NgayCanChot:dd/MM/yyyy} ({st.SoNgayChuaChot} ngày chưa chốt)" : "đã chốt tới hôm qua")
+        </p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-end">
+        <div><label class="form-label small fw-semibold mb-1">Xem ngày</label><input type="date" name="ngay" value="@Model.Ngay.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control form-control-sm" /></div>
+        <button type="submit" class="btn btn-outline-gold btn-sm">Xem</button>
+    </form>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="card mb-4">
+    <div class="p-4 pb-3 d-flex justify-content-between align-items-baseline flex-wrap gap-2">
+        <div>
+            <h6 class="dash-title mb-1">@(Model.ChoPhepChot ? "Xem trước khi chốt" : homNay ? "Số liệu tạm tính" : "Số liệu") ngày @Model.Ngay.ToString("dd/MM/yyyy")</h6>
+            @if (!Model.ChoPhepChot)
+            {
+                <small class="text-muted"><i class="fas fa-info-circle me-1"></i>@Model.LyDoKhongChot
+                    @if (daChot.Any(c => c.Ngay.Date == Model.Ngay.Date)) { <a asp-action="Detail" asp-route-ngay="@Model.Ngay.ToString("yyyy-MM-dd")" class="ms-1">Xem bản đã chốt</a> }
+                </small>
+            }
+            else
+            {
+                <small class="text-muted">Doanh thu phòng ghi nhận theo đêm, giá đêm theo quy tắc giá, trước giảm giá, chưa gồm VAT.</small>
+            }
+        </div>
+    </div>
+    <div class="kpi-grid px-4 pb-4 mb-0">
+        <div class="kpi-card kpi-card--dark"><span class="kpi-label">Tiền phòng theo đêm</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(s.TienPhong)</div><span class="kpi-sub">@s.DemPhongBan / @s.TongSoPhong đêm phòng · công suất @s.CongSuat.ToString("0.#")%</span></div>
+        <div class="kpi-card"><span class="kpi-label">ADR · RevPAR</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(s.ADR)</div><span class="kpi-sub">RevPAR @FormatHelper.ToVND(s.RevPAR) · đến @s.KhachDen · đi @s.KhachDi khách</span></div>
+        <div class="kpi-card"><span class="kpi-label">Doanh thu khác</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(s.DoanhThuKhac)</div><span class="kpi-sub">Cọc giữ lại · @s.CocGiuLai.Count phiếu@(Model.ChoPhepChot && Model.KhachKhongDen.Any(k => k.TienCoc > 0) ? " (+ khách không đến đánh dấu huỷ)" : "")</span></div>
+        <div class="kpi-card"><span class="kpi-label">Tiền thu ròng</span><div class="kpi-value kpi-value--sm">@FormatHelper.ToVND(thuRong)</div><span class="kpi-sub">Dịch vụ phát sinh @FormatHelper.ToVND(s.TienDichVu) · @s.SoHoaDonThanhToan hoá đơn thanh toán</span></div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-7">
+        @if (Model.ChoPhepChot)
+        {
+            <form asp-action="Close" method="post" class="card h-100" onsubmit="return confirm('Chốt ngày @Model.Ngay.ToString("dd/MM/yyyy")? Các phiếu còn đánh dấu sẽ bị huỷ và giữ cọc. Sau khi chốt chỉ quản lý mở lại được.');">
+                <input type="hidden" name="ngay" value="@Model.Ngay.ToString("yyyy-MM-dd")" />
+                <div class="p-4 pb-2">
+                    <h6 class="dash-title mb-1">Khách không đến (@Model.KhachKhongDen.Count)</h6>
+                    <small class="text-muted">Phiếu có ngày nhận tới @Model.Ngay.ToString("dd/MM") mà chưa nhận phòng. Mặc định huỷ và giữ cọc; bỏ đánh dấu nếu khách đã báo đến muộn.</small>
+                </div>
+                <table class="table table-custom mb-0" data-no-tools>
+                    <thead><tr><th style="width:70px" title="Huỷ phiếu, giữ cọc">Huỷ</th><th>Phiếu</th><th>Ngày nhận</th><th class="text-end">Tiền cọc</th></tr></thead>
+                    <tbody>
+                        @if (!Model.KhachKhongDen.Any()) { <tr><td colspan="4" class="text-center text-muted">Không có khách nào chưa nhận phòng.</td></tr> }
+                        @foreach (var k in Model.KhachKhongDen)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <input type="hidden" name="khongDen" value="@k.MaDatPhong" />
+                                    <input type="checkbox" name="huy" value="@k.MaDatPhong" class="form-check-input" checked aria-label="Huỷ phiếu @k.MaDatPhong" />
+                                </td>
+                                <td><strong>@k.MaDatPhong</strong><small class="d-block text-muted">@k.HoTenKhachHang@(k.SoPhong != null ? " · P" + k.SoPhong : "")@(k.GioDenDuKien != null ? " · đến " + k.GioDenDuKien : "")</small></td>
+                                <td class="small">@k.NgayNhan.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end fw-semibold">@(k.TienCoc > 0 ? k.TienCoc.ToString("N0") : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="p-4 d-flex gap-2 align-items-end flex-wrap mt-auto">
+                    <div class="flex-grow-1"><label class="form-label small fw-semibold">Ghi chú chốt ngày</label><input name="ghiChu" maxlength="500" class="form-control form-control-sm" placeholder="Không bắt buộc" /></div>
+                    <button type="submit" class="btn-gold"><i class="fas fa-lock me-2"></i>Chốt ngày @Model.Ngay.ToString("dd/MM/yyyy")</button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <div class="card h-100">
+                <div class="p-4 pb-2"><h6 class="dash-title mb-0">Đêm phòng (@s.CacDem.Count)</h6></div>
+                @await Html.PartialAsync("_Nights", s)
+            </div>
+        }
+    </div>
+    <div class="col-xl-5">
+        <div class="card h-100">
+            <div class="p-4 pb-2"><h6 class="dash-title mb-0">Cần kiểm tra trước khi chốt @(canhBao > 0 ? $"({canhBao})" : "")</h6></div>
+            <ul class="list-unstyled px-4 pb-4 mb-0 small">
+                @if (canhBao == 0) { <li class="text-success"><i class="fas fa-check-circle me-2"></i>Không có cảnh báo.</li> }
+                @if (Model.QuaHanTra.Any())
+                {
+                    <li class="mb-2"><i class="fas fa-clock text-warning me-2"></i><strong>Khách quá hạn trả phòng:</strong>
+                        <ul class="mb-0">@foreach (var q in Model.QuaHanTra) { <li>@q</li> }</ul></li>
+                }
+                @if (Model.HoaDonChuaThanhToan > 0)
+                {
+                    <li class="mb-2"><i class="fas fa-file-invoice text-warning me-2"></i><strong>@Model.HoaDonChuaThanhToan hoá đơn chưa thanh toán</strong> lập tới ngày này.</li>
+                }
+                @if (Model.CaChuaChot.Any())
+                {
+                    <li class="mb-2"><i class="fas fa-cash-register text-warning me-2"></i><strong>Chưa chốt ca sau lần thu tiền cuối trong ngày:</strong> @string.Join(", ", Model.CaChuaChot)</li>
+                }
+            </ul>
+            <div class="px-4 pb-4 small">
+                <h6 class="dash-title mb-2" style="font-size:.95rem">Tiền thu / chi theo phương thức</h6>
+                @if (!s.TheoPhuongThuc.Any()) { <span class="text-muted">Không có giao dịch tiền trong ngày.</span> }
+                @foreach (var m in s.TheoPhuongThuc)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-1"><span>@m.PhuongThuc <span class="text-muted">· @m.SoGiaoDich GD</span></span><span>@m.Thu.ToString("N0") @(m.Chi > 0 ? $"/ -{m.Chi:N0}" : "") → <strong>@m.Rong.ToString("N0")</strong></span></div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.ChoPhepChot)
+{
+    <div class="card mb-4">
+        <div class="p-4 pb-2"><h6 class="dash-title mb-0">Đêm phòng sẽ ghi nhận (@s.CacDem.Count)</h6></div>
+        @await Html.PartialAsync("_Nights", s)
+    </div>
+}
+
+<div class="card">
+    <div class="p-4 pb-2 d-flex justify-content-between align-items-end flex-wrap gap-2">
+        <div>
+            <h6 class="dash-title mb-1">Các ngày đã chốt · doanh thu theo đêm</h6>
+            <small class="text-muted">Số liệu lưu tại thời điểm chốt. Báo cáo doanh thu theo ngày thanh toán vẫn ở trang Báo cáo.</small>
+        </div>
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <input type="hidden" name="ngay" value="@Model.Ngay.ToString("yyyy-MM-dd")" />
+            <input type="date" name="tuNgay" value="@tuNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" aria-label="Từ ngày" />
+            <input type="date" name="denNgay" value="@denNgay.ToString("yyyy-MM-dd")" class="form-control form-control-sm" aria-label="Đến ngày" />
+            <button type="submit" class="btn btn-gold btn-sm">Xem</button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0" data-no-tools>
+            <thead class="text-nowrap"><tr><th>Ngày</th><th class="text-end">Đêm phòng</th><th class="text-end">Công suất</th><th class="text-end">Tiền phòng</th><th class="text-end">ADR</th><th class="text-end">RevPAR</th><th class="text-end">DT khác</th><th class="text-end">Dịch vụ</th><th class="text-center">Đến / đi / không đến</th><th>Người chốt</th><th></th></tr></thead>
+            <tbody>
+                @if (!daChot.Any()) { <tr><td colspan="11" class="text-center text-muted">Chưa có ngày nào được chốt trong khoảng này.</td></tr> }
+                @foreach (var c in daChot)
+                {
+                    var x = c.SoLieu;
+                    var ganNhat = st.NgayChotGanNhat?.Date == c.Ngay.Date;
+                    <tr>
+                        <td><strong>@c.Ngay.ToString("dd/MM/yyyy")</strong>@if (!string.IsNullOrEmpty(c.GhiChu)) { <small class="d-block text-muted">@c.GhiChu</small> }</td>
+                        <td class="text-end">@x.DemPhongBan</td>
+                        <td class="text-end">@x.CongSuat.ToString("0.#")%</td>
+                        <td class="text-end fw-semibold">@x.TienPhong.ToString("N0")</td>
+                        <td class="text-end">@x.ADR.ToString("N0")</td>
+                        <td class="text-end">@x.RevPAR.ToString("N0")</td>
+                        <td class="text-end">@x.DoanhThuKhac.ToString("N0")</td>
+                        <td class="text-end">@x.TienDichVu.ToString("N0")</td>
+                        <td class="text-center small">@x.KhachDen / @x.KhachDi / @x.KhachKhongDen</td>
+                        <td class="small">@c.TenNhanVien<small class="d-block text-muted">@c.ThoiGianChot.ToString("HH:mm dd/MM")</small></td>
+                        <td class="text-nowrap text-end">
+                            <a asp-action="Detail" asp-route-ngay="@c.Ngay.ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-secondary" title="Xem / in"><i class="fas fa-print"></i></a>
+                            @if (laQuanLy && ganNhat)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reopenModal" title="Mở lại ngày này"><i class="fas fa-lock-open"></i></button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            @if (daChot.Count > 1)
+            {
+                var dem = daChot.Sum(c => c.SoLieu.DemPhongBan);
+                var tien = daChot.Sum(c => c.SoLieu.TienPhong);
+                var phongNgay = daChot.Sum(c => c.SoLieu.TongSoPhong);
+                <tfoot class="fw-semibold">
+                    <tr>
+                        <td>Cộng @daChot.Count ngày</td>
+                        <td class="text-end">@dem</td>
+                        <td class="text-end">@(phongNgay == 0 ? "0" : (100m * dem / phongNgay).ToString("0.#"))%</td>
+                        <td class="text-end">@tien.ToString("N0")</td>
+                        <td class="text-end">@(dem == 0 ? "0" : Math.Round(tien / dem, 0).ToString("N0"))</td>
+                        <td class="text-end">@(phongNgay == 0 ? "0" : Math.Round(tien / phongNgay, 0).ToString("N0"))</td>
+                        <td class="text-end">@daChot.Sum(c => c.SoLieu.DoanhThuKhac).ToString("N0")</td>
+                        <td class="text-end">@daChot.Sum(c => c.SoLieu.TienDichVu).ToString("N0")</td>
+                        <td class="text-center small">@daChot.Sum(c => c.SoLieu.KhachDen) / @daChot.Sum(c => c.SoLieu.KhachDi) / @daChot.Sum(c => c.SoLieu.KhachKhongDen)</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@if (laQuanLy && st.NgayChotGanNhat != null)
+{
+    <div class="modal fade" id="reopenModal" tabindex="-1" aria-labelledby="reopenTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <form asp-action="Reopen" method="post" class="modal-content">
+                <input type="hidden" name="ngay" value="@st.NgayChotGanNhat.Value.ToString("yyyy-MM-dd")" />
+                <div class="modal-header"><h5 class="modal-title" id="reopenTitle">Mở lại ngày @st.NgayChotGanNhat.Value.ToString("dd/MM/yyyy")</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                <div class="modal-body">
+                    <p class="small text-muted">Doanh thu theo đêm và cọc giữ lại của ngày này được gỡ ra để chốt lại. Phiếu khách không đến đã huỷ giữ nguyên. Lý do được ghi vào nhật ký thao tác.</p>
+                    <label class="form-label small fw-semibold" for="lyDo">Lý do mở lại</label>
+                    <textarea id="lyDo" name="lyDo" class="form-control" rows="3" maxlength="300" required></textarea>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn btn-danger"><i class="fas fa-lock-open me-2"></i>Mở lại</button></div>
+            </form>
+        </div>
+    </div>
+}

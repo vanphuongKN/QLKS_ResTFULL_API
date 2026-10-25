@@ -1,0 +1,47 @@
+@model List<QLKSan.Models.DTOs.InvoiceListItemDto>
+@{
+    ViewData["Title"] = "Hoá đơn VAT công ty";
+    bool chuaXuat = ViewBag.ChuaXuat ?? false;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Kế toán</p>
+        <h2>Hoá đơn VAT công ty</h2>
+        <p class="page-desc">Hoá đơn đã thanh toán có thông tin công ty (lễ tân nhập khi trả phòng). Kế toán xuất hoá đơn điện tử trên hệ thống thuế rồi ghi lại số hoá đơn tại đây.</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="filter-chips mb-4">
+    <a href="@Url.Action("VatInvoices")" class="@(!chuaXuat ? "active" : "")">Tất cả</a>
+    <a href="@Url.Action("VatInvoices", new { chuaXuat = true })" class="@(chuaXuat ? "active" : "")">Chưa ghi số</a>
+</div>
+
+<div class="card">
+    <table class="table table-custom mb-0">
+        <thead><tr><th>Hoá đơn</th><th>Công ty</th><th>Mã số thuế</th><th class="text-end">Tổng tiền</th><th style="min-width:300px">Số hoá đơn điện tử</th></tr></thead>
+        <tbody>
+            @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted p-4">@(chuaXuat ? "Mọi hoá đơn công ty đã được ghi số." : "Chưa có hoá đơn công ty.")</td></tr> }
+            @foreach (var h in Model)
+            {
+                <tr>
+                    <td><a href="@Url.Action("Invoice", new { id = h.MaHoaDon })" class="fw-bold text-navy">@h.MaHoaDon</a><small class="d-block text-muted">@h.NgayLapHoaDon.ToString("dd/MM/yyyy") · @h.HoTenKhachHang</small></td>
+                    <td>@h.TenCongTy</td>
+                    <td class="fw-semibold">@h.MaSoThue</td>
+                    <td class="text-end">@h.TongTienCanThanhToan.ToString("N0")</td>
+                    <td>
+                        <form asp-action="SetEInvoice" method="post" class="d-flex gap-2 align-items-center">
+                            <input type="hidden" name="id" value="@h.MaHoaDon" /><input type="hidden" name="chuaXuat" value="@chuaXuat.ToString().ToLower()" />
+                            <input name="soHoaDonDienTu" class="form-control form-control-sm" maxlength="30" value="@h.SoHoaDonDienTu" placeholder="VD: 1C26TAA-0000123" aria-label="Số hoá đơn điện tử @h.MaHoaDon" />
+                            <button type="submit" class="btn btn-sm @(string.IsNullOrEmpty(h.SoHoaDonDienTu) ? "btn-gold" : "btn-outline-secondary") text-nowrap">Lưu</button>
+                        </form>
+                        @if (h.NgayXuatHoaDonDienTu != null) { <small class="text-success"><i class="fas fa-check me-1"></i>Ghi lúc @h.NgayXuatHoaDonDienTu.Value.ToString("HH:mm dd/MM/yyyy")</small> }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

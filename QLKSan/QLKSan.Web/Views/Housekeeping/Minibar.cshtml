@@ -1,0 +1,80 @@
+@using QLKSan.Models.DTOs
+@{
+    ViewData["Title"] = "Ghi minibar";
+    var rooms = ViewBag.Rooms as List<HousekeepingRoomDto> ?? new List<HousekeepingRoomDto>();
+    var items = ViewBag.Items as List<ServiceDto> ?? new List<ServiceDto>();
+    var chon = ViewBag.MaPhong as string;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Buồng phòng</p>
+        <h2>Ghi minibar</h2>
+        <p class="page-desc">Kiểm tra minibar phòng có khách và ghi số lượng đã dùng — tiền tự vào bảng kê của khách, lễ tân thấy ngay khi trả phòng.</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+@if (!items.Any())
+{
+    <div class="alert alert-info">Chưa có đồ minibar nào. Quản lý đánh dấu "Đồ minibar" ở trang Dịch vụ &amp; giá.</div>
+}
+else if (!rooms.Any())
+{
+    <div class="alert alert-info">Không có phòng nào đang có khách.</div>
+}
+else
+{
+    <form asp-action="Minibar" method="post" class="card p-4 minibar-form">
+        <label class="form-label fw-semibold" for="mbPhong">Phòng</label>
+        <select name="maPhong" id="mbPhong" class="form-select mb-4" required>
+            <option value="">-- Chọn phòng có khách --</option>
+            @foreach (var r in rooms)
+            {
+                <option value="@r.MaPhong" selected="@(r.MaPhong == chon)">Phòng @r.SoPhong · tầng @r.Tang</option>
+            }
+        </select>
+        <div class="minibar-items">
+            @foreach (var d in items)
+            {
+                <div class="minibar-item">
+                    <input type="hidden" name="maDichVu" value="@d.MaDichVu" />
+                    <div><strong>@d.TenDichVu.Replace("Minibar - ", "")</strong><small class="d-block text-muted">@d.GiaDichVu.ToString("N0") ₫ / @d.DonViTinh</small></div>
+                    <div class="qty">
+                        <button type="button" class="btn btn-outline-secondary" data-step="-1" aria-label="Bớt">−</button>
+                        <input type="number" name="soLuong" class="form-control text-center" min="0" max="50" value="0" data-gia="@d.GiaDichVu.ToString("0")" aria-label="Số lượng @d.TenDichVu" />
+                        <button type="button" class="btn btn-outline-secondary" data-step="1" aria-label="Thêm">+</button>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <span>Tổng: <strong id="mbTong">0 ₫</strong></span>
+            <button type="submit" class="btn-gold">Ghi vào bảng kê</button>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var inputs = document.querySelectorAll('.minibar-item input[name=soLuong]');
+            function tong() {
+                var t = 0;
+                inputs.forEach(function (i) { t += Math.max(0, parseInt(i.value || 0, 10)) * parseInt(i.getAttribute('data-gia'), 10); });
+                var el = document.getElementById('mbTong');
+                if (el) el.textContent = t.toLocaleString('en-US') + ' ₫';
+            }
+            document.querySelectorAll('.minibar-item [data-step]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var i = b.parentElement.querySelector('input');
+                    i.value = Math.max(0, parseInt(i.value || 0, 10) + parseInt(b.getAttribute('data-step'), 10));
+                    tong();
+                });
+            });
+            inputs.forEach(function (i) { i.addEventListener('input', tong); });
+        })();
+    </script>
+}

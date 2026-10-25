@@ -1,4 +1,4 @@
-@model QLKSan.Models.Entities.Phong
+@model QLKSan.Models.DTOs.RoomDetailDto
 @{
     ViewData["Title"] = "Chi tiết phòng " + Model.SoPhong;
     
@@ -37,14 +37,10 @@
     }
 
     // Get active stay details if occupied
-    var activeStay = Model.ChiTietDatPhongs?
-        .Select(c => c.PhieuDatPhong)
-        .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.CheckedIn);
+    var activeStay = Model.DangLuuTru;
 
     // Get active booking details if booked
-    var activeBooking = Model.ChiTietDatPhongs?
-        .Select(c => c.PhieuDatPhong)
-        .FirstOrDefault(p => p.TrangThai == QLKSan.Enums.BookingStatus.Approved || p.TrangThai == QLKSan.Enums.BookingStatus.Pending);
+    var activeBooking = Model.DatPhongHienTai;
 }
 
 <!-- Custom Premium CSS -->
@@ -65,7 +61,7 @@
         background-color: #C5A059 !important;
     }
     .font-serif {
-        font-family: 'Playfair Display', serif;
+        font-family: 'Cormorant Garamond', serif;
     }
     .spec-item {
         padding: 12px 0;
@@ -217,11 +213,11 @@
                 </div>
                 <div class="spec-item d-flex justify-content-between align-items-center">
                     <span class="text-muted fw-medium">Đơn giá ngày</span>
-                    <span class="text-gold fw-bold" style="font-size: 1.1rem;">@Model.LoaiPhong.GiaThueNgay.ToString("N0") VNĐ / Ngày</span>
+                    <span class="text-gold fw-bold" style="font-size: 1.1rem;">@Model.LoaiPhong.GiaThueNgay.ToString("N0") ₫ / đêm</span>
                 </div>
                 <div class="spec-item d-flex justify-content-between align-items-center">
                     <span class="text-muted fw-medium">Đơn giá giờ</span>
-                    <span class="text-navy fw-bold">@Model.LoaiPhong.GiaThueGio.ToString("N0") VNĐ / Giờ</span>
+                    <span class="text-navy fw-bold">@Model.LoaiPhong.GiaThueGio.ToString("N0") ₫ / giờ</span>
                 </div>
                 <div class="spec-item d-flex flex-column align-items-start mt-1">
                     <span class="text-muted fw-medium mb-1">Mô tả phòng</span>
@@ -233,13 +229,13 @@
             <div class="card border rounded shadow-sm bg-white p-4">
                 <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-concierge-bell text-gold me-2"></i>Trang thiết bị & Tiện ích</h5>
                 
-                @if (Model.PhongTienIchs != null && Model.PhongTienIchs.Any())
+                @if (Model.TienIchs != null && Model.TienIchs.Any())
                 {
                     <div class="d-flex flex-wrap gap-2 pt-2">
-                        @foreach (var pti in Model.PhongTienIchs)
+                        @foreach (var pti in Model.TienIchs)
                         {
                             <span class="badge border bg-light text-navy px-3 py-2 fw-semibold" style="font-size: 0.8rem; border-radius: 4px;">
-                                <i class="@(string.IsNullOrEmpty(pti.TienIch.Icon) ? "fas fa-check" : pti.TienIch.Icon) text-gold me-2"></i>@pti.TienIch.TenTienIch
+                                <i class="@(string.IsNullOrEmpty(pti.Icon) ? "fas fa-check" : (pti.Icon.Contains(' ') ? pti.Icon : "fas " + pti.Icon)) text-gold me-2"></i>@pti.TenTienIch
                             </span>
                         }
                     </div>
@@ -259,7 +255,7 @@
 
         <!-- RIGHT COLUMN: Booking Operations & Services -->
         <div class="col-lg-7 col-md-12">
-            <!-- Active Booking details (Connected to SQL Server) -->
+            <!-- Khách đang lưu trú -->
             @if (Model.TrangThai == QLKSan.Enums.RoomStatus.Occupied && activeStay != null)
             {
                 var checkIn = activeStay.NgayCheckInThucTe ?? activeStay.NgayCheckInDuKien;
@@ -273,7 +269,7 @@
                 <div class="card border rounded shadow-sm bg-white p-4 mb-4" style="@statusCardStyle">
                     <div class="d-flex justify-content-between align-items-start pb-2 border-bottom mb-3">
                         <h5 class="text-navy font-serif fw-bold mb-0"><i class="fas fa-user-check text-gold me-2"></i>Thông tin khách đang ở</h5>
-                        <span class="badge bg-danger text-white text-uppercase px-2 py-1 fw-bold" style="font-size: 0.65rem;">HỢP ĐỒNG HOẠT ĐỘNG</span>
+                        <span class="badge-status badge-occupied">Đang ở</span>
                     </div>
 
                     <div class="row g-3">
@@ -282,8 +278,8 @@
                             <span class="text-navy fw-bold fs-5">@activeStay.KhachHang.Ho @activeStay.KhachHang.Ten</span>
                         </div>
                         <div class="col-md-6 text-end">
-                            <span class="text-muted small text-uppercase fw-semibold d-block">Mã hóa đơn</span>
-                            <span class="text-navy fw-bold text-monospace">#HD-@activeStay.MaDatPhong</span>
+                            <span class="text-muted small text-uppercase fw-semibold d-block">Mã đặt phòng</span>
+                            <span class="text-navy fw-bold">@activeStay.MaDatPhong</span>
                         </div>
                         <div class="col-md-6">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Thời gian Check-in</span>
@@ -291,15 +287,15 @@
                         </div>
                         <div class="col-md-6 text-end">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Dự kiến Check-out</span>
-                            <span class="text-navy fw-medium">@checkout.ToString("dd/MM/yyyy HH:mm")</span>
+                            <span class="text-navy fw-medium">@checkout.ToString("dd/MM/yyyy")</span>
                         </div>
                         <div class="col-md-6">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Liên hệ khách hàng</span>
-                            <span class="text-navy fw-medium">@(activeStay.KhachHang.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "Chưa có SĐT") - @(activeStay.KhachHang.LienHeDiaChis?.FirstOrDefault()?.Email ?? "Chưa có Email")</span>
+                            <span class="text-navy fw-medium">@(activeStay.KhachHang.SDT ?? "Chưa có SĐT") - @(activeStay.KhachHang.Email ?? "Chưa có Email")</span>
                         </div>
                         <div class="col-md-6 text-end">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Thời gian lưu trú</span>
-                            <span class="text-gold fw-bold">@duration Ngày</span>
+                            <span class="text-gold fw-bold">@duration đêm</span>
                         </div>
                     </div>
                 </div>
@@ -330,15 +326,15 @@
                                     {
                                         var lineTotal = service.ThanhTien;
                                         <tr>
-                                            <td class="ps-3 py-2 fw-semibold text-navy">@service.DichVu.TenDichVu</td>
+                                            <td class="ps-3 py-2 fw-semibold text-navy">@service.TenDichVu</td>
                                             <td class="py-2 text-center">@service.SoLuong</td>
-                                            <td class="py-2 text-end">@service.GiaThucTe.ToString("N0") đ</td>
-                                            <td class="pe-3 py-2 text-end fw-bold text-gold">@lineTotal.ToString("N0") đ</td>
+                                            <td class="py-2 text-end">@service.GiaThucTe.ToString("N0") ₫</td>
+                                            <td class="pe-3 py-2 text-end fw-bold text-gold">@lineTotal.ToString("N0") ₫</td>
                                         </tr>
                                     }
                                     <tr class="bg-light fw-bold text-navy" style="font-size: 0.95rem;">
                                         <td colspan="3" class="ps-3 py-3 text-end">TỔNG TIỀN DỊCH VỤ:</td>
-                                        <td class="pe-3 py-3 text-end text-gold fs-5">@serviceTotal.ToString("N0") VNĐ</td>
+                                        <td class="pe-3 py-3 text-end text-gold fs-5">@serviceTotal.ToString("N0") ₫</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -356,7 +352,7 @@
                 <!-- Checkout details and operation call -->
                 <div class="card border rounded shadow-sm bg-white p-4">
                     <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-credit-card text-gold me-2"></i>Quy trình Trả phòng & Thanh toán</h5>
-                    <p class="text-muted small mb-3">Tự động tổng hợp dữ liệu tiền phòng từ SQL Server (phụ thuộc vào check-in/checkout thực tế) cộng với tiền sử dụng dịch vụ trong hóa đơn hoạt động.</p>
+                    <p class="text-muted small mb-3">Tiền phòng tính theo số đêm thực tế (giá cuối tuần / lễ nếu có), cộng tiền dịch vụ đã dùng, trừ khuyến mãi và tiền cọc.</p>
                     
                     <div class="d-flex gap-3">
                         <button class="btn btn-gold px-4 py-2 flex-grow-1 fw-bold text-uppercase" onclick="location.href='/Checkout/Process?maPhong=@Model.MaPhong'">
@@ -380,19 +376,19 @@
                         </div>
                         <div class="col-md-6 text-end">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Mã đặt phòng</span>
-                            <span class="text-navy fw-bold text-monospace">#DP-@activeBooking.MaDatPhong</span>
+                            <span class="text-navy fw-bold">@activeBooking.MaDatPhong</span>
                         </div>
                         <div class="col-md-6">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Dự kiến Check-in</span>
-                            <span class="text-navy fw-medium">@activeBooking.NgayCheckInDuKien.ToString("dd/MM/yyyy HH:mm")</span>
+                            <span class="text-navy fw-medium">@activeBooking.NgayCheckInDuKien.ToString("dd/MM/yyyy")</span>
                         </div>
                         <div class="col-md-6 text-end">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Dự kiến Check-out</span>
-                            <span class="text-navy fw-medium">@activeBooking.NgayCheckOutDuKien.ToString("dd/MM/yyyy HH:mm")</span>
+                            <span class="text-navy fw-medium">@activeBooking.NgayCheckOutDuKien.ToString("dd/MM/yyyy")</span>
                         </div>
                         <div class="col-md-12 mt-2 pt-2 border-top">
                             <span class="text-muted small text-uppercase fw-semibold d-block">Liên hệ khách hàng</span>
-                            <span class="text-navy fw-semibold">@(activeBooking.KhachHang.LienHeDiaChis?.FirstOrDefault()?.SDT ?? "Chưa có SĐT") - @(activeBooking.KhachHang.LienHeDiaChis?.FirstOrDefault()?.Email ?? "Chưa có Email")</span>
+                            <span class="text-navy fw-semibold">@(activeBooking.KhachHang.SDT ?? "Chưa có SĐT") - @(activeBooking.KhachHang.Email ?? "Chưa có Email")</span>
                         </div>
                     </div>
 
@@ -446,17 +442,18 @@
             <div class="card border rounded shadow-sm bg-white p-4">
                 <h5 class="text-navy font-serif fw-bold pb-2 border-bottom mb-3"><i class="fas fa-sliders-h text-gold me-2"></i>Bảng điều khiển trạng thái</h5>
                 
+                @{ var coQuyenDoiTrangThai = User.IsInRole("Admin") || User.IsInRole("Receptionist"); }
                 @if (Model.TrangThai == QLKSan.Enums.RoomStatus.Occupied || Model.TrangThai == QLKSan.Enums.RoomStatus.Booked)
                 {
                     <div class="alert alert-warning border-0 bg-light d-flex align-items-center mb-0">
                         <i class="fas fa-lock text-muted fs-4 me-3"></i>
                         <div>
                             <p class="mb-0 fw-semibold text-navy" style="font-size: 0.85rem;">Trạng thái đã khóa tự động</p>
-                            <p class="text-muted small mb-0">Trạng thái phòng đang được quản lý bởi Hợp đồng lưu trú. Vui lòng sử dụng tính năng Check-in hoặc Check-out để thay đổi hệ thống.</p>
+                            <p class="text-muted small mb-0">Phòng đang có khách hoặc đã được đặt nên trạng thái tự cập nhật theo nhận phòng / trả phòng.</p>
                         </div>
                     </div>
                 }
-                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Available)
+                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Available && coQuyenDoiTrangThai)
                 {
                     <p class="text-muted small mb-3">Phòng đang trống. Bạn có thể thay đổi trạng thái nếu phòng cần dọn dẹp hoặc xảy ra sự cố cần bảo trì.</p>
                     <div class="d-flex gap-2">
@@ -476,7 +473,7 @@
                         </form>
                     </div>
                 }
-                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Cleaning)
+                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Cleaning && coQuyenDoiTrangThai)
                 {
                     <p class="text-muted small mb-3">Nếu phát hiện hỏng hóc trong quá trình dọn dẹp, bạn có thể chuyển phòng sang trạng thái Bảo trì.</p>
                     <form asp-action="UpdateStatus" asp-controller="Room" method="post">
@@ -487,7 +484,7 @@
                         </button>
                     </form>
                 }
-                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Maintenance)
+                else if (Model.TrangThai == QLKSan.Enums.RoomStatus.Maintenance && coQuyenDoiTrangThai)
                 {
                     <p class="text-muted small mb-3">Phòng đang được bảo trì. Sau khi sửa chữa xong, vui lòng chuyển về trạng thái Trống hoặc Dọn dẹp.</p>
                     <div class="d-flex gap-2">

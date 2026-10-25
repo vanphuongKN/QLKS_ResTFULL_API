@@ -4,10 +4,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - LuxeRegistry</title>
+    <title>@ViewData["Title"] - LUXE RESERVE</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body>
@@ -15,49 +16,87 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-brand">
-                <h4>LuxeRegistry</h4>
+                <h4>LUXE RESERVE</h4>
             </div>
             <div class="sidebar-hotel">
-                <p class="hotel-name">The Grand Reserve</p>
                 <p class="hotel-sub">Cổng thông tin nhân viên</p>
             </div>
-            <nav class="sidebar-nav">
-                @if (Context.Request.Cookies["UserRole"] == "Admin")
+            @{
+                var role = User.GetRole();
+                var ctrl = ViewContext.RouteData.Values["Controller"]?.ToString();
+                var act = ViewContext.RouteData.Values["Action"]?.ToString();
+                bool laAdmin = role == "Admin", laLeTan = role == "Receptionist", laBuongPhong = role == "Housekeeping", laKeToan = role == "Accountant";
+                bool Is(string c, params string[] acts) => ctrl == c && (acts.Length == 0 || acts.Contains(act));
+
+                // Menu theo nhóm nghiệp vụ; mỗi mục chỉ hiện với vai trò được phép (khớp ma trận phân quyền của API)
+                var menu = new List<(string Nhom, string Ten, string Icon, string Url, bool Active, bool Hien)>
                 {
-                    <a href="@Url.Action("Index", "Admin")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Admin" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
-                        <i class="fas fa-th-large"></i> Bảng điều khiển
-                    </a>
+                    ("", "Bảng điều khiển", "fa-th-large", Url.Action("Index", "Admin"), Is("Admin", "Index"), laAdmin),
+                    ("", "Việc của tôi", "fa-clipboard-check", Url.Action("MyTasks", "Housekeeping"), Is("Housekeeping", "MyTasks"), laBuongPhong),
+                    ("", "Ghi minibar", "fa-wine-bottle", Url.Action("Minibar", "Housekeeping"), Is("Housekeeping", "Minibar"), laBuongPhong),
+                    ("", "Kỹ thuật", "fa-screwdriver-wrench", Url.Action("Maintenance", "Housekeeping"), Is("Housekeeping", "Maintenance"), laBuongPhong),
+
+                    ("Vận hành", "Lễ tân", "fa-concierge-bell", Url.Action("Index", "Reception"), Is("Reception", "Index", "WalkIn", "ChangeRoom", "NewBooking"), laAdmin || laLeTan),
+                    ("Vận hành", "Phòng nghỉ", "fa-th", Url.Action("Status", "Room"), Is("Room", "Status", "Details"), laAdmin || laLeTan || laKeToan),
+                    ("Vận hành", "Lịch phòng", "fa-stream", Url.Action("Timeline", "Room"), Is("Room", "Timeline"), laAdmin || laLeTan || laKeToan),
+                    ("Vận hành", "Buồng phòng", "fa-broom", Url.Action("Tasks", "Housekeeping"), Is("Housekeeping", "Tasks", "Minibar"), laAdmin || laLeTan),
+                    ("Vận hành", "Kỹ thuật", "fa-screwdriver-wrench", Url.Action("Maintenance", "Housekeeping"), Is("Housekeeping", "Maintenance"), laAdmin || laLeTan),
+                    ("Vận hành", "Gọi dịch vụ", "fa-mug-hot", Url.Action("Index", "Service"), Is("Service"), laAdmin || laLeTan),
+                    ("Vận hành", "Yêu cầu khách", "fa-clipboard-list", Url.Action("Requests", "Reception"), Is("Reception", "Requests"), laAdmin || laLeTan),
+                    ("Vận hành", "Giao ca", "fa-cash-register", Url.Action("Shift", "Reception"), Is("Reception", "Shift"), laAdmin || laLeTan),
+                    ("Vận hành", "Chốt ngày", "fa-moon", Url.Action("Index", "NightAudit"), Is("NightAudit"), laAdmin || laLeTan || laKeToan),
+                    ("Vận hành", "Khách hàng", "fa-users", Url.Action("Customers", "Reception"), Is("Reception", "Customers", "CustomerDetails", "BookingHistory"), laAdmin || laLeTan),
+                    ("Vận hành", "Sổ lưu trú", "fa-id-card", Url.Action("Guests", "Room"), Is("Room", "Guests"), laAdmin || laLeTan || laKeToan),
+
+                    ("Doanh thu", "Tổng quan kế toán", "fa-scale-balanced", Url.Action("Index", "Accounting"), Is("Accounting", "Index"), laAdmin || laKeToan),
+                    ("Doanh thu", "Hoá đơn", "fa-file-invoice-dollar", Url.Action("Invoices", "Accounting"), Is("Accounting", "Invoices", "Invoice"), laAdmin || laKeToan),
+                    ("Doanh thu", "Đối soát", "fa-cash-register", Url.Action("Reconciliation", "Accounting"), Is("Accounting", "Reconciliation"), laAdmin || laKeToan),
+                    ("Doanh thu", "Hoá đơn VAT công ty", "fa-building-columns", Url.Action("VatInvoices", "Accounting"), Is("Accounting", "VatInvoices"), laAdmin || laKeToan),
+                    ("Doanh thu", "Báo cáo", "fa-chart-line", Url.Action("Reports", "Accounting"), Is("Accounting", "Reports"), laAdmin || laKeToan),
+                    ("Doanh thu", "Bảng giá", "fa-calendar-alt", Url.Action("Pricing", "Admin"), Is("Admin", "Pricing"), laAdmin),
+                    ("Doanh thu", "Khuyến mãi", "fa-tags", Url.Action("Promotions", "Admin"), Is("Admin", "Promotions"), laAdmin),
+
+                    ("Danh mục", "Loại phòng", "fa-layer-group", Url.Action("RoomTypes", "Admin"), Is("Admin", "RoomTypes", "RoomTypeImages"), laAdmin),
+                    ("Danh mục", "Phòng", "fa-door-closed", Url.Action("Rooms", "Admin"), Is("Admin", "Rooms"), laAdmin),
+                    ("Danh mục", "Tiện nghi", "fa-wifi", Url.Action("Amenities", "Admin"), Is("Admin", "Amenities"), laAdmin),
+                    ("Danh mục", "Dịch vụ & giá", "fa-spa", Url.Action("Services", "Admin"), Is("Admin", "Services"), laAdmin),
+                    ("Danh mục", "Đánh giá", "fa-star", Url.Action("Reviews", "Admin"), Is("Admin", "Reviews"), laAdmin),
+
+                    ("Hệ thống", "Nhân sự", "fa-user-tie", Url.Action("Staff", "Admin"), Is("Admin", "Staff"), laAdmin),
+                    ("Hệ thống", "Cấu hình khách sạn", "fa-sliders", Url.Action("Settings", "Admin"), Is("Admin", "Settings"), laAdmin),
+                    ("Hệ thống", "Nhật ký thao tác", "fa-clock-rotate-left", Url.Action("AuditLog", "Admin"), Is("Admin", "AuditLog"), laAdmin),
+                };
+            }
+            <nav class="sidebar-nav">
+                @foreach (var nhom in menu.Where(m => m.Hien).GroupBy(m => m.Nhom))
+                {
+                    if (!string.IsNullOrEmpty(nhom.Key))
+                    {
+                        <div class="nav-section">@nhom.Key</div>
+                    }
+                    foreach (var m in nhom)
+                    {
+                        <a href="@m.Url" class="nav-item @(m.Active ? "active" : "")"><i class="fas @m.Icon"></i> @m.Ten</a>
+                    }
                 }
-                <a href="@Url.Action("Index", "Reception")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Reception" && ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
-                    <i class="fas fa-concierge-bell"></i> Lễ tân
-                </a>
-                <a href="@Url.Action("Customers", "Reception")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Reception" && ViewContext.RouteData.Values["Action"].ToString() == "Customers" ? "active" : "")">
-                    <i class="fas fa-users"></i> Khách hàng
-                </a>
-                <a href="@Url.Action("Status", "Room")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Room" ? "active" : "")">
-                    <i class="fas fa-th"></i> Phòng nghỉ
-                </a>
-                <a href="@Url.Action("Index", "Service")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Service" ? "active" : "")">
-                    <i class="fas fa-bell-concierge"></i> Dịch vụ
-                </a>
-                <a href="@Url.Action("Tasks", "Housekeeping")" class="nav-item @(ViewContext.RouteData.Values["Controller"].ToString() == "Housekeeping" ? "active" : "")">
-                    <i class="fas fa-broom"></i> Buồng phòng
-                </a>
             </nav>
             <div class="sidebar-logout">
                 <a href="@Url.Action("Logout", "Auth")"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
             </div>
         </div>
+        <div class="sidebar-backdrop" onclick="document.body.classList.remove('sidebar-open')"></div>
 
         <!-- Page Content -->
         <div id="page-content-wrapper">
             <!-- Top Bar -->
             <div class="topbar">
-                <div style="width:100px"></div>
+                <button type="button" class="sidebar-toggle" aria-label="Mở menu" onclick="document.body.classList.toggle('sidebar-open')"><i class="fas fa-bars"></i></button>
+                <span class="topbar-brand">LUXE RESERVE</span>
+                <div class="d-none d-lg-block"></div>
 
                 <div class="topbar-actions">
                     @{
-                        var userRole = Context.Request.Cookies["UserRole"];
+                        var userRole = User.GetRole();
                         var displayRole = "";
                         var roleInitials = "AD";
                         if (userRole == "Admin")
@@ -70,6 +109,16 @@
                             displayRole = "Lễ tân";
                             roleInitials = "LT";
                         }
+                        else if (userRole == "Housekeeping")
+                        {
+                            displayRole = "Buồng phòng";
+                            roleInitials = "BP";
+                        }
+                        else if (userRole == "Accountant")
+                        {
+                            displayRole = "Kế toán";
+                            roleInitials = "KT";
+                        }
                         else
                         {
                             displayRole = userRole ?? "Nhân viên";
@@ -77,6 +126,7 @@
                         }
                     }
                     <div class="topbar-profile" style="display: flex; align-items: center; gap: 12px;">
+                        <a href="@Url.Action("ChangePassword", "Auth")" class="text-muted" title="Đổi mật khẩu" aria-label="Đổi mật khẩu"><i class="fas fa-key"></i></a>
                         <span class="user-role-label" style="font-weight: 700; color: #2A3B4C; font-size: 0.95rem; letter-spacing: 0.5px;">@displayRole</span>
                         <div class="avatar-badge" style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #C5A059, #E3C588); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 0.95rem; border: 2px solid #FFFFFF; box-shadow: 0 4px 10px rgba(197, 160, 89, 0.25); text-transform: uppercase;">
                             @roleInitials
@@ -95,7 +145,20 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Bảng rộng tự cuộn ngang trong khung của nó thay vì kéo giãn cả trang
+        document.querySelectorAll('.page-content table').forEach(function (t) {
+            if (t.closest('.table-responsive')) return;
+            var w = document.createElement('div');
+            w.className = 'table-responsive';
+            t.parentNode.insertBefore(w, t);
+            w.appendChild(t);
+        });
+        lrStaffUi.init();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

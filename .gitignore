@@ -33,3 +33,9 @@ build_errors.txt
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Ban sao luu cuc bo (zip, .bak) - khong dua vao git
+backup/
+
+# Ảnh quản trị tải lên khi chạy (QLKSan.API/wwwroot/uploads)
+QLKSan/QLKSan.API/wwwroot/uploads/

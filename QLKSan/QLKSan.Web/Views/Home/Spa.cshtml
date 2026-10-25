@@ -1,0 +1,58 @@
+@using QLKSan.Models.DTOs
+@{
+    Layout = "_CustomerLayout";
+    ViewData["Title"] = "Spa";
+    ViewData["HeaderOverlay"] = true;
+    ViewData["FullWidth"] = true;
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto { Ten = "LUXE RESERVE" };
+}
+
+<section class="lx-hero lx-hero--page" style="background-image:url('/images/room_garden.png')">
+    <div class="lx-hero-inner">
+        <span class="lr-eyebrow">Spa &amp; thư giãn</span>
+        <h1>Cân bằng lại <em>từ bên trong</em></h1>
+        <p>Liệu trình chăm sóc cơ thể trong không gian tĩnh lặng — khoảng lặng giữa những ngày di chuyển.</p>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-intro">
+        <div>
+            <span class="lr-eyebrow">Liệu trình</span>
+            <h2>Chậm lại, hít thở, buông bỏ</h2>
+            <p>Các liệu trình massage và chăm sóc cơ thể được điều chỉnh theo nhu cầu của từng vị khách — giảm mệt mỏi sau chuyến đi, thư giãn cơ hay đơn giản là một giờ hoàn toàn cho riêng mình.</p>
+            <p>Đặt lịch qua lễ tân trong thời gian lưu trú; chi phí được ghi vào hoá đơn phòng.</p>
+        </div>
+        <div class="lx-intro-img"><img src="/images/room_garden.png" alt="Không gian thư giãn tại @hotel.Ten" /></div>
+    </div>
+</section>
+
+<section class="lx-section">
+    <div class="lx-pillars">
+        <div class="lx-pillar">
+            <span class="lx-exp-num">01</span>
+            <h3>Trước liệu trình</h3>
+            <p>Đến sớm vài phút để thư giãn và trao đổi với chuyên viên về mong muốn của bạn.</p>
+        </div>
+        <div class="lx-pillar">
+            <span class="lx-exp-num">02</span>
+            <h3>Trong liệu trình</h3>
+            <p>Không gian yên tĩnh, ánh sáng dịu và tinh dầu nhẹ — mọi thứ được chuẩn bị để bạn hoàn toàn thả lỏng.</p>
+        </div>
+        <div class="lx-pillar">
+            <span class="lx-exp-num">03</span>
+            <h3>Sau liệu trình</h3>
+            <p>Dành thêm thời gian nghỉ ngơi và bổ sung nước; hạn chế hoạt động mạnh trong vài giờ đầu.</p>
+        </div>
+    </div>
+</section>
+
+<section class="lx-cta">
+    <span class="lr-eyebrow">Đặt lịch</span>
+    <h2>Dành cho mình một khoảng lặng</h2>
+    @if (!string.IsNullOrWhiteSpace(hotel.Hotline))
+    {
+        <p>Liên hệ lễ tân qua <a href="tel:@hotel.Hotline.Replace(" ", "")" class="lr-link">@hotel.Hotline</a> để chọn khung giờ phù hợp.</p>
+    }
+    <a href="@Url.Action("BookRoom", "Customer")" class="lr-btn lr-btn-primary">Đặt phòng</a>
+</section>

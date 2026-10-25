@@ -1,6 +1,9 @@
+@using QLKSan.Enums
 @{
     ViewData["Title"] = "Quản lý Nhân sự";
-    var staffList = ViewBag.Staff as IEnumerable<QLKSan.Models.Entities.NhanVien>;
+    var staffList = ViewBag.Staff as IEnumerable<QLKSan.Models.DTOs.StaffDto>;
+    // Vai trò được gán cho tài khoản nhân viên
+    var staffRoles = new[] { Role.Receptionist, Role.Housekeeping, Role.Accountant, Role.Admin };
 }
 
 <div class="page-header">
@@ -28,12 +31,11 @@
             <thead>
                 <tr>
                     <th>Nhân viên</th>
-                    <th>Mã NV</th>
-                    <th>Chức vụ</th>
-                    <th>SĐT</th>
-                    <th>Email</th>
+                    <th>Chức vụ / vai trò</th>
+                    <th>Liên hệ</th>
                     <th>Ngày vào làm</th>
                     <th>Tài khoản</th>
+                    <th>Trạng thái</th>
                     <th>Thao tác</th>
                 </tr>
             </thead>
@@ -45,22 +47,24 @@
                         var initials = nv.TenNhanVien?.Length >= 2
                             ? string.Concat(nv.TenNhanVien.Split(' ').Select(w => w[0].ToString())).Substring(0, Math.Min(2, nv.TenNhanVien.Split(' ').Length))
                             : (nv.TenNhanVien?.Substring(0, 1) ?? "?");
-                        <tr>
+                        var nghiViec = nv.TrangThai == EmployeeStatus.Resigned;
+                        <tr style="@(nghiViec ? "opacity:0.6" : "")">
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circle">@initials</span>
-                                    <strong>@nv.TenNhanVien</strong>
+                                    <span class="avatar-circle flex-shrink-0">@initials</span>
+                                    <div>
+                                        <strong class="nowrap">@nv.TenNhanVien</strong>
+                                        <div><small class="text-muted">@nv.MaNhanVien</small></div>
+                                    </div>
                                 </div>
                             </td>
-                            <td><small class="text-muted">@nv.MaNhanVien</small></td>
-                            <td>@nv.ChucVu</td>
-                            <td>@nv.SDT</td>
-                            <td>@nv.Email</td>
-                            <td>@nv.NgayVaoLam.ToString("dd/MM/yyyy")</td>
+                            <td>@nv.ChucVu<div><small class="text-muted">Quyền: @(nv.VaiTro?.GetDisplayName() ?? "chưa có tài khoản")</small></div></td>
+                            <td><span class="nowrap">@nv.SDT</span><div><small class="text-muted">@nv.Email</small></div></td>
+                            <td class="nowrap">@nv.NgayVaoLam.ToString("dd/MM/yyyy")</td>
                             <td>
-                                @if (nv.TaiKhoan != null)
+                                @if (!string.IsNullOrEmpty(nv.TenDangNhap))
                                 {
-                                    <span class="badge-status badge-available">@nv.TaiKhoan.TenDangNhap</span>
+                                    <span class="fw-semibold small"><i class="fas fa-user-lock text-muted me-1"></i>@nv.TenDangNhap</span>
                                 }
                                 else
                                 {
@@ -68,11 +72,28 @@
                                 }
                             </td>
                             <td>
+                                @if (nghiViec)
+                                {
+                                    <span class="badge-status badge-muted">Nghỉ việc</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-available">Đang làm</span>
+                                }
+                            </td>
+                            <td>
                                 <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" title="Sửa thông tin" 
-                                            onclick="editStaff('@nv.MaNhanVien', '@nv.TenNhanVien', '@nv.ChucVu', '@nv.SDT', '@nv.Email')">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" title="Sửa thông tin / vai trò / trạng thái"
+                                            onclick="editStaff('@nv.MaNhanVien', '@nv.TenNhanVien', '@nv.ChucVu', '@nv.SDT', '@nv.Email', '@(nv.VaiTro?.ToString() ?? "")', '@nv.TrangThai')">
                                         <i class="fas fa-pen"></i>
                                     </button>
+                                    @if (!string.IsNullOrEmpty(nv.TenDangNhap))
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-warning" title="Đặt lại mật khẩu"
+                                                onclick="resetPassword('@nv.MaNhanVien', '@nv.TenNhanVien')">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                    }
                                     <form asp-action="DeleteStaff" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhân viên @nv.TenNhanVien?')">
                                         <input type="hidden" name="maNhanVien" value="@nv.MaNhanVien" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa nhân viên">
@@ -86,7 +107,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="8" class="text-center text-muted p-4">Chưa có nhân viên nào.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted p-4">Chưa có nhân viên nào.</td></tr>
                 }
             </tbody>
         </table>
@@ -121,11 +142,20 @@
                             <input type="email" name="email" class="form-control" placeholder="nhanvien@luxestay.com" required>
                         </div>
                         <div class="col-12"><hr class="my-1"><p class="fw-semibold text-muted small">— Thông tin tài khoản —</p></div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Vai trò</label>
+                            <select name="vaiTro" class="form-select" required>
+                                @foreach (var r in staffRoles)
+                                {
+                                    <option value="@r">@r.GetDisplayName()</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Tên đăng nhập</label>
                             <input type="text" name="tenDangNhap" class="form-control" placeholder="nhanvien01" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Mật khẩu</label>
                             <input type="password" name="matKhau" class="form-control" placeholder="••••••••" minlength="6" title="Mật khẩu phải từ 6 ký tự trở lên" required>
                         </div>
@@ -168,6 +198,23 @@
                             <label class="form-label fw-semibold">Email</label>
                             <input type="email" name="email" id="editStaffEmail" class="form-control" required>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Vai trò tài khoản</label>
+                            <select name="vaiTro" id="editStaffVaiTro" class="form-select">
+                                @foreach (var r in staffRoles)
+                                {
+                                    <option value="@r">@r.GetDisplayName()</option>
+                                }
+                            </select>
+                            <small id="editStaffNoAccount" class="text-muted d-none">Nhân viên chưa có tài khoản đăng nhập.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Trạng thái</label>
+                            <select name="trangThai" id="editStaffTrangThai" class="form-select">
+                                <option value="@EmployeeStatus.Working">Đang làm việc</option>
+                                <option value="@EmployeeStatus.Resigned">Nghỉ việc (khoá đăng nhập)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -179,15 +226,50 @@
     </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-key me-2"></i>Đặt lại mật khẩu — <span id="resetStaffTen"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ResetPassword" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="maNhanVien" id="resetStaffMa" />
+                    <label class="form-label fw-semibold">Mật khẩu mới</label>
+                    <input type="password" name="matKhauMoi" class="form-control" minlength="6" placeholder="Tối thiểu 6 ký tự" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold">Đặt lại mật khẩu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
-    function editStaff(ma, ten, chucVu, sdt, email) {
+    function editStaff(ma, ten, chucVu, sdt, email, vaiTro, trangThai) {
         document.getElementById('editStaffMa').value = ma;
         document.getElementById('editStaffTen').value = ten;
         document.getElementById('editStaffChucVu').value = chucVu;
         document.getElementById('editStaffSDT').value = sdt;
         document.getElementById('editStaffEmail').value = email;
+        document.getElementById('editStaffTrangThai').value = trangThai;
+        // Nhân viên chưa có tài khoản: không gửi vai trò (giữ nguyên)
+        var roleSelect = document.getElementById('editStaffVaiTro');
+        roleSelect.disabled = !vaiTro;
+        if (vaiTro) roleSelect.value = vaiTro;
+        document.getElementById('editStaffNoAccount').classList.toggle('d-none', !!vaiTro);
         new bootstrap.Modal(document.getElementById('editStaffModal')).show();
+    }
+
+    function resetPassword(ma, ten) {
+        document.getElementById('resetStaffMa').value = ma;
+        document.getElementById('resetStaffTen').textContent = ten;
+        new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
     }
 </script>
 }

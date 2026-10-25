@@ -7,9 +7,8 @@ namespace QLKSan.Business
     public interface IServiceManager
     {
         Task<IEnumerable<DichVu>> GetAllServicesAsync();
-        Task<IEnumerable<Phong>> GetOccupiedRoomsAsync();
         Task<IEnumerable<PhieuDatPhong>> GetActiveStaysAsync();
-        Task<bool> OrderServiceAsync(string maDatPhong, string maDichVu, int soLuong);
-        Task<string> GetActiveBookingIdByRoomAsync(string maPhong);
+        // Ném NotFoundException/BusinessException nếu phiếu đặt hoặc dịch vụ không hợp lệ
+        Task OrderServiceAsync(string maDatPhong, string maDichVu, int soLuong);
     }
 }

@@ -1,0 +1,102 @@
+@model List<QLKSan.Models.DTOs.AmenityDto>
+@{
+    ViewData["Title"] = "Tiện nghi";
+    var rooms = ViewBag.Rooms as List<QLKSan.Models.DTOs.RoomDto> ?? new List<QLKSan.Models.DTOs.RoomDto>();
+    var soPhong = rooms.ToDictionary(r => r.MaPhong, r => r.SoPhong);
+    string IconOf(string icon) => string.IsNullOrEmpty(icon) ? "fas fa-check" : (icon.Contains(' ') ? icon : "fas " + icon);
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Danh mục</p>
+        <h2>Tiện nghi phòng</h2>
+        <p class="page-desc">Tiện nghi hiển thị ở trang chi tiết hạng phòng của khách. Gán cho từng phòng (hoặc cả hạng) ở trang <a asp-action="Rooms" class="text-gold">Phòng</a>.</p>
+    </div>
+    <button class="btn-gold" onclick="openAmenity(null)"><i class="fas fa-plus me-2"></i>Thêm tiện nghi</button>
+</div>
+
+@if (TempData["SuccessMessage"] != null) { <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div> }
+@if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div> }
+
+<div class="row g-3">
+    @if (!Model.Any())
+    {
+        <div class="col-12 text-center text-muted p-5">Chưa có tiện nghi nào.</div>
+    }
+    @foreach (var a in Model)
+    {
+        <div class="col-md-6 col-xl-4">
+            <div class="card amenity-card h-100">
+                <div class="amenity-icon"><i class="@IconOf(a.Icon)"></i></div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                        <strong>@a.TenTienIch</strong>
+                        <small class="text-muted">@a.MaTienIch · @a.Icon</small>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        @(a.MaPhongs.Any() ? $"{a.MaPhongs.Count} phòng: " + string.Join(", ", a.MaPhongs.Select(m => soPhong.TryGetValue(m, out var so) ? so : m)) : "Chưa gán phòng nào")
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-am="@Json.Serialize(a)" onclick="openAmenity(this)"><i class="fas fa-pen me-1"></i>Sửa</button>
+                        <form asp-action="DeleteAmenity" method="post" onsubmit="return confirm('Xoá tiện nghi @a.TenTienIch? Tiện nghi sẽ bị gỡ khỏi @a.MaPhongs.Count phòng.')">
+                            <input type="hidden" name="maTienIch" value="@a.MaTienIch" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="amModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="amTitle">Thêm tiện nghi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="amForm" data-add="@Url.Action("AddAmenity")" data-edit="@Url.Action("EditAmenity")">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="maTienIch" id="amMa" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="amTen">Tên tiện nghi</label>
+                        <input name="TenTienIch" id="amTen" class="form-control" maxlength="50" required placeholder="VD: Két sắt điện tử" />
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="amIcon">Biểu tượng (Font Awesome)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i id="amPreview" class="fas fa-check text-gold"></i></span>
+                            <input name="Icon" id="amIcon" class="form-control" maxlength="50" required pattern="(fa[srb]? )?fa-[a-z0-9\-]+" placeholder="fa-lock"
+                                   oninput="document.getElementById('amPreview').className = (this.value.indexOf(' ') > 0 ? this.value : 'fas ' + this.value) + ' text-gold'" />
+                        </div>
+                        <small class="text-muted">Ví dụ: fa-wifi, fa-tv, fa-snowflake, fa-bath, fa-wine-glass, fa-lock, fa-mug-hot.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-gold" id="amSubmit">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openAmenity(btn) {
+            var a = btn ? JSON.parse(btn.getAttribute('data-am')) : {};
+            var f = document.getElementById('amForm');
+            f.action = btn ? f.getAttribute('data-edit') : f.getAttribute('data-add');
+            document.getElementById('amTitle').textContent = btn ? 'Sửa tiện nghi ' + a.maTienIch : 'Thêm tiện nghi';
+            document.getElementById('amSubmit').textContent = btn ? 'Lưu' : 'Thêm';
+            document.getElementById('amMa').value = a.maTienIch || '';
+            document.getElementById('amTen').value = a.tenTienIch || '';
+            var icon = document.getElementById('amIcon');
+            icon.value = a.icon || '';
+            icon.dispatchEvent(new Event('input'));
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('amModal')).show();
+        }
+    </script>
+}

@@ -3,28 +3,63 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
 using QLKSan.Models.Entities;
+using QLKSan.Models.Requests;
 
 namespace QLKSan.Business
 {
     public class CustomerService : ICustomerService
     {
         private readonly ApplicationDbContext _context;
-        public CustomerService(ApplicationDbContext context) { _context = context; }
+        private readonly IRoomAvailabilityService _availability;
+        private readonly HotelPolicy _policy;
+        private readonly IPromotionService _promotions;
+
+        public CustomerService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPromotionService promotions)
+        {
+            _context = context;
+            _availability = availability;
+            _policy = policy.Value;
+            _promotions = promotions;
+        }
 
         public async Task<KhachHang> GetCustomerByAccountIdAsync(string maDangNhap)
             => await _context.KhachHangs
                 .Include(k => k.TaiKhoan)
                 .Include(k => k.LienHeDiaChis)
+                .Include(k => k.PhieuDatPhongs)
                 .FirstOrDefaultAsync(k => k.MaDangNhap == maDangNhap);
 
-        public async Task<KhachHang> GetCustomerByUsernameAsync(string username)
-            => await _context.KhachHangs
-                .Include(k => k.TaiKhoan)
-                .Include(k => k.LienHeDiaChis)
-                .FirstOrDefaultAsync(k => k.TaiKhoan.TenDangNhap == username);
+        public async Task<KhachHang> UpdateContactAsync(string maKhachHang, UpdateContactRequest request)
+        {
+            var khach = await _context.KhachHangs.Include(k => k.LienHeDiaChis)
+                .FirstOrDefaultAsync(k => k.MaKhachHang == maKhachHang)
+                ?? throw new NotFoundException("Không tìm thấy hồ sơ khách hàng.");
+
+            var lienHe = khach.LienHeDiaChis.OrderBy(l => l.MaLienHe).FirstOrDefault();
+            if (lienHe == null)
+            {
+                lienHe = new LienHeDiaChi
+                {
+                    MaLienHe = await IdGenerator.NextAsync(_context.LienHeDiaChis.Select(l => l.MaLienHe), "LH", 4),
+                    MaKhachHang = maKhachHang
+                };
+                _context.LienHeDiaChis.Add(lienHe);
+            }
+            lienHe.SDT = request.SDT.Trim();
+            lienHe.Email = request.Email?.Trim() ?? "";
+            lienHe.DiaChi = request.DiaChi.Trim();
+            lienHe.QuocGia = string.IsNullOrWhiteSpace(request.QuocGia) ? "Việt Nam" : request.QuocGia.Trim();
+            // Sở thích lưu trú: chỉ cập nhật khi gửi kèm (chuỗi rỗng = xoá)
+            if (request.SoThich != null)
+                khach.SoThich = string.IsNullOrWhiteSpace(request.SoThich) ? null : request.SoThich.Trim();
+            await _context.SaveChangesAsync();
+            return khach;
+        }
 
         public async Task<IEnumerable<PhieuDatPhong>> GetBookingsByCustomerAsync(string maKhachHang)
             => await _context.PhieuDatPhongs
@@ -34,114 +69,118 @@ namespace QLKSan.Business
                 .OrderByDescending(p => p.NgayDat)
                 .ToListAsync();
 
-        public async Task<IEnumerable<Phong>> GetAvailableRoomsForBookingAsync()
-            => await _context.Phongs
-                .Include(p => p.LoaiPhong)
-                .Include(p => p.HinhAnhs)
-                .Where(p => p.TrangThai == RoomStatus.Available)
-                .ToListAsync();
-
-        public async Task<string?> CreateOnlineBookingAsync(string maKhachHang, string maPhong, int soNguoi, DateTime checkIn, DateTime checkOut, string? maKhuyenMai = null)
+        public async Task<string> CreateOnlineBookingAsync(string maKhachHang, BookRoomRequest request)
         {
+            var checkIn = request.CheckIn.Date;
+            var checkOut = request.CheckOut.Date;
+            var soNguoi = request.SoNguoi;
+            if (string.IsNullOrWhiteSpace(request.MaLoai) == string.IsNullOrWhiteSpace(request.MaPhong))
+                throw new BusinessException("Vui lòng chọn một hạng phòng (hoặc một phòng cụ thể).");
+            if (checkIn < DateTime.Today)
+                throw new BusinessException("Ngày nhận phòng không được ở trong quá khứ.");
+            if (checkOut <= checkIn)
+                throw new BusinessException("Ngày trả phòng phải sau ngày nhận phòng.");
+
+            if (await _context.KhachHangs.AnyAsync(k => k.MaKhachHang == maKhachHang && k.HanChe))
+                throw new BusinessException("Tài khoản tạm thời không đặt phòng trực tuyến được. Vui lòng liên hệ lễ tân để được hỗ trợ.");
+
+            // Mã khuyến mãi phải hợp lệ cho kỳ nghỉ này lúc đặt (kiểm tra sau khi xếp phòng để biết hạng phòng);
+            // được lưu vào phiếu để áp dụng khi trả phòng
+            var maKhuyenMai = string.IsNullOrWhiteSpace(request.MaKhuyenMai) ? null : request.MaKhuyenMai.Trim();
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var room = await _context.Phongs.Include(p => p.LoaiPhong).FirstOrDefaultAsync(p => p.MaPhong == maPhong);
-                if (room == null || room.TrangThai != RoomStatus.Available) return "Phòng không tồn tại hoặc không trống.";
-
-                if (room.LoaiPhong != null && soNguoi > room.LoaiPhong.SoNguoiToiDa)
-                {
-                    return $"Số lượng khách ({soNguoi}) vượt quá sức chứa tối đa của {room.LoaiPhong.TenLoai} ({room.LoaiPhong.SoNguoiToiDa} người lớn).";
-                }
-
-                // Validate promotion if provided
-                if (!string.IsNullOrEmpty(maKhuyenMai))
-                {
-                    var promo = await _context.KhuyenMais.FindAsync(maKhuyenMai);
-                    var today = DateTime.Today;
-                    if (promo == null || promo.TrangThai != PromotionStatus.Active || promo.NgayBatDau > today || promo.NgayKetThuc < today)
-                    {
-                        maKhuyenMai = null; // Reset if invalid or expired
-                    }
-                }
+                var room = string.IsNullOrWhiteSpace(request.MaLoai)
+                    ? await _availability.ReserveRoomAsync(request.MaPhong, checkIn, checkOut, soNguoi)
+                    : await _availability.ReserveRoomOfTypeAsync(request.MaLoai, checkIn, checkOut, soNguoi);
+                if (maKhuyenMai != null)
+                    maKhuyenMai = (await _promotions.ValidateForStayAsync(maKhuyenMai, room.MaLoai, (checkOut - checkIn).Days)).MaKhuyenMai;
 
                 var booking = new PhieuDatPhong
                 {
-                    MaDatPhong = "PDP" + new Random().Next(1000000, 9999999),
+                    MaDatPhong = await IdGenerator.NextAsync(_context.PhieuDatPhongs.Select(p => p.MaDatPhong), "PDP", 7),
                     MaKhachHang = maKhachHang,
                     NgayDat = DateTime.Now,
                     NgayCheckInDuKien = checkIn,
                     NgayCheckOutDuKien = checkOut,
                     SoLuongKhach = soNguoi,
-                    TrangThai = BookingStatus.Pending,
-                    TienCoc = 0
+                    // Còn phòng thì xác nhận ngay (chính sách TuDongXacNhanDatPhong), lễ tân vẫn huỷ được khi cần
+                    TrangThai = _policy.TuDongXacNhanDatPhong ? BookingStatus.Approved : BookingStatus.Pending,
+                    TienCoc = 0,
+                    NguonDat = BookingSources.Online,
+                    MaKhuyenMai = maKhuyenMai,
+                    YeuCauDacBiet = string.IsNullOrWhiteSpace(request.YeuCauDacBiet) ? null : request.YeuCauDacBiet.Trim(),
+                    GioDenDuKien = string.IsNullOrWhiteSpace(request.GioDenDuKien) ? null : request.GioDenDuKien.Trim()
                 };
                 _context.PhieuDatPhongs.Add(booking);
 
-                var detail = new ChiTietDatPhong
+                _context.ChiTietDatPhongs.Add(new ChiTietDatPhong
                 {
-                    MaCTDP = "CT" + new Random().Next(10000000, 99999999),
+                    MaCTDP = await IdGenerator.NextAsync(_context.ChiTietDatPhongs.Select(c => c.MaCTDP), "CT", 4),
                     MaDatPhong = booking.MaDatPhong,
-                    MaPhong = maPhong,
+                    MaPhong = room.MaPhong,
                     HinhThucThue = RentalType.Daily,
                     GiaThueThucTe = room.LoaiPhong.GiaThueNgay
-                };
-                _context.ChiTietDatPhongs.Add(detail);
+                });
 
-                room.TrangThai = RoomStatus.Booked;
+                // Không đổi Phong.TrangThai: phòng chỉ bị giữ trong khoảng ngày của phiếu
                 await _context.SaveChangesAsync();
-                return null;
+                await transaction.CommitAsync();
+                return booking.MaDatPhong;
             }
-            catch { return "Đã xảy ra lỗi hệ thống khi đặt phòng."; }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
-        public async Task<bool> SubmitReviewAsync(string maKhachHang, string maPhong, int soSao, string noiDung, bool anDanh)
+        public async Task<DanhGia> SubmitReviewAsync(string maKhachHang, string maDatPhong, string maPhong, int soSao, string noiDung, bool anDanh)
         {
-            try
+            if (string.IsNullOrWhiteSpace(maDatPhong) && string.IsNullOrWhiteSpace(maPhong))
+                throw new BusinessException("Vui lòng chọn kỳ nghỉ cần đánh giá.");
+
+            // Các lần lưu trú đã trả phòng của khách (kèm phòng đã ở)
+            var stays = _context.PhieuDatPhongs
+                .Where(b => b.MaKhachHang == maKhachHang && b.TrangThai == BookingStatus.CheckedOut);
+            var stay = !string.IsNullOrWhiteSpace(maDatPhong)
+                ? await stays.Include(b => b.ChiTietDatPhongs).FirstOrDefaultAsync(b => b.MaDatPhong == maDatPhong)
+                : await stays.Include(b => b.ChiTietDatPhongs)
+                    .Where(b => b.ChiTietDatPhongs.Any(c => c.MaPhong == maPhong) && !_context.DanhGias.Any(d => d.MaDatPhong == b.MaDatPhong))
+                    .OrderByDescending(b => b.NgayCheckOutThucTe)
+                    .FirstOrDefaultAsync();
+
+            if (stay == null)
             {
-                // Validate that the customer has actually checked out of this room
-                bool hasCheckedOutBooking = await _context.PhieuDatPhongs
-                    .AnyAsync(b => b.MaKhachHang == maKhachHang 
-                                && b.TrangThai == BookingStatus.CheckedOut
-                                && b.ChiTietDatPhongs.Any(c => c.MaPhong == maPhong));
-                
-                if (!hasCheckedOutBooking)
-                {
-                    return false;
-                }
-
-                var existingReview = await _context.DanhGias
-                    .FirstOrDefaultAsync(d => d.MaKhachHang == maKhachHang && d.MaPhong == maPhong);
-
-                if (existingReview != null)
-                {
-                    return false; // Do not allow reviewing again
-                }
-                else
-                {
-                    var review = new DanhGia
-                    {
-                        MaDanhGia = "DG" + new Random().Next(10000000, 99999999),
-                        MaKhachHang = maKhachHang,
-                        MaPhong = maPhong,
-                        SoSao = soSao,
-                        NoiDung = noiDung,
-                        NgayDanhGia = DateTime.Now,
-                        AnDanh = anDanh
-                    };
-                    _context.DanhGias.Add(review);
-                }
-                await _context.SaveChangesAsync();
-                return true;
+                // Đã ở phòng này nhưng mọi lần ở đều đã được đánh giá
+                if (string.IsNullOrWhiteSpace(maDatPhong) && await stays.AnyAsync(b => b.ChiTietDatPhongs.Any(c => c.MaPhong == maPhong)))
+                    throw new ConflictException("Bạn đã đánh giá các lần lưu trú ở phòng này.");
+                throw new BusinessException("Bạn chỉ có thể đánh giá kỳ nghỉ của mình đã trả phòng.");
             }
-            catch { return false; }
+            if (await _context.DanhGias.AnyAsync(d => d.MaDatPhong == stay.MaDatPhong))
+                throw new ConflictException("Bạn đã đánh giá kỳ nghỉ này rồi.");
+
+            var review = new DanhGia
+            {
+                MaDanhGia = await IdGenerator.NextAsync(_context.DanhGias.Select(d => d.MaDanhGia), "DG", 4),
+                MaKhachHang = maKhachHang,
+                MaPhong = stay.ChiTietDatPhongs.First().MaPhong,
+                MaDatPhong = stay.MaDatPhong,
+                SoSao = soSao,
+                NoiDung = noiDung,
+                NgayDanhGia = DateTime.Now,
+                AnDanh = anDanh
+            };
+            _context.DanhGias.Add(review);
+            await _context.SaveChangesAsync();
+            return review;
         }
 
         public async Task<IEnumerable<DanhGia>> GetReviewsByCustomerAsync(string maKhachHang)
             => await _context.DanhGias
+                .Include(d => d.Phong)
                 .Where(d => d.MaKhachHang == maKhachHang)
-                .ToListAsync();
-
-        public async Task<KhuyenMai?> GetPromotionAsync(string code)
-            => await _context.KhuyenMais.FindAsync(code);
+                .ToListAsync();
     }
 }

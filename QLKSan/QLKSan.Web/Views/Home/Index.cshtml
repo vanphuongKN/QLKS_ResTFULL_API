@@ -1,741 +1,204 @@
+@using QLKSan.Models.DTOs
 @{
     Layout = "_CustomerLayout";
-    ViewData["Title"] = "Trang chủ - Luxe Reserve";
-    var username = Context.Request.Cookies["Username"];
-    var role = Context.Request.Cookies["UserRole"];
+    ViewData["Title"] = "Trang chủ";
+    ViewData["HeaderOverlay"] = true;
+    ViewData["FullWidth"] = true;
+    var role = User.GetRole();
+    var laKhach = User.IsLoggedIn() && role == "Customer";
+    var hotel = ViewBag.Hotel as HotelInfoDto ?? new HotelInfoDto { Ten = "LUXE RESERVE" };
+    var roomTypes = ViewBag.RoomTypes as List<RoomTypeDto> ?? new List<RoomTypeDto>();
+    // "Trải nghiệm": dịch vụ được quản trị đánh dấu giới thiệu (không ghi bảng giá)
+    var experiences = ViewBag.Experiences as List<ServiceDto> ?? new List<ServiceDto>();
+    var reviews = ViewBag.Reviews as List<ReviewDto> ?? new List<ReviewDto>();
+    var maxNguoi = roomTypes.Count > 0 ? roomTypes.Max(l => l.SoNguoiToiDa) : 4;
+    // Xem phòng trống và giá không cần đăng nhập; bước xác nhận mới yêu cầu tài khoản khách hàng
+    var bookUrl = Url.Action("BookRoom", "Customer");
 }
 
-<!-- Custom Styles for Luxury Aesthetics -->
-<style>
-    :root {
-        --lux-navy: #0A192F;
-        --lux-navy-light: #112240;
-        --lux-gold: #C5A059;
-        --lux-gold-hover: #D4AF37;
-        --lux-white: #FFFFFF;
-        --lux-dark-gray: #1E1E1E;
-        --lux-light-bg: #FAF9F6; /* Premium alabaster warm white */
-        --lux-transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
-    }
-
-    body {
-        background-color: var(--lux-light-bg);
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Hero Banner Area */
-    .lux-hero {
-        position: relative;
-        background: linear-gradient(rgba(10, 25, 47, 0.85), rgba(2, 12, 27, 0.95)), url('/images/hero.png');
-        background-size: cover;
-        background-position: center;
-        border-radius: 24px;
-        padding: 100px 70px;
-        margin-bottom: 30px;
-        overflow: hidden;
-        box-shadow: 0 25px 50px rgba(2, 12, 27, 0.25);
-        color: var(--lux-white);
-        display: flex;
-        align-items: center;
-        min-height: 520px;
-        border: 1px solid rgba(197, 160, 89, 0.15);
-    }
-
-    .lux-hero::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at 80% 20%, rgba(197, 160, 89, 0.2) 0%, transparent 60%);
-        pointer-events: none;
-    }
-
-    .lux-hero-content {
-        max-width: 650px;
-        z-index: 2;
-        position: relative;
-    }
-
-    .lux-badge {
-        display: inline-block;
-        color: var(--lux-gold);
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 5px;
-        font-weight: 700;
-        margin-bottom: 25px;
-        border-bottom: 2px solid var(--lux-gold);
-        padding-bottom: 6px;
-    }
-
-    .lux-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 3.8rem;
-        font-weight: 700;
-        line-height: 1.15;
-        margin-bottom: 25px;
-        color: var(--lux-white);
-        text-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    }
-
-    .lux-title span {
-        color: var(--lux-gold);
-        font-style: italic;
-    }
-
-    .lux-desc {
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 1.1rem;
-        line-height: 1.8;
-        margin-bottom: 40px;
-        font-weight: 300;
-        text-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }
-
-    .lux-hero-img-wrap {
-        position: absolute;
-        right: 50px;
-        top: 50px;
-        bottom: 50px;
-        width: 38%;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        border: 2px solid var(--lux-gold);
-        z-index: 1;
-        display: none;
-        transition: var(--lux-transition);
-    }
-
-    @@media (min-width: 1200px) {
-        .lux-hero-img-wrap { display: block; }
-        .lux-hero-content { max-width: 55%; }
-    }
-
-    .lux-hero-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transform: scale(1.02);
-        transition: var(--lux-transition);
-    }
-
-    .lux-hero:hover .lux-hero-img-wrap {
-        transform: translateY(-5px);
-        box-shadow: 0 25px 50px rgba(197, 160, 89, 0.25);
-    }
-
-    .lux-hero-img-wrap:hover .lux-hero-img {
-        transform: scale(1.08);
-    }
-
-    /* Floating Quick Booking Bar */
-    .lux-booking-bar {
-        background: var(--lux-white);
-        border-radius: 16px;
-        padding: 25px 35px;
-        box-shadow: 0 20px 45px rgba(10, 25, 47, 0.08);
-        border: 1px solid rgba(197, 160, 89, 0.25);
-        margin-top: -45px;
-        margin-bottom: 70px;
-        position: relative;
-        z-index: 10;
-        transition: var(--lux-transition);
-    }
-
-    .lux-booking-bar:hover {
-        box-shadow: 0 25px 55px rgba(197, 160, 89, 0.15);
-        transform: translateY(-2px);
-    }
-
-    .booking-bar-form {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 20px;
-        align-items: flex-end;
-    }
-
-    @@media (min-width: 992px) {
-        .booking-bar-form {
-            grid-template-columns: 1.1fr 1.1fr 1.3fr 0.9fr 1.2fr;
-            gap: 24px;
-        }
-    }
-
-    .booking-field {
-        width: 100%;
-    }
-
-    .booking-field label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--lux-gold);
-        margin-bottom: 8px;
-        letter-spacing: 1.5px;
-        white-space: nowrap;
-    }
-
-    .booking-field select, .booking-field input {
-        width: 100%;
-        border: none;
-        border-bottom: 2px solid rgba(10, 25, 47, 0.1);
-        padding: 10px 0;
-        font-size: 0.95rem;
-        color: var(--lux-navy);
-        font-weight: 600;
-        background: transparent;
-        outline: none;
-        transition: var(--lux-transition);
-    }
-
-    .booking-field select:focus, .booking-field input:focus {
-        border-color: var(--lux-gold);
-    }
-
-    .booking-btn-wrap {
-        width: 100%;
-    }
-
-    .booking-submit-btn {
-        background: var(--lux-gold);
-        color: var(--lux-navy);
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 1.5px;
-        padding: 13px 20px;
-        border-radius: 8px;
-        border: none;
-        width: 100%;
-        transition: var(--lux-transition);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        box-shadow: 0 5px 15px rgba(197, 160, 89, 0.2);
-        white-space: nowrap;
-        margin-bottom: 2px;
-    }
-
-    .booking-submit-btn:hover {
-        background: var(--lux-navy);
-        color: var(--lux-white);
-        box-shadow: 0 8px 20px rgba(10, 25, 47, 0.25);
-    }
-
-    /* Section Typography */
-    .lux-section-header {
-        text-align: center;
-        margin-bottom: 60px;
-        position: relative;
-    }
-
-    .lux-section-label {
-        color: var(--lux-gold);
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 4px;
-        font-weight: 700;
-        margin-bottom: 12px;
-        display: inline-block;
-    }
-
-    .lux-section-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.8rem;
-        font-weight: 700;
-        color: var(--lux-navy);
-        position: relative;
-        padding-bottom: 20px;
-        letter-spacing: 0.5px;
-    }
-
-    .lux-section-title::after {
-        content: '';
-        position: absolute;
-        bottom: 0; left: 50%;
-        transform: translateX(-50%);
-        width: 70px; height: 3px;
-        background-color: var(--lux-gold);
-    }
-
-    /* Grid of Services */
-    .lux-services-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 25px;
-        margin-bottom: 80px;
-    }
-
-    @@media (min-width: 576px) {
-        .lux-services-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @@media (min-width: 992px) {
-        .lux-services-grid {
-            grid-template-columns: repeat(4, 1fr);
-        }
-    }
-
-    .lux-service-item {
-        background: var(--lux-white);
-        border-radius: 16px;
-        padding: 35px 30px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.02);
-        border: 1px solid rgba(0,0,0,0.03);
-        transition: var(--lux-transition);
-        position: relative;
-    }
-
-    .lux-service-item::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 4px;
-        background: var(--lux-gold);
-        border-radius: 16px 16px 0 0;
-        opacity: 0;
-        transition: var(--lux-transition);
-    }
-
-    .lux-service-item:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(10, 25, 47, 0.08);
-        border-color: rgba(197,160,89,0.15);
-    }
-
-    .lux-service-item:hover::before {
-        opacity: 1;
-    }
-
-    .lux-service-icon {
-        font-size: 2.2rem;
-        color: var(--lux-gold);
-        margin-bottom: 20px;
-        transition: var(--lux-transition);
-    }
-
-    .lux-service-item:hover .lux-service-icon {
-        transform: scale(1.1) rotate(5deg);
-    }
-
-    .lux-service-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: var(--lux-navy);
-        margin-bottom: 12px;
-    }
-
-    .lux-service-desc {
-        font-size: 0.85rem;
-        color: #666;
-        line-height: 1.6;
-    }
-
-    /* Luxury Room Grid */
-    .lux-room-card {
-        background: var(--lux-white);
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-        border: 1px solid rgba(0, 0, 0, 0.04);
-        transition: var(--lux-transition);
-        margin-bottom: 40px;
-        position: relative;
-    }
-
-    .lux-room-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 25px 50px rgba(10, 25, 47, 0.12);
-        border-color: rgba(197, 160, 89, 0.25);
-    }
-
-    .lux-room-img-container {
-        height: 280px;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .lux-room-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: var(--lux-transition);
-    }
-
-    .lux-room-card:hover .lux-room-img {
-        transform: scale(1.08);
-    }
-
-    .lux-room-tag {
-        position: absolute;
-        top: 20px; right: 20px;
-        background: rgba(10, 25, 47, 0.9);
-        backdrop-filter: blur(5px);
-        color: var(--lux-gold);
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        padding: 8px 16px;
-        border-radius: 6px;
-        border: 1px solid rgba(197, 160, 89, 0.4);
-        z-index: 2;
-    }
-
-    .lux-room-body {
-        padding: 30px;
-    }
-
-    .lux-room-stars {
-        color: var(--lux-gold);
-        font-size: 0.85rem;
-        letter-spacing: 2px;
-        margin-bottom: 10px;
-    }
-
-    .lux-room-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 1.45rem;
-        font-weight: 700;
-        color: var(--lux-navy);
-        margin-bottom: 12px;
-    }
-
-    .lux-room-desc {
-        font-size: 0.9rem;
-        color: #555;
-        line-height: 1.7;
-        margin-bottom: 22px;
-        height: 70px;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .lux-room-details {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
-        font-size: 0.75rem;
-        color: #777;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        padding-bottom: 15px;
-    }
-
-    .lux-room-details span {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .lux-room-details i {
-        color: var(--lux-gold);
-    }
-
-    .lux-room-meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .lux-room-price {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: var(--lux-gold);
-    }
-
-    .lux-room-price span {
-        font-size: 0.8rem;
-        color: #888;
-        font-weight: 400;
-        text-transform: uppercase;
-    }
-
-    .btn-lux-book {
-        background: transparent;
-        color: var(--lux-navy);
-        border: 1px solid var(--lux-navy);
-        border-radius: 6px;
-        padding: 8px 16px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        text-decoration: none;
-        transition: var(--lux-transition);
-    }
-
-    .lux-room-card:hover .btn-lux-book {
-        background: var(--lux-gold);
-        border-color: var(--lux-gold);
-        color: var(--lux-navy);
-        box-shadow: 0 4px 12px rgba(197, 160, 89, 0.3);
-    }
-
-    /* Call to Action Button */
-    .btn-lux-primary {
-        background: var(--lux-gold);
-        color: var(--lux-navy) !important;
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 2px;
-        padding: 16px 36px;
-        border-radius: 8px;
-        border: none;
-        box-shadow: 0 8px 25px rgba(197, 160, 89, 0.3);
-        transition: var(--lux-transition);
-        display: inline-block;
-        text-decoration: none;
-    }
-
-    .btn-lux-primary:hover {
-        background: var(--lux-gold-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 12px 30px rgba(197, 160, 89, 0.45);
-    }
-
-    .btn-lux-secondary {
-        background: transparent;
-        color: var(--lux-white) !important;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 2px;
-        padding: 16px 36px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        transition: var(--lux-transition);
-        display: inline-block;
-        text-decoration: none;
-        margin-left: 15px;
-    }
-
-    .btn-lux-secondary:hover {
-        border-color: var(--lux-white);
-        background: rgba(255,255,255,0.08);
-    }
-</style>
-
-<!-- HERO WELCOME SECTION -->
-<div class="lux-hero">
-    <div class="lux-hero-content">
-        <div class="lux-badge">The Grand Reserve</div>
-        <h1 class="lux-title">Định Nghĩa Lại <span>Đẳng Cấp</span> Nghỉ Dưỡng Thượng Lưu</h1>
-        <p class="lux-desc">Chào mừng quý khách đến với không gian sang trọng hoàng gia, nơi các giá trị cổ điển giao hòa cùng dịch vụ hoàn mỹ đẳng cấp thế giới.</p>
-        
-        <div class="lux-actions">
-            @if (Context.Request.Cookies.ContainsKey("Username"))
+<!-- HERO -->
+<section class="lx-hero">
+    <div class="lx-hero-inner">
+        <span class="lr-eyebrow">Khách sạn &amp; khu nghỉ dưỡng</span>
+        <h1>Nơi thời gian <em>chậm lại</em></h1>
+        <p>@(string.IsNullOrWhiteSpace(hotel.MoTaNgan) ? "Không gian nghỉ dưỡng riêng tư, dịch vụ tận tâm và những buổi sáng thật thong thả." : hotel.MoTaNgan)</p>
+        <div class="lx-hero-actions">
+            @if (User.IsLoggedIn() && !laKhach)
             {
-                var userRole = Context.Request.Cookies["UserRole"];
-                if (userRole == "Admin")
-                {
-                    <a href="@Url.Action("Index", "Admin")" class="btn-lux-primary"><i class="fas fa-desktop me-2"></i>Vào Trang Admin</a>
-                }
-                else if (userRole == "Receptionist")
-                {
-                    <a href="@Url.Action("Index", "Reception")" class="btn-lux-primary"><i class="fas fa-desktop me-2"></i>Vào Trang Lễ Tân</a>
-                }
-                else
-                {
-                    <a href="@Url.Action("MyStays", "Customer")" class="btn-lux-primary"><i class="fas fa-suitcase me-2"></i>Xem Kỳ Nghỉ Của Tôi</a>
-                }
+                <a href="@Url.Action("Portal", "Auth")" class="lr-btn lr-btn-light">Vào trang nhân viên</a>
             }
             else
             {
-                <a href="@Url.Action("Login", "Auth")" class="btn-lux-primary"><i class="fas fa-sign-in-alt me-2"></i>Khám Phá Portal</a>
+                <a href="@bookUrl" class="lr-btn lr-btn-light">Đặt phòng</a>
             }
-            <a href="#accommodation-section" class="btn-lux-secondary">Xem phòng nghỉ</a>
+            <a href="#rooms" class="lr-link lr-link-light">Khám phá hạng phòng</a>
         </div>
     </div>
-    <div class="lux-hero-img-wrap">
-        <img class="lux-hero-img" src="/images/hero.png" alt="Luxe Hotel Interior Lobby">
+</section>
+
+<!-- TÌM PHÒNG: chuyển sang trang đặt phòng với khoảng ngày / số khách đã chọn -->
+<form class="lx-search" method="get" action="@Url.Action("BookRoom", "Customer")" onsubmit="return handleBooking(event)">
+    <input type="hidden" name="checkIn" id="checkin-date" value="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+    <input type="hidden" name="checkOut" id="checkout-date" value="@DateTime.Today.AddDays(3).ToString("yyyy-MM-dd")" />
+    <div class="lx-search-field">
+        <label for="stay-range">Nhận phòng — Trả phòng</label>
+        <input type="text" id="stay-range" readonly value="@DateTime.Today.AddDays(1).ToString("dd/MM/yyyy") — @DateTime.Today.AddDays(3).ToString("dd/MM/yyyy")" />
     </div>
-</div>
-
-<!-- FLOATING QUICK BOOKING BAR -->
-<div class="lux-booking-bar">
-    <form class="booking-bar-form" action="@Url.Action("Login", "Auth")" method="get" onsubmit="return handleBooking(event)">
-        <div class="booking-field">
-            <label><i class="fas fa-calendar-alt"></i> Ngày Nhận Phòng</label>
-            <input type="date" id="checkin-date" required>
-        </div>
-        <div class="booking-field">
-            <label><i class="fas fa-calendar-check"></i> Ngày Trả Phòng</label>
-            <input type="date" id="checkout-date" required>
-        </div>
-        <div class="booking-field">
-            <label><i class="fas fa-bed"></i> Hạng Phòng</label>
-            <select id="room-type">
-                <option value="presidential">Imperial President Suite</option>
-                <option value="ocean">Grand Ocean Palace</option>
-                <option value="garden">Executive Garden Villa</option>
-            </select>
-        </div>
-        <div class="booking-field">
-            <label><i class="fas fa-users"></i> Số Lượng Khách</label>
-            <select id="guest-count">
-                <option value="1">1 Khách</option>
-                <option value="2" selected>2 Khách</option>
-                <option value="3">3 Khách</option>
-                <option value="4">4 Khách</option>
-            </select>
-        </div>
-        <div class="booking-btn-wrap">
-            <button type="submit" class="booking-submit-btn">
-                Tìm phòng trống <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-    </form>
-</div>
-
-<script>
-    // Set default dates for the booking bar (tomorrow and day after)
-    document.addEventListener("DOMContentLoaded", function() {
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const dayAfter = new Date(tomorrow);
-        dayAfter.setDate(dayAfter.getDate() + 2);
-        
-        document.getElementById("checkin-date").value = tomorrow.toISOString().split('T')[0];
-        document.getElementById("checkout-date").value = dayAfter.toISOString().split('T')[0];
-    });
-
-    function handleBooking(event) {
-        event.preventDefault();
-        const isLoggedIn = '@(Context.Request.Cookies.ContainsKey("Username") ? "true" : "false")' === 'true';
-        
-        if (!isLoggedIn) {
-            alert("Để mang lại trải nghiệm độc bản, vui lòng Đăng Nhập hoặc Đăng Ký tài khoản trước khi tiến hành đặt phòng!");
-            window.location.href = '@Url.Action("Login", "Auth")';
-        } else {
-            const role = '@(Context.Request.Cookies["UserRole"])';
-            if (role === "Customer") {
-                window.location.href = '@Url.Action("MyStays", "Customer")';
-            } else {
-                alert("Tài khoản nhân viên không hỗ trợ đặt phòng. Vui lòng sử dụng tài khoản Khách Hàng.");
+    <div class="lx-search-field">
+        <label for="guest-count">Số khách</label>
+        <select id="guest-count" name="soNguoi">
+            @for (var i = 1; i <= maxNguoi; i++)
+            {
+                <option value="@i" selected="@(i == 2)">@i khách</option>
             }
-        }
-        return false;
+        </select>
+    </div>
+    <button type="submit" class="lr-btn lr-btn-primary">Kiểm tra phòng trống</button>
+</form>
+
+<!-- GIỚI THIỆU -->
+<section class="lx-section">
+    <div class="lx-intro">
+        <div>
+            <span class="lr-eyebrow">Chào mừng đến @hotel.Ten</span>
+            <h2>Một chốn nghỉ riêng tư, nơi mỗi chi tiết đều được chăm chút</h2>
+            <p>Từ lúc đặt phòng đến khi trả phòng, đội ngũ của chúng tôi luôn sẵn sàng: phòng được chuẩn bị chu đáo trước giờ nhận, dịch vụ đặt nhanh qua lễ tân và hoá đơn minh bạch cho từng đêm lưu trú.</p>
+            <div class="lx-facts">
+                <div><strong>@roomTypes.Count</strong><span>Hạng phòng</span></div>
+                <div><strong>24/7</strong><span>Lễ tân</span></div>
+                @if (hotel.GioNhanPhong != null)
+                {
+                    <div><strong>@hotel.GioNhanPhong</strong><span>Giờ nhận phòng</span></div>
+                }
+            </div>
+            <a href="#rooms" class="lr-link">Xem các hạng phòng</a>
+        </div>
+        <div class="lx-intro-img">
+            <img src="/images/room_ocean.png" alt="Phòng nghỉ nhìn ra biển tại @hotel.Ten" />
+        </div>
+    </div>
+</section>
+
+<!-- HẠNG PHÒNG -->
+<section class="lx-section" id="rooms">
+    <div class="lx-section-head">
+        <span class="lr-eyebrow">Lưu trú</span>
+        <h2>Hạng phòng</h2>
+        <p>Mỗi hạng phòng mang một nhịp nghỉ riêng — chọn không gian phù hợp với chuyến đi của bạn.</p>
+    </div>
+    @if (!roomTypes.Any())
+    {
+        <p class="text-center" style="color:var(--lr-text-muted)">Danh sách hạng phòng đang được cập nhật.</p>
     }
-</script>
-
-<!-- MAIN SERVICES ACROSS THE RESORT -->
-<div id="services-section" class="lux-section-header">
-    <div class="lux-section-label">Đặc Quyền Thượng Lưu</div>
-    <h2 class="lux-section-title">Trải Nghiệm Độc Bản</h2>
-</div>
-
-<div class="lux-services-grid">
-    <div class="lux-service-item">
-        <div class="lux-service-icon"><i class="fas fa-bell-concierge"></i></div>
-        <h5 class="lux-service-title">Quản Gia 24/7</h5>
-        <p class="lux-service-desc">Đội ngũ quản gia chuyên nghiệp đạt tiêu chuẩn quốc tế luôn sẵn sàng phục vụ và đáp ứng mọi nhu cầu cá nhân.</p>
-    </div>
-    <div class="lux-service-item">
-        <div class="lux-service-icon"><i class="fas fa-utensils"></i></div>
-        <h5 class="lux-service-title">Michelin Dining</h5>
-        <p class="lux-service-desc">Khám phá ẩm thực đỉnh cao với thực đơn Michelin độc bản, chế biến bởi các đầu bếp trứ danh thế giới.</p>
-    </div>
-    <div class="lux-service-item">
-        <div class="lux-service-icon"><i class="fas fa-spa"></i></div>
-        <h5 class="lux-service-title">Royal Spa & Wellness</h5>
-        <p class="lux-service-desc">Tái tạo năng lượng bằng các liệu pháp hoàng gia, sử dụng thảo dược quý hiếm trong không gian tĩnh lặng tuyệt đối.</p>
-    </div>
-    <div class="lux-service-item">
-        <div class="lux-service-icon"><i class="fas fa-ship"></i></div>
-        <h5 class="lux-service-title">Du Thuyền Riêng</h5>
-        <p class="lux-service-desc">Thưởng ngoạn cảnh hoàng hôn lãng mạn trên biển với du thuyền siêu sang dành riêng cho quý khách.</p>
-    </div>
-</div>
-
-<!-- LUXURY ROOM SHOWCASE SECTION -->
-<div id="accommodation-section" class="lux-section-header">
-    <div class="lux-section-label">Không Gian Hoàn Mỹ</div>
-    <h2 class="lux-section-title">Hạng Phòng Cao Cấp</h2>
-</div>
-
-<div class="row">
-    <!-- Room 1 -->
-    <div class="col-md-4">
-        <div class="lux-room-card">
-            <div class="lux-room-img-container">
-                <span class="lux-room-tag">Presidential</span>
-                <img class="lux-room-img" src="/images/room_presidential.png" alt="Imperial President Suite Room">
-            </div>
-            <div class="lux-room-body">
-                <div class="lux-room-stars">★★★★★</div>
-                <h4 class="lux-room-title">Imperial President Suite</h4>
-                <p class="lux-room-desc">Tầm nhìn panorama 360 độ ôm trọn vẹn vịnh biển xanh, trang bị bồn tắm sục Jacuzzi ngoài trời và ban công rộng lớn sang trọng.</p>
-                <div class="lux-room-details">
-                    <span><i class="fas fa-expand-arrows-alt"></i> 180 m²</span>
-                    <span><i class="fas fa-eye"></i> Hướng Biển</span>
-                    <span><i class="fas fa-concierge-bell"></i> Butler 24/7</span>
+    <div class="lx-rooms">
+        @foreach (var lp in roomTypes)
+        {
+            <a class="lx-room" asp-action="RoomType" asp-route-id="@lp.MaLoai">
+                <div class="lx-room-img"><img src="@MediaUrl.Of(lp.AnhDaiDien)" alt="@FormatHelper.TenHangPhong(lp.TenLoai)" /></div>
+                @if (lp.DiemDanhGia != null)
+                {
+                    <div class="lx-room-rating"><i class="fas fa-star"></i> @lp.DiemDanhGia.Value.ToString("0.0") · @lp.SoDanhGia đánh giá</div>
+                }
+                <h3>@FormatHelper.TenHangPhong(lp.TenLoai)</h3>
+                <p>@(string.IsNullOrWhiteSpace(lp.MoTa) ? "Phòng nghỉ tiện nghi, yên tĩnh và được chuẩn bị chu đáo." : lp.MoTa)</p>
+                <div class="lx-room-meta">
+                    <span>Tối đa @lp.SoNguoiToiDa khách</span>
+                    <span class="lx-room-price">Từ <strong>@lp.GiaThueNgay.ToString("N0") ₫</strong> / đêm</span>
                 </div>
-                <div class="lux-room-meta">
-                    <span class="lux-room-price">12,500,000 <span>/ Ngày</span></span>
-                    <a href="@Url.Action("Login", "Auth")" onclick="return handleBooking(event)" class="btn-lux-book">Đặt phòng</a>
-                </div>
+            </a>
+        }
+    </div>
+</section>
+
+@if (experiences.Any())
+{
+    <!-- TRẢI NGHIỆM -->
+    <section class="lx-experience" id="experiences">
+        <div class="lx-experience-inner">
+            <div class="lx-experience-img" role="img" aria-label="Không gian nghỉ dưỡng"></div>
+            <div class="lx-experience-text">
+                <span class="lr-eyebrow">Trải nghiệm</span>
+                <h2>Những điều làm nên một kỳ nghỉ trọn vẹn</h2>
+                @for (var i = 0; i < experiences.Count; i++)
+                {
+                    <div class="lx-exp-item">
+                        <span class="lx-exp-num">@((i + 1).ToString("00"))</span>
+                        <h3>@experiences[i].TenDichVu</h3>
+                        <p>@experiences[i].MoTa</p>
+                    </div>
+                }
             </div>
         </div>
-    </div>
+    </section>
+}
 
-    <!-- Room 2 -->
-    <div class="col-md-4">
-        <div class="lux-room-card">
-            <div class="lux-room-img-container">
-                <span class="lux-room-tag">Ocean View</span>
-                <img class="lux-room-img" src="/images/room_ocean.png" alt="Grand Ocean Palace Room">
-            </div>
-            <div class="lux-room-body">
-                <div class="lux-room-stars">★★★★★</div>
-                <h4 class="lux-room-title">Grand Ocean Palace</h4>
-                <p class="lux-room-desc">Sự kết tinh hoàn hảo từ kiến trúc Pháp lộng lẫy và nét trầm ấm tinh tế của gỗ gõ đỏ mun cao cấp quý giá.</p>
-                <div class="lux-room-details">
-                    <span><i class="fas fa-expand-arrows-alt"></i> 120 m²</span>
-                    <span><i class="fas fa-eye"></i> Cận Biển</span>
-                    <span><i class="fas fa-swimmer"></i> Bể Bơi Riêng</span>
-                </div>
-                <div class="lux-room-meta">
-                    <span class="lux-room-price">8,200,000 <span>/ Ngày</span></span>
-                    <a href="@Url.Action("Login", "Auth")" onclick="return handleBooking(event)" class="btn-lux-book">Đặt phòng</a>
-                </div>
-            </div>
+@if (reviews.Any())
+{
+    <!-- ĐÁNH GIÁ CỦA KHÁCH -->
+    <section class="lx-section" id="reviews">
+        <div class="lx-section-head">
+            <span class="lr-eyebrow">Cảm nhận</span>
+            <h2>Khách nói về chúng tôi</h2>
         </div>
-    </div>
+        <div class="lx-reviews">
+            @foreach (var r in reviews)
+            {
+                <figure class="lx-quote m-0">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <i class="@(i <= r.SoSao ? "fas" : "far") fa-star"></i>
+                    }
+                    <blockquote>“@r.NoiDung”</blockquote>
+                    <figcaption><small>@r.TenHienThi · @FormatHelper.TenHangPhong(r.TenLoaiPhong ?? "")</small></figcaption>
+                </figure>
+            }
+        </div>
+    </section>
+}
 
-    <!-- Room 3 -->
-    <div class="col-md-4">
-        <div class="lux-room-card">
-            <div class="lux-room-img-container">
-                <span class="lux-room-tag">Luxury Villa</span>
-                <img class="lux-room-img" src="/images/room_garden.png" alt="Executive Garden Villa Room">
-            </div>
-            <div class="lux-room-body">
-                <div class="lux-room-stars">★★★★★</div>
-                <h4 class="lux-room-title">Executive Garden Villa</h4>
-                <p class="lux-room-desc">Tĩnh lặng và biệt lập giữa khuôn viên vườn nhiệt đới xanh mát, hồ bơi sinh thái lọc muối tự nhiên tinh khiết.</p>
-                <div class="lux-room-details">
-                    <span><i class="fas fa-expand-arrows-alt"></i> 150 m²</span>
-                    <span><i class="fas fa-tree"></i> Sân Vườn</span>
-                    <span><i class="fas fa-coffee"></i> Mini Bar VIP</span>
-                </div>
-                <div class="lux-room-meta">
-                    <span class="lux-room-price">9,500,000 <span>/ Ngày</span></span>
-                    <a href="@Url.Action("Login", "Auth")" onclick="return handleBooking(event)" class="btn-lux-book">Đặt phòng</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- LỜI MỜI ĐẶT PHÒNG -->
+<section class="lx-cta">
+    <span class="lr-eyebrow">Đặt phòng trực tuyến</span>
+    <h2>Sẵn sàng cho kỳ nghỉ tiếp theo?</h2>
+    <p>Chọn ngày, xem giá từng đêm và nhận xác nhận đặt phòng ngay trên website.</p>
+    @if (!User.IsLoggedIn() || laKhach)
+    {
+        <a href="@bookUrl" class="lr-btn lr-btn-primary">Đặt phòng ngay</a>
+    }
+</section>
+
+@section Scripts {
+    <script>
+        // Chọn khoảng ngày bằng một lịch duy nhất; giá trị gửi đi nằm ở 2 ô ẩn checkIn / checkOut
+        (function () {
+            if (!window.flatpickr) return;
+            var ci = document.getElementById('checkin-date'), co = document.getElementById('checkout-date');
+            flatpickr('#stay-range', {
+                mode: 'range', minDate: 'today', dateFormat: 'd/m/Y', disableMobile: true,
+                showMonths: window.innerWidth > 768 ? 2 : 1,
+                defaultDate: [ci.value, co.value].map(function (v) { return new Date(v + 'T00:00:00'); }),
+                locale: Object.assign({}, flatpickr.l10ns.vn || {}, { rangeSeparator: ' — ' }),
+                onChange: function (dates) {
+                    var fmt = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+                    if (dates.length === 2) { ci.value = fmt(dates[0]); co.value = fmt(dates[1]); }
+                }
+            });
+        })();
+
+        // Ai cũng xem được phòng trống và giá; tài khoản nhân viên không đặt phòng trực tuyến
+        function handleBooking(event) {
+            var ci = document.getElementById('checkin-date').value, co = document.getElementById('checkout-date').value;
+            if (!ci || !co || co <= ci) {
+                event.preventDefault();
+                alert('Vui lòng chọn ngày trả phòng sau ngày nhận phòng.');
+                return false;
+            }
+            if (@(User.IsLoggedIn() && !laKhach ? "true" : "false")) {
+                event.preventDefault();
+                alert('Tài khoản nhân viên không đặt phòng trực tuyến. Vui lòng dùng tài khoản khách hàng.');
+                return false;
+            }
+            return true;
+        }
+    </script>
+}

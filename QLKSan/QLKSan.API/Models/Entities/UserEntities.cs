@@ -23,6 +23,10 @@ namespace QLKSan.Models.Entities
         
         public Role VaiTro { get; set; } = Role.Customer;
 
+        // Chống dò mật khẩu: đếm lần sai liên tiếp, đủ ngưỡng thì khoá tạm đến KhoaDen
+        public int SoLanSai { get; set; } = 0;
+        public DateTime? KhoaDen { get; set; }
+
         public NhanVien NhanVien { get; set; }
         public KhachHang KhachHang { get; set; }
     }
@@ -88,6 +92,24 @@ namespace QLKSan.Models.Entities
         
         public int DiemTichLuy { get; set; } = 0;
 
+        // Tổng điểm đã đổi trừ vào hoá đơn; hạng thành viên xét theo DiemTichLuy + DiemDaDoi
+        public int DiemDaDoi { get; set; } = 0;
+
+        // Chăm sóc khách: VIP, sở thích lưu trú (khách tự cập nhật được), ghi chú nội bộ (chỉ nhân viên thấy)
+        public bool LaVIP { get; set; } = false;
+
+        [StringLength(500)]
+        public string? SoThich { get; set; }
+
+        [StringLength(1000)]
+        public string? GhiChuNoiBo { get; set; }
+
+        // Hạn chế: không cho đặt phòng trực tuyến (lễ tân vẫn xử lý trực tiếp)
+        public bool HanChe { get; set; } = false;
+
+        [StringLength(255)]
+        public string? LyDoHanChe { get; set; }
+
         public TaiKhoan TaiKhoan { get; set; }
         public ICollection<LienHeDiaChi> LienHeDiaChis { get; set; }
         public ICollection<PhieuDatPhong> PhieuDatPhongs { get; set; }
@@ -119,5 +141,87 @@ namespace QLKSan.Models.Entities
         public string QuocGia { get; set; } = "Việt Nam";
 
         public KhachHang KhachHang { get; set; }
+    }
+
+    // Lịch sử điểm thưởng: mỗi lần tích / đổi / trừ do hoàn tiền / điều chỉnh thủ công
+    public class LichSuDiem
+    {
+        [Key]
+        [StringLength(12)]
+        public string MaLichSu { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("KhachHang")]
+        public string MaKhachHang { get; set; }
+
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+
+        // Dương: cộng điểm; âm: trừ điểm
+        public int SoDiem { get; set; }
+
+        [StringLength(30)]
+        public string Loai { get; set; }
+
+        [StringLength(255)]
+        public string? NoiDung { get; set; }
+
+        [StringLength(10)]
+        public string? MaHoaDon { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
+        public KhachHang KhachHang { get; set; }
+        public NhanVien NhanVien { get; set; }
+    }
+
+    // Nhật ký thao tác: ai làm gì, trên đối tượng nào, lúc nào (ghi tự động khi thao tác thành công)
+    public class NhatKyThaoTac
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long MaNhatKy { get; set; }
+
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        public string? MaDangNhap { get; set; }
+
+        [StringLength(50)]
+        public string? TenDangNhap { get; set; }
+
+        [StringLength(20)]
+        public string? VaiTro { get; set; }
+
+        [StringLength(100)]
+        public string HanhDong { get; set; }
+
+        [StringLength(50)]
+        public string? DoiTuong { get; set; }
+
+        [StringLength(100)]
+        public string? MaDoiTuong { get; set; }
+
+        [StringLength(1000)]
+        public string? ChiTiet { get; set; }
+
+        [StringLength(50)]
+        public string? DiaChiIP { get; set; }
+    }
+
+    // Cấu hình nghiệp vụ do quản lý sửa trên web: mỗi mục (HotelInfo, HotelPolicy, Loyalty) lưu một JSON
+    public class CauHinh
+    {
+        [Key]
+        [StringLength(50)]
+        public string Khoa { get; set; }
+
+        public string GiaTri { get; set; }
+
+        public DateTime NgayCapNhat { get; set; } = DateTime.Now;
+
+        [StringLength(10)]
+        public string? MaNhanVien { get; set; }
     }
 }

@@ -1,0 +1,116 @@
+@using QLKSan.Enums
+@using QLKSan.Models.DTOs
+@model List<RoomDto>
+@{
+    ViewData["Title"] = "Lịch phòng";
+    DateTime from = ViewBag.TuNgay;
+    int soNgay = ViewBag.SoNgay;
+    var bookings = (ViewBag.Bookings as IEnumerable<TimelineBookingDto> ?? Enumerable.Empty<TimelineBookingDto>()).ToList();
+    var days = Enumerable.Range(0, soNgay).Select(i => from.AddDays(i)).ToList();
+    var end = from.AddDays(soNgay);
+    string[] tenThu = { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+
+    string Css(BookingStatus s) => s switch
+    {
+        BookingStatus.Pending => "tl-pending",
+        BookingStatus.Approved => "tl-approved",
+        BookingStatus.CheckedIn => "tl-in",
+        _ => "tl-out"
+    };
+}
+
+<style>
+    .tl-wrap { overflow-x: auto; }
+    .tl { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 900px; font-size: .8rem; table-layout: fixed; }
+    .tl col.tl-room-col { width: 130px; }
+    .tl th, .tl td { border-right: 1px solid #eee; border-bottom: 1px solid #eee; padding: 0; height: 40px; }
+    .tl thead th { text-align: center; padding: 4px 2px; background: #faf8f5; font-weight: 600; position: sticky; top: 0; }
+    .tl thead th.weekend { background: #f3ece0; }
+    .tl thead th.today { background: #1f2a44; color: #fff; }
+    .tl .room { position: sticky; left: 0; background: #fff; min-width: 120px; padding: 4px 10px; z-index: 1; }
+    .tl td.weekend { background: #fcfaf6; }
+    .tl-bar { display: block; margin: 4px 2px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; text-decoration: none; }
+    .tl-bar:hover { color: #fff; opacity: .85; }
+    .tl-pending { background: #d6a634; }
+    .tl-approved { background: #3d6fb6; }
+    .tl-in { background: #2e7d32; }
+    .tl-out { background: #9e9e9e; }
+    .tl-legend span { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin: 0 4px 0 12px; }
+</style>
+
+<div class="page-header">
+    <div>
+        <p class="page-label">Vận hành</p>
+        <h2>Lịch phòng</h2>
+        <p class="page-desc">@from.ToString("dd/MM/yyyy") – @end.AddDays(-1).ToString("dd/MM/yyyy") · mỗi ô là 1 đêm</p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+        <a class="btn btn-outline-secondary btn-sm" href="@Url.Action("Timeline", new { tuNgay = from.AddDays(-7).ToString("yyyy-MM-dd"), soNgay })"><i class="fas fa-chevron-left"></i></a>
+        <input type="date" name="tuNgay" value="@from.ToString("yyyy-MM-dd")" class="form-control form-control-sm" style="width:auto" />
+        <select name="soNgay" class="form-select form-select-sm" style="width:auto">
+            @foreach (var n in new[] { 7, 14, 21, 31 })
+            {
+                <option value="@n" selected="@(n == soNgay)">@n ngày</option>
+            }
+        </select>
+        <button class="btn btn-sm btn-gold">Xem</button>
+        <a class="btn btn-outline-secondary btn-sm" href="@Url.Action("Timeline", new { tuNgay = from.AddDays(7).ToString("yyyy-MM-dd"), soNgay })"><i class="fas fa-chevron-right"></i></a>
+        <a class="btn btn-outline-secondary btn-sm text-nowrap" href="@Url.Action("Timeline")">Hôm nay</a>
+    </form>
+</div>
+
+<div class="tl-legend small text-muted mb-3">
+    <span class="tl-pending"></span>Chờ duyệt
+    <span class="tl-approved"></span>Đã duyệt
+    <span class="tl-in"></span>Đang ở
+    <span class="tl-out"></span>Đã trả phòng
+</div>
+
+<div class="card">
+    <div class="card-body p-0 tl-wrap">
+        <table class="tl" style="min-width:@(130 + soNgay * 62)px">
+            <colgroup><col class="tl-room-col" />@for (var c = 0; c < soNgay; c++) { <col /> }</colgroup>
+            <thead>
+                <tr>
+                    <th class="room text-start">Phòng</th>
+                    @foreach (var d in days)
+                    {
+                        var css = d == DateTime.Today ? "today" : (d.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday ? "weekend" : "");
+                        <th class="@css">@tenThu[(int)d.DayOfWeek]<br />@d.ToString("dd/MM")</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var room in Model)
+                {
+                    var roomBookings = bookings.Where(b => b.MaPhong == room.MaPhong).OrderBy(b => b.TuNgay).ToList();
+                    <tr>
+                        <td class="room">
+                            <a href="@Url.Action("Details", new { id = room.MaPhong })" class="fw-bold text-navy text-decoration-none">@room.SoPhong</a>
+                            <div class="text-muted" style="font-size:.7rem">@room.LoaiPhong?.TenLoai</div>
+                        </td>
+                        @for (var i = 0; i < days.Count;)
+                        {
+                            var d = days[i];
+                            var b = roomBookings.FirstOrDefault(x => x.TuNgay <= d && x.DenNgay > d);
+                            if (b == null)
+                            {
+                                <td class="@(d.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday ? "weekend" : "")"></td>
+                                i++;
+                                continue;
+                            }
+                            // Thanh kéo dài từ đêm hiện tại tới hết phiếu (cắt theo khung đang xem)
+                            var span = (int)((b.DenNgay < end ? b.DenNgay : end) - d).TotalDays;
+                            <td colspan="@span">
+                                <span class="tl-bar @Css(b.TrangThai)" title="@b.MaDatPhong · @b.HoTenKhachHang · @b.TuNgay.ToString("dd/MM") → @b.DenNgay.ToString("dd/MM") · @b.TrangThai.GetDisplayName()">
+                                    @b.HoTenKhachHang <small>(@b.MaDatPhong)</small>
+                                </span>
+                            </td>
+                            i += span;
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

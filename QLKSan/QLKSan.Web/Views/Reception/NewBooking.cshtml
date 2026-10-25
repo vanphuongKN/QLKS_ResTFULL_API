@@ -1,0 +1,217 @@
+@model QLKSan.Models.Requests.FrontDeskBookingRequest
+@using QLKSan.Enums
+@{
+    ViewData["Title"] = "Đặt phòng qua quầy";
+}
+
+<form asp-action="NewBooking" method="post" id="bookingForm">
+    <div class="page-header">
+        <div>
+            <p class="page-label">Lễ tân</p>
+            <h2>Đặt phòng qua quầy</h2>
+            <p class="page-desc">Khách gọi điện, gửi email, đến quầy hoặc qua đại lý. Phiếu được xác nhận ngay; phòng được giữ trong đúng khoảng ngày.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-navy">Quay lại</a>
+        </div>
+    </div>
+
+    <div asp-validation-summary="All" class="alert alert-danger mb-3 validation-box"></div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card p-4 mb-4">
+                <h6 class="fw-bold mb-3"><i class="fas fa-calendar-alt me-2 text-gold"></i>Ngày lưu trú</h6>
+                <div class="row g-3">
+                    <div class="col-sm-5">
+                        <label class="form-label-upper" asp-for="CheckIn">Nhận phòng</label>
+                        <input asp-for="CheckIn" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" value="@Model.CheckIn.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-sm-5">
+                        <label class="form-label-upper" asp-for="CheckOut">Trả phòng</label>
+                        <input asp-for="CheckOut" type="date" class="form-control" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" value="@Model.CheckOut.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-sm-2">
+                        <label class="form-label-upper" asp-for="SoNguoi">Số khách</label>
+                        <input asp-for="SoNguoi" type="number" class="form-control" min="1" max="10" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-bed me-2 text-gold"></i>Hạng phòng còn trống</h6>
+                    <small class="text-muted" id="rtInfo"></small>
+                </div>
+                <input type="hidden" asp-for="MaLoai" />
+                <div class="row g-3" id="rtList"></div>
+                <small class="text-muted d-block mt-3">Hệ thống xếp phòng trống đầu tiên của hạng; có thể đổi phòng cụ thể trước khi khách đến.</small>
+            </div>
+
+            <div class="card p-4">
+                <h6 class="fw-bold mb-3"><i class="fas fa-user-check me-2 text-gold"></i>Thông tin khách</h6>
+                <partial name="_GuestLookup" />
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label-upper" asp-for="CCCD_Passport">CCCD / Hộ chiếu</label>
+                        <input asp-for="CCCD_Passport" class="form-control" inputmode="numeric" />
+                        <span asp-validation-for="CCCD_Passport" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-upper" asp-for="Ho">Họ</label>
+                        <input asp-for="Ho" class="form-control" />
+                        <span asp-validation-for="Ho" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label-upper" asp-for="Ten">Tên</label>
+                        <input asp-for="Ten" class="form-control" />
+                        <span asp-validation-for="Ten" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label-upper" asp-for="SDT">Số điện thoại</label>
+                        <input asp-for="SDT" type="tel" class="form-control" />
+                        <span asp-validation-for="SDT" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label-upper" asp-for="Email">Email <span class="text-muted fw-normal">(tuỳ chọn)</span></label>
+                        <input asp-for="Email" type="email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="ledger-panel">
+                <h5>Xác nhận đặt phòng</h5>
+                <div class="mb-3">
+                    <div class="ledger-label">Hạng phòng</div>
+                    <div class="d-flex justify-content-between gap-2"><strong id="sumRoom">Chưa chọn</strong><span id="sumAvg">—</span></div>
+                </div>
+                <div class="mb-3">
+                    <div class="ledger-label">Thời gian lưu trú</div>
+                    <div class="d-flex justify-content-between gap-2"><strong id="sumNights">—</strong><span id="sumDates"></span></div>
+                </div>
+                <div class="mb-3">
+                    <div class="ledger-label">Tiền phòng dự kiến</div>
+                    <strong class="text-gold fs-5" id="sumTotal">—</strong>
+                    <div class="small text-muted">Đã áp dụng giá mùa / cuối tuần; chưa gồm VAT, dịch vụ và ưu đãi hạng thành viên.</div>
+                </div>
+                <hr class="my-3" />
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label-upper" asp-for="NguonDat">Nguồn đặt</label>
+                        <select asp-for="NguonDat" class="form-select" asp-items="@(new SelectList(BookingSources.QuaQuay))"></select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-upper" asp-for="GioDenDuKien">Giờ đến dự kiến</label>
+                        <input asp-for="GioDenDuKien" class="form-control" placeholder="VD: 14:00 – 16:00" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-upper" asp-for="YeuCauDacBiet">Yêu cầu riêng</label>
+                        <textarea asp-for="YeuCauDacBiet" class="form-control" rows="2" placeholder="Giường, tầng, dịp đặc biệt, đón sân bay…"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-upper" asp-for="MaKhuyenMai">Mã khuyến mãi <span class="text-muted fw-normal">(tuỳ chọn)</span></label>
+                        <input asp-for="MaKhuyenMai" class="form-control text-uppercase" maxlength="10" />
+                    </div>
+                </div>
+                <div class="deposit-box mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="ledger-label mb-0">Tiền cọc / đảm bảo</span>
+                        <button type="button" class="btn btn-sm btn-link p-0" id="suggestDeposit">Gợi ý 50%</button>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-7"><input asp-for="TienCoc" type="number" min="0" step="1000" class="form-control" /></div>
+                        <div class="col-5"><select asp-for="PhuongThucCoc" class="form-select" asp-items="@(new SelectList(PaymentMethods.TaiQuay))"></select></div>
+                    </div>
+                    <small class="text-muted">Để 0 nếu khách chưa đặt cọc. Cọc được trừ vào hoá đơn khi trả phòng.</small>
+                </div>
+                <button type="submit" class="btn-gold w-100">Xác nhận đặt phòng</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var $ = function (id) { return document.getElementById(id); };
+            var url = '@Url.Action("AvailableRoomTypes")';
+            var vnd = function (v) { return new Intl.NumberFormat('vi-VN').format(Math.round(v)) + ' ₫'; };
+            var chon = null;
+
+            function tomTat() {
+                var ci = $('CheckIn').value, co = $('CheckOut').value;
+                $('sumRoom').textContent = chon ? chon.tenLoai : 'Chưa chọn';
+                $('sumAvg').textContent = chon ? vnd(chon.giaTrungBinh) + ' / đêm' : '—';
+                $('sumNights').textContent = chon ? chon.soDem + ' đêm' : '—';
+                $('sumDates').textContent = ci && co ? ci.split('-').reverse().join('/') + ' – ' + co.split('-').reverse().join('/') : '';
+                $('sumTotal').textContent = chon ? vnd(chon.tongTien) : '—';
+            }
+
+            function taiHangPhong() {
+                var ci = $('CheckIn').value, co = $('CheckOut').value, n = $('SoNguoi').value || 1;
+                var list = $('rtList');
+                if (!ci || !co || co <= ci) { list.innerHTML = '<div class="col-12 text-muted small">Chọn ngày nhận và trả phòng hợp lệ.</div>'; return; }
+                list.innerHTML = '<div class="col-12 text-muted small">Đang tìm phòng trống…</div>';
+                fetch(url + '?checkIn=' + ci + '&checkOut=' + co + '&soNguoi=' + n)
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        list.innerHTML = '';
+                        var conPhong = data.filter(function (x) { return x.soPhongTrong > 0; });
+                        $('rtInfo').textContent = conPhong.length + ' hạng còn phòng';
+                        if (!data.length) list.innerHTML = '<div class="col-12 text-muted small">Không có hạng phòng phù hợp số khách.</div>';
+                        var giuLai = $('MaLoai').value;
+                        chon = null;
+                        data.forEach(function (x) {
+                            var col = document.createElement('div');
+                            col.className = 'col-sm-6';
+                            var card = document.createElement('button');
+                            card.type = 'button';
+                            card.className = 'rt-pick' + (x.soPhongTrong ? '' : ' is-full');
+                            card.disabled = !x.soPhongTrong;
+                            card.innerHTML = '<span class="rt-pick-name"></span><span class="rt-pick-meta"></span><span class="rt-pick-price"></span>';
+                            card.querySelector('.rt-pick-name').textContent = x.tenLoai;
+                            card.querySelector('.rt-pick-meta').textContent = 'Tối đa ' + x.soNguoiToiDa + ' khách · ' + (x.soPhongTrong ? 'còn ' + x.soPhongTrong + ' phòng' : 'hết phòng');
+                            card.querySelector('.rt-pick-price').textContent = vnd(x.tongTien) + ' / ' + x.soDem + ' đêm';
+                            card.addEventListener('click', function () {
+                                list.querySelectorAll('.rt-pick').forEach(function (c) { c.classList.remove('selected'); });
+                                card.classList.add('selected');
+                                $('MaLoai').value = x.maLoai;
+                                chon = x;
+                                tomTat();
+                            });
+                            col.appendChild(card);
+                            list.appendChild(col);
+                            if (x.maLoai === giuLai && x.soPhongTrong) card.click();
+                        });
+                        if (!chon) $('MaLoai').value = '';
+                        tomTat();
+                    })
+                    .catch(function () { list.innerHTML = '<div class="col-12 text-danger small">Không tải được phòng trống.</div>'; });
+            }
+
+            $('CheckIn').addEventListener('change', function () {
+                var d = new Date(this.value);
+                if (!isNaN(d)) {
+                    d.setDate(d.getDate() + 1);
+                    var minOut = d.toISOString().split('T')[0];
+                    lrStaffUi.setMin($('CheckOut'), minOut);
+                    if ($('CheckOut').value <= this.value) lrStaffUi.setValue($('CheckOut'), minOut);
+                }
+                taiHangPhong();
+            });
+            $('CheckOut').addEventListener('change', taiHangPhong);
+            $('SoNguoi').addEventListener('change', taiHangPhong);
+            $('suggestDeposit').addEventListener('click', function () {
+                if (chon) $('TienCoc').value = Math.round(chon.tongTien * 0.5 / 1000) * 1000;
+            });
+            $('bookingForm').addEventListener('submit', function (e) {
+                if (!$('MaLoai').value) { e.preventDefault(); alert('Vui lòng chọn hạng phòng còn trống.'); }
+            });
+            taiHangPhong();
+        })();
+    </script>
+}

@@ -1,0 +1,158 @@
+@using QLKSan.Enums
+@model QLKSan.Models.DTOs.InvoiceDetailDto
+@{
+    var h = Model.HoaDon;
+    var b = Model.PhieuDatPhong;
+    var room = b?.ChiTietDatPhongs?.FirstOrDefault();
+    ViewData["Title"] = "Hoá đơn " + h.MaHoaDon;
+}
+
+<div class="page-header">
+    <div>
+        <p class="page-label"><a href="@Url.Action("Invoices")" class="text-muted text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Danh sách hoá đơn</a></p>
+        <h2>Hoá đơn #@h.MaHoaDon</h2>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="badge fs-6 @(h.TrangThai == InvoiceStatus.Paid ? "bg-success" : "bg-warning text-dark")">@h.TrangThai.GetDisplayName()</span>
+        <a href="@Url.Action("Print", "Invoice", new { id = h.MaHoaDon })" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fas fa-print me-1"></i>In / PDF</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mb-3">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mb-3">@TempData["ErrorMessage"]</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card p-4 mb-4">
+            <h5 class="text-navy fw-bold mb-3">Thông tin lưu trú</h5>
+            <div class="row small g-2">
+                <div class="col-6 text-muted">Khách hàng</div><div class="col-6 fw-semibold">@b?.KhachHang?.HoTen (@b?.KhachHang?.CCCD_Passport)</div>
+                <div class="col-6 text-muted">Phiếu đặt phòng</div><div class="col-6 fw-semibold">@b?.MaDatPhong</div>
+                <div class="col-6 text-muted">Phòng</div><div class="col-6 fw-semibold">@room?.Phong?.SoPhong — @room?.Phong?.LoaiPhong?.TenLoai (@room?.GiaThueThucTe.ToString("N0") ₫/đêm)</div>
+                <div class="col-6 text-muted">Nhận phòng thực tế</div><div class="col-6">@(b?.NgayCheckInThucTe?.ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+                <div class="col-6 text-muted">Trả phòng thực tế</div><div class="col-6">@(b?.NgayCheckOutThucTe?.ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+                <div class="col-6 text-muted">Người lập hoá đơn</div><div class="col-6">@Model.TenNhanVienLap — @h.NgayLapHoaDon.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(h.MaSoThue))
+        {
+            <div class="card p-4 mb-4 vat-card">
+                <h6 class="fw-bold text-navy mb-3"><i class="fas fa-building me-2 text-gold"></i>Xuất hoá đơn VAT cho công ty</h6>
+                <div class="row small g-2">
+                    <div class="col-4 text-muted">Đơn vị</div><div class="col-8 fw-semibold">@h.TenCongTy</div>
+                    <div class="col-4 text-muted">Mã số thuế</div><div class="col-8 fw-semibold">@h.MaSoThue</div>
+                    <div class="col-4 text-muted">Địa chỉ</div><div class="col-8">@(h.DiaChiCongTy ?? "—")</div>
+                    <div class="col-4 text-muted">Email nhận</div><div class="col-8">@(h.EmailHoaDon ?? "—")</div>
+                </div>
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="p-3 border-bottom"><h6 class="fw-bold mb-0 text-navy">Giao dịch thu / hoàn</h6></div>
+                <table class="table table-custom mb-0">
+                    <thead><tr><th>Mã GD</th><th>Loại</th><th>Thời gian</th><th>Phương thức</th><th>Nhân viên</th><th class="text-end">Số tiền</th></tr></thead>
+                    <tbody>
+                        @* Sổ cọc của phiếu: phương thức và người thu thật *@
+                        @foreach (var g in b?.GiaoDichCocs ?? new List<QLKSan.Models.DTOs.DepositDto>())
+                        {
+                            var hoanCoc = g.LoaiGiaoDich == PaymentType.Refund;
+                            <tr>
+                                <td>—</td>
+                                <td><span class="badge @(hoanCoc ? "bg-warning text-dark" : "bg-light text-dark")">@(hoanCoc ? "Hoàn cọc" : "Cọc")</span></td>
+                                <td><small>@g.ThoiGian.ToString("dd/MM/yyyy HH:mm")</small></td>
+                                <td>@g.PhuongThuc @if (!string.IsNullOrEmpty(g.GhiChu)) { <br /><small class="text-muted">@g.GhiChu</small> }</td>
+                                <td>@(g.TenNhanVien ?? g.MaNhanVien)</td>
+                                <td class="text-end @(hoanCoc ? "text-danger" : "")">@(hoanCoc ? "-" : "")@g.SoTien.ToString("N0")</td>
+                            </tr>
+                        }
+                        @foreach (var t in Model.GiaoDich)
+                        {
+                            var hoan = t.LoaiGiaoDich == PaymentType.Refund;
+                            <tr>
+                                <td>@t.MaThanhToan</td>
+                                <td><span class="badge @(hoan ? "bg-danger" : "bg-success")">@t.LoaiGiaoDich.GetDisplayName()</span></td>
+                                <td><small>@t.NgayThanhToan.ToString("dd/MM/yyyy HH:mm")</small></td>
+                                <td>@t.PhuongThuc @if (!string.IsNullOrEmpty(t.GhiChu)) { <br /><small class="text-muted">@t.GhiChu</small> }</td>
+                                <td>@(t.TenNhanVien ?? t.MaNhanVien)</td>
+                                <td class="text-end fw-bold @(hoan ? "text-danger" : "")">@(hoan ? "-" : "")@t.SoTienDaTra.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="ledger-panel mb-4">
+            <h5>Chi tiết hoá đơn</h5>
+            <div class="d-flex justify-content-between mb-2 mt-4"><span class="text-muted">Tiền phòng (@h.SoDem đêm)</span><strong>@h.TongTienPhong.ToString("N0")</strong></div>
+            <div class="d-flex justify-content-between mb-2"><span class="text-muted">Tiền dịch vụ</span><strong>@h.TongTienDichVu.ToString("N0")</strong></div>
+            @if (h.TienPhat > 0)
+            {
+                <div class="d-flex justify-content-between mb-2 text-danger"><span>Phụ thu trả muộn (@h.PhanTramPhuThu%)</span><strong>@h.TienPhat.ToString("N0")</strong></div>
+            }
+            @if (h.GiamGiaKhuyenMai > 0)
+            {
+                <div class="d-flex justify-content-between mb-2 text-success"><span>Khuyến mãi (@h.MaKhuyenMai)</span><strong>-@h.GiamGiaKhuyenMai.ToString("N0")</strong></div>
+            }
+            @if (h.GiamGiaThanhVien > 0)
+            {
+                <div class="d-flex justify-content-between mb-2 text-success"><span>Ưu đãi @h.HangThanhVien</span><strong>-@h.GiamGiaThanhVien.ToString("N0")</strong></div>
+            }
+            <div class="d-flex justify-content-between mb-2"><span class="text-muted">VAT 8%</span><strong>@h.ThueVAT.ToString("N0")</strong></div>
+            <hr />
+            <div class="d-flex justify-content-between mb-2"><span class="fw-bold">Tổng giá trị</span><strong>@h.TongTienCanThanhToan.ToString("N0")</strong></div>
+            @if (Model.CocDaTru > 0)
+            {
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Cọc trừ vào hoá đơn</span><strong>@Model.CocDaTru.ToString("N0")</strong></div>
+            }
+            @if (Model.CocThua > 0)
+            {
+                <div class="d-flex justify-content-between mb-2 small text-muted"><span>Cọc thừa đã hoàn lại khách</span><span>@Model.CocThua.ToString("N0")</span></div>
+            }
+            <div class="d-flex justify-content-between mb-2"><span class="text-muted">Đã thu (gồm cọc)</span><strong>@((Model.DaThu + Model.CocDaTru).ToString("N0"))</strong></div>
+            <div class="d-flex justify-content-between mb-2 text-danger"><span>Đã hoàn</span><strong>@(Model.DaHoan > 0 ? "-" + Model.DaHoan.ToString("N0") : "0")</strong></div>
+        </div>
+
+        @if (h.TrangThai == InvoiceStatus.Paid)
+        {
+            <div class="card p-4">
+                <h6 class="fw-bold text-navy mb-3"><i class="fas fa-undo me-2 text-danger"></i>Hoàn tiền cho khách</h6>
+                @if (Model.CoTheHoan > 0)
+                {
+                    <form asp-action="Refund" method="post" onsubmit="return confirm('Xác nhận hoàn tiền cho khách?')">
+                        <input type="hidden" name="id" value="@h.MaHoaDon" />
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">Số tiền (tối đa @Model.CoTheHoan.ToString("N0")đ)</label>
+                            <input type="number" name="soTien" class="form-control" min="1000" max="@Model.CoTheHoan" step="1000" required />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">Phương thức</label>
+                            <select name="phuongThuc" class="form-select">
+                                @foreach (var pt in PaymentMethods.TaiQuay) { <option>@pt</option> }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Lý do</label>
+                            <input type="text" name="lyDo" class="form-control" maxlength="200" placeholder="vd: Khách phàn nàn dịch vụ" required />
+                        </div>
+                        <button type="submit" class="btn btn-outline-danger w-100">Hoàn tiền</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">Hoá đơn đã được hoàn toàn bộ.</p>
+                }
+            </div>
+        }
+    </div>
+</div>
