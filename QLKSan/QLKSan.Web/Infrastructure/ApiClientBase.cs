@@ -58,6 +58,12 @@ namespace QLKSan.Infrastructure
             await EnsureSuccessAsync(response);
         }
 
+        protected async Task<T> HttpPutAsync<T>(string url, object body)
+        {
+            using var response = await Http.PutAsJsonAsync(url, body, JsonOptions);
+            return await ReadAsync<T>(response);
+        }
+
         protected async Task<T> HttpPatchAsync<T>(string url, object body = null)
         {
             using var response = await Http.PatchAsJsonAsync(url, body, JsonOptions);

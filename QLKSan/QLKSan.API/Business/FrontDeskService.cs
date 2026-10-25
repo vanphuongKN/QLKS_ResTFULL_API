@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QLKSan.Data;
 using QLKSan.Enums;
+using QLKSan.Mappings;
 using QLKSan.Models.DTOs;
 using QLKSan.Models.Entities;
 
@@ -41,6 +42,7 @@ namespace QLKSan.Business
             var phieu = await _context.PhieuDatPhongs
                 .Include(p => p.KhachHang).ThenInclude(k => k.LienHeDiaChis)
                 .Include(p => p.ChiTietDatPhongs).ThenInclude(c => c.Phong).ThenInclude(r => r.LoaiPhong)
+                .Include(p => p.KhachDiCungs)
                 .Where(p => p.TrangThai == BookingStatus.Pending || p.TrangThai == BookingStatus.Approved || p.TrangThai == BookingStatus.CheckedIn
                          || (p.TrangThai == BookingStatus.CheckedOut && p.NgayCheckOutThucTe >= today && p.NgayCheckOutThucTe < tomorrow))
                 .AsSplitQuery()
@@ -119,7 +121,8 @@ namespace QLKSan.Business
                 MaKhuyenMai = p.MaKhuyenMai,
                 NguonDat = p.NguonDat,
                 DaXuLy = daXuLy,
-                QuaHanTra = p.TrangThai == BookingStatus.CheckedIn && p.NgayCheckOutDuKien.Date < today
+                QuaHanTra = p.TrangThai == BookingStatus.CheckedIn && p.NgayCheckOutDuKien.Date < today,
+                KhachDiCung = p.KhachDiCungs?.OrderBy(k => k.MaKhachDiCung).Select(k => k.ToDto()).ToList() ?? new List<CompanionDto>()
             };
         }
     }

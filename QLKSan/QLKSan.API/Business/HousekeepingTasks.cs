@@ -15,6 +15,7 @@ namespace QLKSan.Business
     {
         public const string DonSauTraPhong = "Dọn sau trả phòng";
         public const string DonTheoYeuCau = "Dọn theo yêu cầu";
+        public const string DonSauDoiPhong = "Dọn sau đổi phòng";
 
         // Công việc đang mở: chưa hoàn thành và chưa báo sự cố
         public static bool IsOpen(HousekeepingTaskStatus status)

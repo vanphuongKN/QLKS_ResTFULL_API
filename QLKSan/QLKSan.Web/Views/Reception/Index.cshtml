@@ -53,6 +53,14 @@
 }
 
 @functions {
+    static string IconNguon(string nguon) => nguon switch
+    {
+        QLKSan.Enums.BookingSources.DienThoai => "fa-phone",
+        QLKSan.Enums.BookingSources.Email => "fa-envelope",
+        QLKSan.Enums.BookingSources.DaiLy => "fa-handshake",
+        _ => "fa-door-open"
+    };
+
     // Lý do chưa nhận phòng được (phòng chưa sẵn sàng) — hiện cảnh báo và gợi ý đổi phòng
     static string PhongChuaSanSang(QLKSan.Models.DTOs.FrontDeskStayDto k) => k.TrangThaiPhong switch
     {
@@ -64,11 +72,32 @@
 }
 
 @{
+    // Menu thao tác phụ của một phiếu: đổi ngày / gia hạn, đổi phòng (đang ở), người đi cùng, thu cọc
+    void MoreMenu(FrontDeskStayDto k, bool dangO, string diCungJson)
+    {
+        <div class="dropdown">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác khác" aria-label="Thao tác khác"><i class="fas fa-ellipsis"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><button type="button" class="dropdown-item" data-fd-modal="stayModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong"
+                            data-nhan="@k.NgayNhan.ToString("yyyy-MM-dd")" data-tra="@k.NgayTra.ToString("yyyy-MM-dd")" data-dango="@(dangO ? "1" : "0")">
+                    <i class="fas fa-calendar-days me-2"></i>@(dangO ? "Gia hạn / rút ngắn" : "Đổi ngày lưu trú")</button></li>
+                @if (dangO)
+                {
+                    <li><a class="dropdown-item" href="@Url.Action("ChangeRoom", new { id = k.MaDatPhong })"><i class="fas fa-right-left me-2"></i>Đổi phòng khi đang ở</a></li>
+                }
+                <li><button type="button" class="dropdown-item" data-fd-modal="companionsModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong" data-dicung="@diCungJson">
+                    <i class="fas fa-user-plus me-2"></i>Người đi cùng</button></li>
+                <li><button type="button" class="dropdown-item" data-fd-modal="depositModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang"><i class="fas fa-wallet me-2"></i>Thu cọc</button></li>
+            </ul>
+        </div>
+    }
+
     // Một dòng phiếu: phòng | khách + thông tin chăm sóc | trạng thái + thao tác (theo danh sách)
     async Task StayRow(FrontDeskStayDto k, string tab)
     {
         var chuaNhan = k.TrangThai is BookingStatus.Pending or BookingStatus.Approved;
         var canhBaoPhong = chuaNhan && tab == "den" ? PhongChuaSanSang(k) : null;
+        var diCungJson = System.Text.Json.JsonSerializer.Serialize(k.KhachDiCung.Select(x => new { t = x.HoTen, c = x.CCCD_Passport, q = x.QuocTich }));
         <div class="stay-row @(k.DaXuLy ? "is-done" : "") @(k.QuaHanTra ? "is-late" : "") @(k.HanChe ? "is-restricted" : "")">
             <div class="stay-room">
                 <span class="stay-room-no">@(k.SoPhong ?? "—")</span>
@@ -97,7 +126,8 @@
                     @if (!string.IsNullOrEmpty(k.SoThich)) { <span title="@k.SoThich"><i class="fas fa-heart"></i>@k.SoThich</span> }
                     @if (!string.IsNullOrEmpty(k.MaKhuyenMai)) { <span><i class="fas fa-tag"></i>@k.MaKhuyenMai</span> }
                     @if (k.TienCoc > 0) { <span><i class="fas fa-wallet"></i>Cọc @FormatHelper.ToVND(k.TienCoc)</span> }
-                    @if (!string.IsNullOrEmpty(k.NguonDat) && k.NguonDat != BookingSources.Online) { <span class="note-source"><i class="fas fa-phone-volume"></i>@k.NguonDat</span> }
+                    @if (!string.IsNullOrEmpty(k.NguonDat) && k.NguonDat != BookingSources.Online) { <span class="note-source"><i class="fas @IconNguon(k.NguonDat)"></i>@k.NguonDat</span> }
+                    @if (k.KhachDiCung.Count > 0) { <span title="@string.Join(", ", k.KhachDiCung.Select(x => x.HoTen))"><i class="fas fa-user-plus"></i>@k.KhachDiCung.Count người đi cùng</span> }
                     @if (canhBaoPhong != null) { <span class="note-danger"><i class="fas fa-triangle-exclamation"></i>@canhBaoPhong — đổi phòng khác hoặc chờ buồng phòng</span> }
                 </div>
             </div>
@@ -132,10 +162,10 @@
                         @if (tab == "den")
                         {
                             <button type="button" class="btn btn-sm btn-gold" disabled="@(canhBaoPhong != null)" data-fd-modal="checkInModal"
-                                    data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong" data-sokhach="@k.SoKhach" data-coc="@k.TienCoc.ToString("0")"><i class="fas fa-key me-1"></i>Nhận phòng</button>
+                                    data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-phong="@k.SoPhong" data-sokhach="@k.SoKhach" data-coc="@k.TienCoc.ToString("0")" data-dicung="@diCungJson"><i class="fas fa-key me-1"></i>Nhận phòng</button>
                         }
                         <a asp-action="ChangeRoom" asp-route-id="@k.MaDatPhong" class="btn btn-sm @(canhBaoPhong != null ? "btn-outline-danger" : "btn-outline-secondary")"><i class="fas fa-right-left me-1"></i>Đổi phòng</a>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" title="Thu cọc" data-fd-modal="depositModal" data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang"><i class="fas fa-wallet"></i></button>
+                        MoreMenu(k, false, diCungJson);
                         <button type="button" class="btn btn-sm btn-outline-danger" title="@(k.TrangThai == BookingStatus.Pending ? "Từ chối" : "Huỷ phiếu")" data-fd-modal="cancelModal"
                                 data-id="@k.MaDatPhong" data-ten="@k.HoTenKhachHang" data-coc="@k.TienCoc.ToString("0")" data-tuchoi="@(k.TrangThai == BookingStatus.Pending ? "1" : "0")"><i class="fas fa-times"></i></button>
                     }
@@ -143,6 +173,7 @@
                     {
                         <a href="@Url.Action("Index", "Service", new { maPhong = k.MaPhong })" class="btn btn-sm btn-outline-navy"><i class="fas fa-mug-hot me-1"></i>Dịch vụ</a>
                         <a href="@Url.Action("Process", "Checkout", new { maPhong = k.MaPhong })" class="btn btn-sm @(tab == "di" ? "btn-gold" : "btn-outline-secondary")"><i class="fas fa-sign-out-alt me-1"></i>Trả phòng</a>
+                        MoreMenu(k, true, diCungJson);
                     }
                 </div>
             </div>
@@ -336,8 +367,45 @@
                     </div>
                 </div>
                 <small class="text-muted d-block mt-2" data-field="cocHienCo"></small>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><label class="form-label fw-semibold mb-0">Người đi cùng</label><button type="button" class="btn btn-sm btn-link p-0" data-add-companion>+ Thêm người</button></div>
+                    <div class="companion-rows" data-field="dicung"></div>
+                    <small class="text-muted">Họ tên bắt buộc; CCCD / hộ chiếu và quốc tịch nếu có. Dùng cho sổ khai báo lưu trú.</small>
+                </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold"><i class="fas fa-key me-1"></i>Xác nhận nhận phòng</button></div>
+        </form>
+    </div>
+</div>
+<div class="modal fade fd-modal" id="stayModal" tabindex="-1" aria-labelledby="stTitle">
+    <div class="modal-dialog">
+        <form asp-action="ChangeStayDates" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="stTitle">Đổi ngày lưu trú</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" data-field="id" />
+                <p class="mb-3" data-field="tieuDe"></p>
+                <div class="row g-3">
+                    <div class="col-6" data-field="nhanBox"><label class="form-label fw-semibold" for="stNhan">Ngày nhận</label><input type="date" name="ngayNhan" id="stNhan" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" /></div>
+                    <div class="col-6"><label class="form-label fw-semibold" for="stTra">Ngày trả mới</label><input type="date" name="ngayTra" id="stTra" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" required /></div>
+                </div>
+                <div class="stay-quote mt-3" id="stQuote" hidden></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold" id="stSubmit">Lưu thay đổi</button></div>
+        </form>
+    </div>
+</div>
+<div class="modal fade fd-modal" id="companionsModal" tabindex="-1" aria-labelledby="dcTitle">
+    <div class="modal-dialog modal-lg">
+        <form asp-action="SetCompanions" method="post" class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="dcTitle">Người đi cùng</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="id" data-field="id" />
+                <p class="mb-3" data-field="tieuDe"></p>
+                <div class="companion-rows" data-field="dicung"></div>
+                <button type="button" class="btn btn-sm btn-outline-navy mt-2" data-add-companion>+ Thêm người</button>
+                <small class="d-block text-muted mt-2">Danh sách được đưa vào sổ khách lưu trú. Số khách của phiếu tự tăng theo nếu cần (không vượt sức chứa phòng).</small>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn-gold">Lưu danh sách</button></div>
         </form>
     </div>
 </div>
@@ -392,6 +460,11 @@
                     f('tieuDe').textContent = '#' + b.getAttribute('data-id') + ' · ' + b.getAttribute('data-ten') + (b.getAttribute('data-phong') ? ' · phòng ' + b.getAttribute('data-phong') : '');
                     if (f('sokhach')) f('sokhach').value = b.getAttribute('data-sokhach');
                     if (f('cocHienCo')) f('cocHienCo').textContent = coc > 0 ? 'Đã thu cọc ' + vnd(coc) + '.' : 'Phiếu chưa có tiền cọc.';
+                    if (f('dicung')) {
+                        f('dicung').innerHTML = '';
+                        JSON.parse(b.getAttribute('data-dicung') || '[]').forEach(function (x) { themNguoi(f('dicung'), x); });
+                    }
+                    if (m.id === 'stayModal') moDoiNgay(m, b);
                     if (f('hoanCocBox')) {
                         f('hoanCocBox').hidden = coc <= 0;
                         m.querySelector('[name=hoanCoc]').checked = false;
@@ -402,6 +475,61 @@
                 });
             });
         })();
+
+        // Một dòng người đi cùng: họ tên (bắt buộc), CCCD / hộ chiếu, quốc tịch, nút xoá
+        function themNguoi(box, x) {
+            x = x || {};
+            var row = document.createElement('div');
+            row.className = 'companion-row';
+            row.innerHTML = '<input name="dcHoTen" class="form-control form-control-sm" placeholder="Họ tên" maxlength="100" required aria-label="Họ tên">'
+                + '<input name="dcCccd" class="form-control form-control-sm" placeholder="CCCD / hộ chiếu" maxlength="20" aria-label="CCCD / hộ chiếu">'
+                + '<input name="dcQuocTich" class="form-control form-control-sm" placeholder="Quốc tịch" maxlength="50" aria-label="Quốc tịch">'
+                + '<button type="button" class="btn btn-sm btn-outline-danger" aria-label="Xoá"><i class="fas fa-times"></i></button>';
+            var inputs = row.querySelectorAll('input');
+            inputs[0].value = x.t || ''; inputs[1].value = x.c || ''; inputs[2].value = x.q || '';
+            row.querySelector('button').addEventListener('click', function () { row.remove(); });
+            box.appendChild(row);
+        }
+        document.querySelectorAll('[data-add-companion]').forEach(function (b) {
+            b.addEventListener('click', function () { themNguoi(b.closest('.modal-body').querySelector('.companion-rows')); });
+        });
+
+        // Hộp thoại đổi ngày: đang ở chỉ đổi ngày trả; báo giá chênh lệch và cảnh báo phòng kín lịch
+        var stQuoteUrl = '@Url.Action("StayQuote")';
+        function moDoiNgay(m, b) {
+            var dangO = b.getAttribute('data-dango') === '1';
+            m.querySelector('.modal-title').textContent = dangO ? 'Gia hạn / rút ngắn kỳ nghỉ' : 'Đổi ngày lưu trú';
+            m.querySelector('[data-field=nhanBox]').hidden = dangO;
+            var nhan = document.getElementById('stNhan'), tra = document.getElementById('stTra');
+            nhan.disabled = dangO;
+            lrStaffUi.setValue(nhan, b.getAttribute('data-nhan'));
+            lrStaffUi.setValue(tra, b.getAttribute('data-tra'));
+            document.getElementById('stQuote').hidden = true;
+        }
+        function baoGiaDoiNgay() {
+            var m = document.getElementById('stayModal'), q = document.getElementById('stQuote');
+            var id = m.querySelector('[data-field=id]').value, nhan = document.getElementById('stNhan'), tra = document.getElementById('stTra').value;
+            if (!id || !tra) return;
+            var url = stQuoteUrl + '?id=' + encodeURIComponent(id) + '&ngayTra=' + tra + (nhan.disabled || !nhan.value ? '' : '&ngayNhan=' + nhan.value);
+            fetch(url).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }).then(function (res) {
+                var vnd = function (v) { return new Intl.NumberFormat('vi-VN').format(v) + ' ₫'; };
+                q.hidden = false;
+                q.className = 'stay-quote mt-3' + (!res.ok || !res.d.conPhong ? ' is-bad' : '');
+                if (!res.ok) { q.textContent = res.d.error; document.getElementById('stSubmit').disabled = true; return; }
+                var d = res.d, cl = d.chenhLech;
+                q.innerHTML = '';
+                [['Hiện tại', d.soDemCu + ' đêm · ' + vnd(d.tienPhongCu)], ['Sau thay đổi', d.soDemMoi + ' đêm · ' + vnd(d.tienPhongMoi)],
+                 ['Chênh lệch tiền phòng', (cl > 0 ? '+' : '') + vnd(cl)]].forEach(function (r) {
+                    var row = document.createElement('div'); row.className = 'd-flex justify-content-between';
+                    var a = document.createElement('span'); a.textContent = r[0]; var b2 = document.createElement('strong'); b2.textContent = r[1];
+                    row.appendChild(a); row.appendChild(b2); q.appendChild(row);
+                });
+                if (!d.conPhong) { var w = document.createElement('div'); w.className = 'note-danger mt-1'; w.textContent = d.lyDo; q.appendChild(w); }
+                document.getElementById('stSubmit').disabled = !d.conPhong;
+            });
+        }
+        document.getElementById('stNhan').addEventListener('change', baoGiaDoiNgay);
+        document.getElementById('stTra').addEventListener('change', baoGiaDoiNgay);
 
         (function () {
             // Thẻ danh sách: nhớ thẻ đang xem (theo trình duyệt), hỗ trợ #den / #di / #dango / #sapden

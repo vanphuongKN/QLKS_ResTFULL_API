@@ -76,5 +76,9 @@ namespace QLKSan.Models.DTOs
         public DateTime? NgayDi { get; set; }
         public DateTime NgayDiDuKien { get; set; }
         public Enums.BookingStatus TrangThai { get; set; }
+
+        // Dòng của người đi cùng (khai báo theo phiếu của khách đứng tên)
+        public bool LaNguoiDiCung { get; set; }
+        public string NguoiDungTen { get; set; }
     }
 }

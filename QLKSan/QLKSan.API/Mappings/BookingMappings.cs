@@ -56,6 +56,19 @@ namespace QLKSan.Mappings
                 GioDenDuKien = entity.GioDenDuKien,
                 NguonDat = entity.NguonDat,
                 GiaoDichCocs = entity.GiaoDichCocs?.OrderBy(g => g.ThoiGian).Select(g => g.ToDto()).ToList() ?? new List<DepositDto>(),
+                KhachDiCungs = entity.KhachDiCungs?.OrderBy(k => k.MaKhachDiCung).Select(k => k.ToDto()).ToList() ?? new List<CompanionDto>(),
+                LichSuDoiPhongs = entity.LichSuDoiPhongs?.OrderBy(l => l.ThoiGian).Select(l => new RoomMoveDto
+                {
+                    TuPhong = l.TuPhong,
+                    DenPhong = l.DenPhong,
+                    SoPhongCu = l.PhongCu?.SoPhong,
+                    SoPhongMoi = l.PhongMoi?.SoPhong,
+                    ThoiGian = l.ThoiGian,
+                    LyDo = l.LyDo,
+                    GiaCu = l.GiaCu,
+                    GiaMoi = l.GiaMoi,
+                    TenNhanVien = l.NhanVien?.TenNhanVien
+                }).ToList() ?? new List<RoomMoveDto>(),
                 KhachHang = entity.KhachHang.ToSummaryDto(),
                 ChiTietDatPhongs = entity.ChiTietDatPhongs?.Select(c => c.ToDto()).ToList() ?? new List<BookingRoomDto>(),
                 SuDungDichVus = entity.SuDungDichVus?.Select(s => s.ToDto()).ToList() ?? new List<ServiceUsageDto>(),
@@ -115,6 +128,18 @@ namespace QLKSan.Mappings
                 SoTienConLai = entity.SoTienConLai,
                 TrangThai = entity.TrangThai,
                 ThanhToans = entity.ThanhToans?.Select(t => t.ToDto()).ToList() ?? new List<PaymentDto>()
+            };
+        }
+
+        public static CompanionDto ToDto(this KhachDiCung entity)
+        {
+            if (entity == null) return null;
+            return new CompanionDto
+            {
+                MaKhachDiCung = entity.MaKhachDiCung,
+                HoTen = entity.HoTen,
+                CCCD_Passport = entity.CCCD_Passport,
+                QuocTich = entity.QuocTich
             };
         }
 

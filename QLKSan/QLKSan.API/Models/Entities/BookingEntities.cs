@@ -127,6 +127,73 @@ namespace QLKSan.Models.Entities
         public ICollection<ChiTietDatPhong> ChiTietDatPhongs { get; set; }
         public ICollection<SuDungDichVu> SuDungDichVus { get; set; }
         public ICollection<GiaoDichCoc> GiaoDichCocs { get; set; }
+        public ICollection<KhachDiCung> KhachDiCungs { get; set; }
+        public ICollection<LichSuDoiPhong> LichSuDoiPhongs { get; set; }
+    }
+
+    // Người đi cùng khách đứng tên phiếu (khai báo lưu trú đủ người)
+    public class KhachDiCung
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaKhachDiCung { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("PhieuDatPhong")]
+        public string MaDatPhong { get; set; }
+
+        [StringLength(100)]
+        public string HoTen { get; set; }
+
+        [StringLength(20)]
+        public string? CCCD_Passport { get; set; }
+
+        [StringLength(50)]
+        public string? QuocTich { get; set; }
+
+        public PhieuDatPhong PhieuDatPhong { get; set; }
+    }
+
+    // Lịch sử đổi phòng khi khách đang ở (phòng cũ → phòng mới, lý do, giá trước / sau)
+    public class LichSuDoiPhong
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int MaLichSu { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("PhieuDatPhong")]
+        public string MaDatPhong { get; set; }
+
+        [StringLength(10)]
+        public string TuPhong { get; set; }
+
+        [StringLength(10)]
+        public string DenPhong { get; set; }
+
+        [ForeignKey(nameof(TuPhong))]
+        public Phong PhongCu { get; set; }
+
+        [ForeignKey(nameof(DenPhong))]
+        public Phong PhongMoi { get; set; }
+
+        public DateTime ThoiGian { get; set; } = DateTime.Now;
+
+        [StringLength(255)]
+        public string LyDo { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal GiaCu { get; set; }
+
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal GiaMoi { get; set; }
+
+        [StringLength(10)]
+        [ForeignKey("NhanVien")]
+        public string? MaNhanVien { get; set; }
+
+        public PhieuDatPhong PhieuDatPhong { get; set; }
+        public NhanVien? NhanVien { get; set; }
     }
 
     // Sổ tiền cọc: mỗi lần thu / hoàn cọc một dòng (phương thức, người thu) — PhieuDatPhong.TienCoc = tổng thu - tổng hoàn.

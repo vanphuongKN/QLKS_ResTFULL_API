@@ -75,5 +75,27 @@ namespace QLKSan.Models.DTOs
 
         // Đang ở nhưng đã qua ngày trả dự kiến
         public bool QuaHanTra { get; set; }
+
+        public List<CompanionDto> KhachDiCung { get; set; } = new List<CompanionDto>();
+    }
+
+    // GET /api/bookings/{id}/stay-dates/quote: báo giá khi gia hạn / rút ngắn / đổi ngày (giá từng đêm theo quy tắc giá)
+    public class StayChangeQuoteDto
+    {
+        public string MaDatPhong { get; set; }
+        public DateTime NgayNhanCu { get; set; }
+        public DateTime NgayTraCu { get; set; }
+        public DateTime NgayNhanMoi { get; set; }
+        public DateTime NgayTraMoi { get; set; }
+        public int SoDemCu { get; set; }
+        public int SoDemMoi { get; set; }
+        public decimal TienPhongCu { get; set; }
+        public decimal TienPhongMoi { get; set; }
+        public decimal ChenhLech { get; set; }
+        public List<NightPriceDto> CacDem { get; set; } = new List<NightPriceDto>();
+
+        // Phòng đang xếp còn trống cho khoảng ngày mới (false: LyDo cho biết vướng phiếu nào)
+        public bool ConPhong { get; set; }
+        public string LyDo { get; set; }
     }
 }

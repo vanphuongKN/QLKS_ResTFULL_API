@@ -302,6 +302,36 @@ namespace QLKSan.Data
                     INSERT INTO GiaoDichCoc (MaDatPhong, LoaiGiaoDich, SoTien, PhuongThuc, ThoiGian, MaNhanVien, GhiChu)
                     SELECT MaDatPhong, N'Thu', TienCoc, N'Không rõ', ISNULL(NgayCheckInThucTe, NgayDat), MaNhanVien, N'Tiền cọc có trước khi ghi sổ cọc'
                     FROM PhieuDatPhong WHERE TienCoc > 0;
+                END"),
+
+            // L3: người đi cùng (sổ lưu trú đủ người) + lịch sử đổi phòng khi khách đang ở
+            ("30. Tạo bảng KhachDiCung", @"
+                IF OBJECT_ID('KhachDiCung', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE KhachDiCung (
+                        MaKhachDiCung INT IDENTITY(1,1) PRIMARY KEY,
+                        MaDatPhong VARCHAR(10) NOT NULL CONSTRAINT FK_KhachDiCung_PhieuDat FOREIGN KEY REFERENCES PhieuDatPhong(MaDatPhong),
+                        HoTen NVARCHAR(100) NOT NULL,
+                        CCCD_Passport VARCHAR(20) NULL,
+                        QuocTich NVARCHAR(50) NULL
+                    );
+                    CREATE INDEX IX_KhachDiCung_PhieuDat ON KhachDiCung(MaDatPhong);
+                END"),
+            ("31. Tạo bảng LichSuDoiPhong", @"
+                IF OBJECT_ID('LichSuDoiPhong', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE LichSuDoiPhong (
+                        MaLichSu INT IDENTITY(1,1) PRIMARY KEY,
+                        MaDatPhong VARCHAR(10) NOT NULL CONSTRAINT FK_LichSuDoiPhong_PhieuDat FOREIGN KEY REFERENCES PhieuDatPhong(MaDatPhong),
+                        TuPhong VARCHAR(10) NOT NULL CONSTRAINT FK_LichSuDoiPhong_PhongCu FOREIGN KEY REFERENCES Phong(MaPhong),
+                        DenPhong VARCHAR(10) NOT NULL CONSTRAINT FK_LichSuDoiPhong_PhongMoi FOREIGN KEY REFERENCES Phong(MaPhong),
+                        ThoiGian DATETIME NOT NULL CONSTRAINT DF_LichSuDoiPhong_ThoiGian DEFAULT GETDATE(),
+                        LyDo NVARCHAR(255) NULL,
+                        GiaCu DECIMAL(18,0) NOT NULL,
+                        GiaMoi DECIMAL(18,0) NOT NULL,
+                        MaNhanVien VARCHAR(10) NULL CONSTRAINT FK_LichSuDoiPhong_NhanVien FOREIGN KEY REFERENCES NhanVien(MaNhanVien)
+                    );
+                    CREATE INDEX IX_LichSuDoiPhong_PhieuDat ON LichSuDoiPhong(MaDatPhong);
                 END")
         };
 

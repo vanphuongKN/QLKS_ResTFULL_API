@@ -74,5 +74,21 @@ namespace QLKSan.Controllers
 
             return RedirectToAction("Index");
         }
+
+        // Huỷ dịch vụ gọi nhầm (bớt số lượng hoặc huỷ hẳn), bắt buộc lý do
+        [HttpPost]
+        public async Task<IActionResult> VoidService(string maDatPhong, string maSDDV, int soLuong, string lyDo, string maPhong)
+        {
+            try
+            {
+                await _bookingApi.VoidServiceAsync(maDatPhong, maSDDV, new VoidServiceRequest { SoLuong = soLuong, LyDo = lyDo });
+                TempData["SuccessMessage"] = "Đã huỷ dịch vụ gọi nhầm.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể huỷ dịch vụ. " + ex.UserMessage;
+            }
+            return RedirectToAction("Index", new { maPhong });
+        }
     }
 }

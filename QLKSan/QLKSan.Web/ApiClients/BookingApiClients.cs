@@ -22,6 +22,12 @@ namespace QLKSan.ApiClients
         // Lễ tân đặt phòng cho ngày tới (điện thoại / email / tại quầy / đại lý)
         Task<BookingDto> CreateAtFrontDeskAsync(FrontDeskBookingRequest request);
         Task<BookingDto> AddDepositAsync(string maDatPhong, DepositRequest request);
+        // Trong kỳ lưu trú: báo giá / đổi ngày, đổi phòng khi đang ở, huỷ dịch vụ, người đi cùng
+        Task<StayChangeQuoteDto> QuoteStayDatesAsync(string maDatPhong, DateTime? ngayNhan, DateTime ngayTra);
+        Task<BookingDto> ChangeStayDatesAsync(string maDatPhong, StayDatesRequest request);
+        Task<BookingDto> MoveRoomAsync(string maDatPhong, MoveRoomRequest request);
+        Task<BookingDto> VoidServiceAsync(string maDatPhong, string maSDDV, VoidServiceRequest request);
+        Task<BookingDto> SetCompanionsAsync(string maDatPhong, CompanionsRequest request);
         Task ChangeRoomAsync(string maDatPhong, string maPhong);
         Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request);
     }
@@ -51,6 +57,17 @@ namespace QLKSan.ApiClients
         public Task<BookingDto> CreateAtFrontDeskAsync(FrontDeskBookingRequest request) => HttpPostAsync<BookingDto>("api/bookings/front-desk", request);
         public Task<BookingDto> AddDepositAsync(string maDatPhong, DepositRequest request)
             => HttpPostAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/deposits", request);
+        public Task<StayChangeQuoteDto> QuoteStayDatesAsync(string maDatPhong, DateTime? ngayNhan, DateTime ngayTra)
+            => HttpGetAsync<StayChangeQuoteDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/stay-dates/quote?ngayTra={ngayTra:yyyy-MM-dd}"
+                + (ngayNhan != null ? $"&ngayNhan={ngayNhan:yyyy-MM-dd}" : ""));
+        public Task<BookingDto> ChangeStayDatesAsync(string maDatPhong, StayDatesRequest request)
+            => HttpPutAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/stay-dates", request);
+        public Task<BookingDto> MoveRoomAsync(string maDatPhong, MoveRoomRequest request)
+            => HttpPostAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/move", request);
+        public Task<BookingDto> VoidServiceAsync(string maDatPhong, string maSDDV, VoidServiceRequest request)
+            => HttpPostAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/services/{Uri.EscapeDataString(maSDDV)}/void", request);
+        public Task<BookingDto> SetCompanionsAsync(string maDatPhong, CompanionsRequest request)
+            => HttpPutAsync<BookingDto>($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/companions", request);
         public Task ChangeRoomAsync(string maDatPhong, string maPhong) => HttpPostAsync($"api/bookings/{Uri.EscapeDataString(maDatPhong)}/change-room", new ChangeRoomRequest { MaPhong = maPhong });
 
         public Task<BookingDto> OrderServicesAsync(string maDatPhong, OrderServiceRequest request)

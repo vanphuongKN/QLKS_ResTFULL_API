@@ -94,8 +94,13 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | POST | `/{id}/approve` | FrontDesk | Duyệt phiếu chờ duyệt |
 | POST | `/{id}/change-room` | FrontDesk | Đổi phòng đã xếp `{ "MaPhong": ... }` (chỉ phiếu chưa nhận phòng) |
 | POST | `/{id}/cancel` | FrontDesk, Customer | Huỷ/từ chối `{ "LyDo": ..., "HoanCoc": false }`. Khách chỉ huỷ được trước ngày nhận phòng; lễ tân chọn hoàn cọc (ghi dòng hoàn vào sổ cọc) hoặc giữ cọc |
-| POST | `/{id}/check-in` | FrontDesk | Nhận phòng (đúng ngày). Body tuỳ chọn `{ "SoLuongKhach", "TienCoc", "PhuongThucCoc" }`: số khách thực tế, cọc thu thêm |
+| POST | `/{id}/check-in` | FrontDesk | Nhận phòng (đúng ngày). Body tuỳ chọn `{ "SoLuongKhach", "TienCoc", "PhuongThucCoc", "KhachDiCung" }`: số khách thực tế, cọc thu thêm, người đi cùng |
 | POST | `/{id}/services` | FrontDesk | Gọi dịch vụ cho khách đang ở |
+| POST | `/{id}/services/{maSDDV}/void` | FrontDesk | Huỷ dịch vụ gọi nhầm `{ "SoLuong", "LyDo" }` (bớt số lượng hoặc huỷ hẳn; hoá đơn chưa thanh toán) |
+| GET | `/{id}/stay-dates/quote?ngayNhan&ngayTra` | FrontDesk | Báo giá đổi ngày: số đêm, tiền phòng cũ – mới theo giá từng đêm, phòng còn trống không |
+| PUT | `/{id}/stay-dates` | FrontDesk | Gia hạn / rút ngắn (đang ở: chỉ `NgayTra`, không trước hôm nay, tối thiểu 1 đêm) hoặc đổi ngày (chưa nhận phòng: `NgayNhan`, `NgayTra`); 409 khi vướng phiếu khác |
+| POST | `/{id}/move` | FrontDesk | Đổi phòng khi đang ở `{ "MaPhong", "LyDo", "GiuGiaCu": true }`: phòng mới phải sạch, trống đến ngày trả; phòng cũ chuyển Đang dọn + tạo việc buồng phòng; ghi lịch sử đổi phòng |
+| PUT | `/{id}/companions` | FrontDesk | Khai báo người đi cùng `{ "KhachDiCung": [{ "HoTen", "CCCD_Passport", "QuocTich" }] }` (thay toàn bộ); số khách tự tăng theo, không vượt sức chứa. Sổ lưu trú có thêm dòng cho từng người |
 
 ## Quầy lễ tân — `/api/front-desk`
 

@@ -145,6 +145,9 @@ namespace QLKSan.Business
                     ValidateDeposit(request.TienCoc, request.PhuongThucCoc);
                     RecordDeposit(booking, PaymentType.Payment, request.TienCoc, request.PhuongThucCoc, maNhanVien, "Cọc khi nhận phòng");
                 }
+                // Người đi cùng khai báo tại quầy (đưa vào sổ lưu trú)
+                if (request?.KhachDiCung != null)
+                    await StayService.ApplyCompanionsAsync(_context, booking, request.KhachDiCung);
 
                 booking.TrangThai = BookingStatus.CheckedIn;
                 booking.NgayCheckInThucTe = DateTime.Now;
@@ -346,6 +349,10 @@ namespace QLKSan.Business
                 .Include(p => p.SuDungDichVus).ThenInclude(s => s.DichVu)
                 .Include(p => p.HoaDon).ThenInclude(h => h.ThanhToans)
                 .Include(p => p.GiaoDichCocs).ThenInclude(g => g.NhanVien)
+                .Include(p => p.KhachDiCungs)
+                .Include(p => p.LichSuDoiPhongs).ThenInclude(l => l.PhongCu)
+                .Include(p => p.LichSuDoiPhongs).ThenInclude(l => l.PhongMoi)
+                .Include(p => p.LichSuDoiPhongs).ThenInclude(l => l.NhanVien)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(p => p.MaDatPhong == maDatPhong);
         }

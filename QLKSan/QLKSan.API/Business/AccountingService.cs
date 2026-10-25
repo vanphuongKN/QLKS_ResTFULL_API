@@ -311,6 +311,7 @@ namespace QLKSan.Business
             var stays = await _context.PhieuDatPhongs
                 .Include(p => p.KhachHang).ThenInclude(k => k.LienHeDiaChis)
                 .Include(p => p.ChiTietDatPhongs).ThenInclude(c => c.Phong)
+                .Include(p => p.KhachDiCungs)
                 .Where(p => p.NgayCheckInThucTe != null
                          && (p.TrangThai == BookingStatus.CheckedIn || p.TrangThai == BookingStatus.CheckedOut)
                          && p.NgayCheckInThucTe < toExclusive
@@ -318,10 +319,10 @@ namespace QLKSan.Business
                 .OrderBy(p => p.NgayCheckInThucTe)
                 .ToListAsync();
 
-            return stays.Select(p =>
+            return stays.SelectMany(p =>
             {
                 var lienHe = p.KhachHang?.LienHeDiaChis?.FirstOrDefault();
-                return new GuestRegisterDto
+                var dungTen = new GuestRegisterDto
                 {
                     MaDatPhong = p.MaDatPhong,
                     HoTen = $"{p.KhachHang?.Ho} {p.KhachHang?.Ten}".Trim(),
@@ -337,6 +338,22 @@ namespace QLKSan.Business
                     NgayDiDuKien = p.NgayCheckOutDuKien,
                     TrangThai = p.TrangThai
                 };
+                var diCung = (p.KhachDiCungs ?? new List<KhachDiCung>()).OrderBy(k => k.MaKhachDiCung).Select(k => new GuestRegisterDto
+                {
+                    MaDatPhong = p.MaDatPhong,
+                    HoTen = k.HoTen,
+                    CCCD_Passport = k.CCCD_Passport,
+                    QuocGia = k.QuocTich ?? dungTen.QuocGia,
+                    SoPhong = dungTen.SoPhong,
+                    SoLuongKhach = p.SoLuongKhach,
+                    NgayDen = dungTen.NgayDen,
+                    NgayDi = dungTen.NgayDi,
+                    NgayDiDuKien = dungTen.NgayDiDuKien,
+                    TrangThai = p.TrangThai,
+                    LaNguoiDiCung = true,
+                    NguoiDungTen = dungTen.HoTen
+                });
+                return new[] { dungTen }.Concat(diCung);
             }).ToList();
         }
 
@@ -349,7 +366,8 @@ namespace QLKSan.Business
                 guests.Select((g, i) => new object[]
                 {
                     i + 1, g.HoTen, g.NgaySinh, g.CCCD_Passport, g.QuocGia, g.DiaChi, g.SDT, g.SoPhong, g.SoLuongKhach,
-                    g.NgayDen, g.NgayDi ?? g.NgayDiDuKien, g.NgayDi == null ? "Đang lưu trú (ngày đi dự kiến)" : ""
+                    g.NgayDen, g.NgayDi ?? g.NgayDiDuKien,
+                    string.Join("; ", new[] { g.LaNguoiDiCung ? $"Đi cùng {g.NguoiDungTen}" : null, g.NgayDi == null ? "Đang lưu trú (ngày đi dự kiến)" : null }.Where(x => x != null))
                 }), "#,##0");
             workbook.Worksheet(1).Column(3).Style.DateFormat.Format = "dd/MM/yyyy";
             using var stream = new MemoryStream();

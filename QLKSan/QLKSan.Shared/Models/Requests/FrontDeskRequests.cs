@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using QLKSan.Validation;
 
@@ -79,6 +80,9 @@ namespace QLKSan.Models.Requests
 
         [StringLength(50)]
         public string? PhuongThucCoc { get; set; }
+
+        // Người đi cùng khai báo khi nhận phòng (null = giữ nguyên danh sách đã có)
+        public List<CompanionRequest>? KhachDiCung { get; set; }
     }
 
     // POST /api/bookings/{id}/deposits: thu thêm tiền cọc / đảm bảo cho phiếu chưa trả phòng
@@ -93,5 +97,61 @@ namespace QLKSan.Models.Requests
 
         [StringLength(255)]
         public string? GhiChu { get; set; }
+    }
+
+    // Một người đi cùng: bắt buộc họ tên, CCCD / hộ chiếu và quốc tịch tuỳ chọn
+    public class CompanionRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập họ tên người đi cùng.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Họ tên người đi cùng từ 2 đến 100 ký tự.")]
+        public string HoTen { get; set; }
+
+        [RegularExpression(@"^[A-Za-z0-9]{6,20}$", ErrorMessage = "Số CCCD / hộ chiếu người đi cùng gồm 6–20 chữ hoặc số.")]
+        public string? CCCD_Passport { get; set; }
+
+        [StringLength(50)]
+        public string? QuocTich { get; set; }
+    }
+
+    // PUT /api/bookings/{id}/companions: thay toàn bộ danh sách người đi cùng
+    public class CompanionsRequest
+    {
+        [MaxLength(9, ErrorMessage = "Tối đa 9 người đi cùng.")]
+        public List<CompanionRequest> KhachDiCung { get; set; } = new List<CompanionRequest>();
+    }
+
+    // PUT /api/bookings/{id}/stay-dates: gia hạn / rút ngắn (đang ở: chỉ đổi ngày trả) hoặc đổi ngày (chưa nhận phòng)
+    public class StayDatesRequest
+    {
+        public DateTime? NgayNhan { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng chọn ngày trả phòng.")]
+        public DateTime NgayTra { get; set; }
+    }
+
+    // POST /api/bookings/{id}/move: đổi phòng khi khách đang ở
+    public class MoveRoomRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn phòng mới.")]
+        [StringLength(10)]
+        public string MaPhong { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập lý do đổi phòng.")]
+        [StringLength(255)]
+        public string LyDo { get; set; }
+
+        // true: giữ giá phòng cũ (nâng hạng miễn phí / lỗi do khách sạn); false: tính theo giá hạng phòng mới
+        public bool GiuGiaCu { get; set; } = true;
+    }
+
+    // POST /api/bookings/{id}/services/{maSDDV}/void: huỷ dịch vụ gọi nhầm (bớt số lượng hoặc huỷ hẳn)
+    public class VoidServiceRequest
+    {
+        [Range(1, 100, ErrorMessage = "Số lượng huỷ phải từ 1 đến 100.")]
+        public int SoLuong { get; set; } = 1;
+
+        [Required(ErrorMessage = "Vui lòng nhập lý do huỷ dịch vụ.")]
+        [StringLength(200)]
+        public string LyDo { get; set; }
     }
 }

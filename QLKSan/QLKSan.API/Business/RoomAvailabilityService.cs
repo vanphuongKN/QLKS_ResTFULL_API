@@ -108,7 +108,8 @@ namespace QLKSan.Business
             return room;
         }
 
-        // Xếp phòng trống đầu tiên của hạng (theo số phòng); lễ tân có thể đổi phòng trước khi nhận khách
+        // Xếp phòng trống đầu tiên của hạng (theo số phòng; nhận phòng hôm nay thì ưu tiên phòng đã dọn sạch);
+        // lễ tân có thể đổi phòng trước khi nhận khách
         public async Task<Phong> ReserveRoomOfTypeAsync(string maLoai, DateTime checkIn, DateTime checkOut, int soNguoi)
         {
             var loai = await _context.LoaiPhongs.FindAsync(maLoai)
@@ -120,6 +121,8 @@ namespace QLKSan.Business
                 .Where(p => p.MaLoai == maLoai && p.TrangThai != RoomStatus.Maintenance)
                 .OrderBy(p => p.SoPhong)
                 .ToListAsync();
+            if (checkIn.Date <= DateTime.Today)
+                candidates = candidates.OrderBy(p => p.TrangThai != RoomStatus.Available).ThenBy(p => p.SoPhong).ToList();
             foreach (var room in candidates)
             {
                 // Khoá từng phòng trước khi kiểm tra để hai yêu cầu đồng thời không cùng nhận một phòng

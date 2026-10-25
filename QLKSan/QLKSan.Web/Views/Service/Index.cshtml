@@ -179,55 +179,62 @@
             </div>
         </div>
 
-        <!-- Lịch sử sử dụng dịch vụ gần đây -->
-        <h6 class="fw-bold mb-3" style="letter-spacing:1px;color:#555">LỊCH SỬ SỬ DỤNG DỊCH VỤ GẦN ĐÂY</h6>
-        <div class="row g-3">
-            @{
-                var allRecentServices = new List<(QLKSan.Models.DTOs.ServiceUsageDto Usage, string RoomNum)>();
-                if (activeStays != null)
-                {
-                    foreach (var stay in activeStays)
-                    {
-                        if (stay.SuDungDichVus != null)
-                        {
-                            var stayRoomNum = stay.ChiTietDatPhongs?.FirstOrDefault()?.Phong?.SoPhong ?? "N/A";
-                            allRecentServices.AddRange(stay.SuDungDichVus.Select(s => (s, stayRoomNum)));
-                        }
-                    }
-                }
-                var topRecent = allRecentServices.OrderByDescending(s => s.Usage.NgaySuDung).Take(2).ToList();
-            }
-
-            @if (topRecent.Any())
+        <!-- Dịch vụ đã gọi của khách đang ở: lọc theo phòng đang chọn, huỷ dịch vụ gọi nhầm -->
+        @{
+            var daGoi = (activeStays ?? Enumerable.Empty<QLKSan.Models.DTOs.BookingDto>())
+                .SelectMany(st => (st.SuDungDichVus ?? new List<QLKSan.Models.DTOs.ServiceUsageDto>())
+                    .Select(s => (Usage: s, Stay: st, Phong: st.ChiTietDatPhongs?.FirstOrDefault()?.Phong)))
+                .OrderByDescending(x => x.Usage.NgaySuDung).ToList();
+        }
+        <div class="d-flex justify-content-between align-items-baseline mb-3">
+            <h6 class="fw-bold mb-0" style="letter-spacing:1px;color:#555">DỊCH VỤ ĐÃ GỌI</h6>
+            <small class="text-muted" id="usedInfo">@daGoi.Count dòng</small>
+        </div>
+        <div class="card">
+            @if (!daGoi.Any())
             {
-                foreach (var recent in topRecent)
-                {
-                    var sddv = recent.Usage;
-                    var roomNum = recent.RoomNum;
-                    <div class="col-md-6">
-                        <div class="card p-3 h-100 shadow-sm border-0" style="border-left:3px solid #C5A059!important">
-                            <small class="text-gold mb-1" style="font-size:0.65rem;letter-spacing:1px">PHÒNG @roomNum</small>
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong class="d-block text-navy mb-1" style="font-size:0.95rem">@(sddv.TenDichVu ?? "Dịch vụ")</strong>
-                                    <small class="text-muted" style="font-size:0.7rem">
-                                        @sddv.SoLuong @sddv.DonViTinh · @sddv.NgaySuDung.ToString("HH:mm dd/MM/yyyy")
-                                    </small>
-                                </div>
-                                <strong class="text-navy nowrap">@sddv.ThanhTien.ToString("N0") ₫</strong>
-                            </div>
-                        </div>
-                    </div>
-                }
+                <p class="text-muted small p-4 mb-0 text-center">Khách đang ở chưa gọi dịch vụ nào.</p>
             }
             else
             {
-                <div class="col-12">
-                    <div class="card p-4 text-center text-muted bg-light border-0">
-                        Chưa có giao dịch sử dụng dịch vụ nào gần đây.
-                    </div>
-                </div>
+                <table class="table table-custom mb-0" data-no-tools id="usedTable">
+                    <thead><tr><th>Phòng</th><th>Dịch vụ</th><th class="text-center">SL</th><th>Thời gian</th><th class="text-end">Thành tiền</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var x in daGoi)
+                        {
+                            <tr data-room="@x.Phong?.MaPhong">
+                                <td class="fw-bold">@x.Phong?.SoPhong</td>
+                                <td>@(x.Usage.TenDichVu ?? x.Usage.MaDichVu)</td>
+                                <td class="text-center">@x.Usage.SoLuong</td>
+                                <td class="small text-muted">@x.Usage.NgaySuDung.ToString("HH:mm dd/MM")</td>
+                                <td class="text-end fw-semibold">@x.Usage.ThanhTien.ToString("N0") ₫</td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-void data-dp="@x.Stay.MaDatPhong" data-sd="@x.Usage.MaSDDV"
+                                            data-ten="@(x.Usage.TenDichVu ?? x.Usage.MaDichVu)" data-sl="@x.Usage.SoLuong" data-room="@x.Phong?.MaPhong" title="Huỷ dịch vụ gọi nhầm">Huỷ</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             }
+        </div>
+
+        <div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidTitle">
+            <div class="modal-dialog">
+                <form asp-action="VoidService" method="post" class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title fw-bold" id="voidTitle">Huỷ dịch vụ gọi nhầm</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" name="maDatPhong" id="vdDp" /><input type="hidden" name="maSDDV" id="vdSd" /><input type="hidden" name="maPhong" id="vdRoom" />
+                        <p id="vdTen" class="fw-semibold mb-3"></p>
+                        <div class="row g-3">
+                            <div class="col-4"><label class="form-label fw-semibold" for="vdSl">Số lượng huỷ</label><input type="number" name="soLuong" id="vdSl" class="form-control" min="1" value="1" required /></div>
+                            <div class="col-8"><label class="form-label fw-semibold" for="vdLyDo">Lý do</label><input name="lyDo" id="vdLyDo" class="form-control" maxlength="200" required placeholder="VD: Nhập nhầm phòng" /></div>
+                        </div>
+                        <small class="text-muted d-block mt-2">Chỉ huỷ được trước khi hoá đơn thanh toán; lý do được ghi vào phiếu và nhật ký thao tác.</small>
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn btn-danger">Huỷ dịch vụ</button></div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -326,7 +333,28 @@
             }
             checkFormValidity();
             calculateTotal();
+            locDichVuDaGoi(selectEl.value);
         }
+
+        // Bảng dịch vụ đã gọi: chỉ hiện của phòng đang chọn (không chọn = tất cả)
+        function locDichVuDaGoi(maPhong) {
+            var rows = document.querySelectorAll('#usedTable tbody tr'), n = 0;
+            rows.forEach(function (r) { var on = !maPhong || r.getAttribute('data-room') === maPhong; r.hidden = !on; if (on) n++; });
+            var info = document.getElementById('usedInfo');
+            if (info && rows.length) info.textContent = n + ' dòng' + (maPhong ? ' của phòng đang chọn' : '');
+        }
+        document.querySelectorAll('[data-void]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                document.getElementById('vdDp').value = b.getAttribute('data-dp');
+                document.getElementById('vdSd').value = b.getAttribute('data-sd');
+                document.getElementById('vdRoom').value = b.getAttribute('data-room');
+                document.getElementById('vdTen').textContent = b.getAttribute('data-ten') + ' — đang ghi ' + b.getAttribute('data-sl');
+                var sl = document.getElementById('vdSl'); sl.max = b.getAttribute('data-sl'); sl.value = 1;
+                document.getElementById('vdLyDo').value = '';
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('voidModal')).show();
+            });
+        });
+        (function () { var sel = document.getElementById('selectedRoom'); if (sel) locDichVuDaGoi(sel.value); })();
 
         function calculateTotal() {
             var newFee = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);

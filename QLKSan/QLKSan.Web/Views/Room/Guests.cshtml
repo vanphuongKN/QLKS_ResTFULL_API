@@ -6,6 +6,8 @@
     DateTime from = ViewBag.TuNgay;
     DateTime to = ViewBag.DenNgay;
     var nuocNgoai = Model.Count(g => !string.IsNullOrEmpty(g.QuocGia) && !g.QuocGia.Contains("Việt Nam"));
+    var luot = Model.Where(g => !g.LaNguoiDiCung).ToList();
+    var soKhach = luot.Sum(g => g.SoLuongKhach);
 }
 
 <div class="page-header">
@@ -31,9 +33,9 @@
         </div>
         <div class="col-md-2"><button class="btn btn-gold w-100">Xem</button></div>
         <div class="col-md-4 text-md-end small text-muted">
-            <strong class="text-navy">@Model.Count</strong> lượt lưu trú ·
-            <strong class="text-navy">@Model.Sum(g => g.SoLuongKhach)</strong> khách ·
-            <strong class="text-navy">@nuocNgoai</strong> lượt khách nước ngoài
+            <strong class="text-navy">@luot.Count</strong> lượt lưu trú ·
+            <strong class="text-navy">@Model.Count</strong> / @soKhach khách đã khai báo ·
+            <strong class="text-navy">@nuocNgoai</strong> khách nước ngoài
         </div>
     </div>
 </form>
@@ -55,15 +57,18 @@
                 @for (var i = 0; i < Model.Count; i++)
                 {
                     var g = Model[i];
-                    <tr>
+                    <tr class="@(g.LaNguoiDiCung ? "guest-companion" : "")">
                         <td>@(i + 1)</td>
-                        <td class="fw-semibold">@g.HoTen<br /><small class="text-muted">@g.MaDatPhong</small></td>
+                        <td class="fw-semibold">
+                            @if (g.LaNguoiDiCung) { <i class="fas fa-turn-up fa-rotate-90 text-muted me-1"></i> }
+                            @g.HoTen<br /><small class="text-muted">@(g.LaNguoiDiCung ? "Đi cùng " + g.NguoiDungTen : g.MaDatPhong)</small>
+                        </td>
                         <td>@g.NgaySinh?.ToString("dd/MM/yyyy")</td>
                         <td>@g.CCCD_Passport</td>
                         <td>@g.QuocGia</td>
                         <td><small>@g.DiaChi<br />@g.SDT</small></td>
                         <td class="fw-bold">@g.SoPhong</td>
-                        <td class="text-center">@g.SoLuongKhach</td>
+                        <td class="text-center">@(g.LaNguoiDiCung ? "" : g.SoLuongKhach.ToString())</td>
                         <td>@g.NgayDen.ToString("dd/MM/yyyy HH:mm")</td>
                         <td>
                             @if (g.NgayDi != null) { @g.NgayDi.Value.ToString("dd/MM/yyyy HH:mm") }

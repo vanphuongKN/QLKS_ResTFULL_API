@@ -995,3 +995,14 @@ a.btn, a.btn-gold, a.btn-outline-gold { text-decoration: none; }
 .guest-care .note-danger, .fd-modal .note-danger { color: var(--danger); font-weight: 600; }
 .deposit-box { background: var(--light-gray); border-radius: 10px; padding: 12px 14px; }
 .stay-notes .note-source { color: var(--navy); }
+
+/* Trong kỳ lưu trú: người đi cùng, báo giá đổi ngày, huỷ dịch vụ */
+.companion-row { display: grid; grid-template-columns: 2fr 1.4fr 1fr auto; gap: 6px; margin-bottom: 6px; }
+.stay-quote { background: var(--light-gray); border-radius: 8px; padding: 10px 12px; font-size: 0.86rem; display: flex; flex-direction: column; gap: 4px; }
+.stay-quote.is-bad { background: rgba(198,40,40,.06); color: var(--danger); }
+.stay-btns .dropdown-item { font-size: 0.84rem; }
+tr.guest-companion td { background: #fcfbf8; }
+@media (max-width: 575.98px) { .companion-row { grid-template-columns: 1fr 1fr; } }
+.move-pick { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border-light); border-radius: 10px; padding: 12px 14px; cursor: pointer; height: 100%; }
+.move-pick:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-light); }
+.move-pick input { margin-top: 4px; accent-color: var(--gold); }

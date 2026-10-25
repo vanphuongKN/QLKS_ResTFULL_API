@@ -17,12 +17,14 @@ namespace QLKSan.Controllers
         private readonly IReceptionService _receptionService;
         private readonly ICustomerService _customerService;
         private readonly IServiceManager _serviceManager;
+        private readonly IStayService _stayService;
 
-        public BookingsController(IReceptionService receptionService, ICustomerService customerService, IServiceManager serviceManager)
+        public BookingsController(IReceptionService receptionService, ICustomerService customerService, IServiceManager serviceManager, IStayService stayService)
         {
             _receptionService = receptionService;
             _customerService = customerService;
             _serviceManager = serviceManager;
+            _stayService = stayService;
         }
 
         /// <summary>Lịch sử đặt phòng, tìm theo mã phiếu, tên khách hoặc số phòng (không dấu, không phân biệt hoa thường).</summary>
@@ -189,6 +191,57 @@ namespace QLKSan.Controllers
         {
             await _receptionService.CheckInOnlineBookingAsync(maDatPhong, User.GetMaNhanVien(), request);
             return NoContent();
+        }
+
+        /// <summary>Báo giá khi gia hạn / rút ngắn / đổi ngày: tiền phòng cũ – mới theo giá từng đêm, phòng còn trống không.</summary>
+        [HttpGet("{maDatPhong}/stay-dates/quote")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        public async Task<ActionResult<StayChangeQuoteDto>> QuoteStayDates(string maDatPhong, [FromQuery] DateTime? ngayNhan, [FromQuery] DateTime ngayTra)
+        {
+            return await _stayService.QuoteStayChangeAsync(maDatPhong, ngayNhan, ngayTra);
+        }
+
+        /// <summary>
+        /// Gia hạn / rút ngắn kỳ nghỉ (khách đang ở: chỉ đổi ngày trả, không trước hôm nay) hoặc đổi ngày (phiếu chưa nhận phòng).
+        /// Phòng phải trống trong khoảng ngày mới; ghi chú thay đổi vào phiếu.
+        /// </summary>
+        [HttpPut("{maDatPhong}/stay-dates")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Đổi ngày lưu trú", "Phiếu đặt phòng")]
+        public async Task<ActionResult<BookingDto>> ChangeStayDates(string maDatPhong, StayDatesRequest request)
+        {
+            await _stayService.ChangeStayDatesAsync(maDatPhong, request.NgayNhan, request.NgayTra, $"Nhân viên {User.Identity?.Name}");
+            return (await _receptionService.GetBookingByIdAsync(maDatPhong)).ToDto();
+        }
+
+        /// <summary>Đổi phòng khi khách đang ở: phòng mới phải trống, đã dọn; phòng cũ chuyển Đang dọn. GiuGiaCu = true giữ giá cũ.</summary>
+        [HttpPost("{maDatPhong}/move")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Đổi phòng khi đang ở", "Phiếu đặt phòng")]
+        public async Task<ActionResult<BookingDto>> MoveRoom(string maDatPhong, MoveRoomRequest request)
+        {
+            await _stayService.MoveRoomAsync(maDatPhong, request, User.GetMaNhanVien(), $"Nhân viên {User.Identity?.Name}");
+            return (await _receptionService.GetBookingByIdAsync(maDatPhong)).ToDto();
+        }
+
+        /// <summary>Huỷ dịch vụ gọi nhầm (bớt số lượng hoặc huỷ hẳn) khi hoá đơn chưa thanh toán; lý do ghi vào phiếu.</summary>
+        [HttpPost("{maDatPhong}/services/{maSDDV}/void")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Huỷ dịch vụ", "Phiếu đặt phòng")]
+        public async Task<ActionResult<BookingDto>> VoidService(string maDatPhong, string maSDDV, VoidServiceRequest request)
+        {
+            await _stayService.VoidServiceAsync(maDatPhong, maSDDV, request.SoLuong, request.LyDo, $"Nhân viên {User.Identity?.Name}");
+            return (await _receptionService.GetBookingByIdAsync(maDatPhong)).ToDto();
+        }
+
+        /// <summary>Khai báo người đi cùng (thay toàn bộ danh sách); số khách của phiếu tăng theo nếu cần, không vượt sức chứa.</summary>
+        [HttpPut("{maDatPhong}/companions")]
+        [Authorize(Roles = AppRoles.FrontDesk)]
+        [Audit("Khai báo người đi cùng", "Phiếu đặt phòng")]
+        public async Task<ActionResult<BookingDto>> SetCompanions(string maDatPhong, CompanionsRequest request)
+        {
+            await _stayService.SetCompanionsAsync(maDatPhong, request.KhachDiCung);
+            return (await _receptionService.GetBookingByIdAsync(maDatPhong)).ToDto();
         }
 
         /// <summary>Gọi dịch vụ cho khách đang lưu trú; trả về phiếu đặt sau khi cập nhật.</summary>

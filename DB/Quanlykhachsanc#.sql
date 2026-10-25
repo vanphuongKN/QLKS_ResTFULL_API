@@ -352,6 +352,35 @@ CREATE TABLE GiaoDichCoc (
 CREATE INDEX IX_GiaoDichCoc_PhieuDat ON GiaoDichCoc(MaDatPhong);
 CREATE INDEX IX_GiaoDichCoc_ThoiGian ON GiaoDichCoc(ThoiGian);
 
+-- Người đi cùng khách đứng tên phiếu (sổ khai báo lưu trú đủ người)
+CREATE TABLE KhachDiCung (
+    MaKhachDiCung INT IDENTITY(1,1) PRIMARY KEY,
+    MaDatPhong VARCHAR(10) NOT NULL,
+    HoTen NVARCHAR(100) NOT NULL,
+    CCCD_Passport VARCHAR(20) NULL,
+    QuocTich NVARCHAR(50) NULL,
+    CONSTRAINT FK_KhachDiCung_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong)
+);
+CREATE INDEX IX_KhachDiCung_PhieuDat ON KhachDiCung(MaDatPhong);
+
+-- Lịch sử đổi phòng khi khách đang ở
+CREATE TABLE LichSuDoiPhong (
+    MaLichSu INT IDENTITY(1,1) PRIMARY KEY,
+    MaDatPhong VARCHAR(10) NOT NULL,
+    TuPhong VARCHAR(10) NOT NULL,
+    DenPhong VARCHAR(10) NOT NULL,
+    ThoiGian DATETIME NOT NULL DEFAULT GETDATE(),
+    LyDo NVARCHAR(255) NULL,
+    GiaCu DECIMAL(18,0) NOT NULL,
+    GiaMoi DECIMAL(18,0) NOT NULL,
+    MaNhanVien VARCHAR(10) NULL,
+    CONSTRAINT FK_LichSuDoiPhong_PhieuDat FOREIGN KEY (MaDatPhong) REFERENCES PhieuDatPhong(MaDatPhong),
+    CONSTRAINT FK_LichSuDoiPhong_PhongCu FOREIGN KEY (TuPhong) REFERENCES Phong(MaPhong),
+    CONSTRAINT FK_LichSuDoiPhong_PhongMoi FOREIGN KEY (DenPhong) REFERENCES Phong(MaPhong),
+    CONSTRAINT FK_LichSuDoiPhong_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
+);
+CREATE INDEX IX_LichSuDoiPhong_PhieuDat ON LichSuDoiPhong(MaDatPhong);
+
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,
     MaPhong VARCHAR(10) NOT NULL,

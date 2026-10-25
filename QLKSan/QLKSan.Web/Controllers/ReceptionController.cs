@@ -42,20 +42,29 @@ namespace QLKSan.Controllers
         {
             var booking = string.IsNullOrEmpty(id) ? null : await _bookingApi.GetByIdAsync(id);
             if (booking == null) return NotFound();
-            ViewBag.Rooms = booking.TrangThai is Enums.BookingStatus.Pending or Enums.BookingStatus.Approved
-                ? await _roomApi.GetAvailableAsync(booking.NgayCheckInDuKien, booking.NgayCheckOutDuKien, booking.SoLuongKhach)
-                : new List<Models.DTOs.RoomDto>();
+            if (booking.TrangThai is Enums.BookingStatus.Pending or Enums.BookingStatus.Approved)
+                ViewBag.Rooms = await _roomApi.GetAvailableAsync(booking.NgayCheckInDuKien, booking.NgayCheckOutDuKien, booking.SoLuongKhach);
+            else if (booking.TrangThai == Enums.BookingStatus.CheckedIn)
+            {
+                // Khách đang ở: phòng phải sạch, sẵn sàng ngay và trống đến ngày trả
+                var den = booking.NgayCheckOutDuKien.Date > DateTime.Today ? booking.NgayCheckOutDuKien.Date : DateTime.Today.AddDays(1);
+                ViewBag.Rooms = (await _roomApi.GetAvailableAsync(DateTime.Today, den, booking.SoLuongKhach))
+                    .Where(r => r.TrangThai == Enums.RoomStatus.Available).ToList();
+            }
+            else ViewBag.Rooms = new List<Models.DTOs.RoomDto>();
             return View(booking);
         }
 
+        // Chưa nhận phòng: đổi phòng đã xếp. Đang ở: chuyển phòng (cần lý do, tuỳ chọn giữ giá cũ)
         [HttpPost]
-        public async Task<IActionResult> ChangeRoom(string id, string maPhong)
+        public async Task<IActionResult> ChangeRoom(string id, string maPhong, string lyDo, bool giuGiaCu = false, bool dangO = false)
         {
             try
             {
-                await _bookingApi.ChangeRoomAsync(id, maPhong);
+                if (dangO) await _bookingApi.MoveRoomAsync(id, new MoveRoomRequest { MaPhong = maPhong, LyDo = lyDo, GiuGiaCu = giuGiaCu });
+                else await _bookingApi.ChangeRoomAsync(id, maPhong);
                 TempData["SuccessMessage"] = $"Đã đổi phòng cho phiếu {id}.";
-                return RedirectToAction(nameof(Index));
+                return Redirect(Url.Action(nameof(Index)) + (dangO ? "#dango" : ""));
             }
             catch (ApiException ex)
             {
@@ -82,12 +91,14 @@ namespace QLKSan.Controllers
 
         // Nhận phòng cho phiếu đã đặt (mã nhân viên lấy từ JWT phía API); kèm số khách thực tế và cọc thu thêm nếu có
         [HttpPost]
-        public async Task<IActionResult> CheckInOnlineBooking(string id, int? soLuongKhach, decimal tienCoc = 0, string phuongThucCoc = null)
+        public async Task<IActionResult> CheckInOnlineBooking(string id, int? soLuongKhach, decimal tienCoc = 0, string phuongThucCoc = null,
+            List<string> dcHoTen = null, List<string> dcCccd = null, List<string> dcQuocTich = null)
         {
             try
             {
-                var request = soLuongKhach == null && tienCoc <= 0 ? null
-                    : new CheckInBookingRequest { SoLuongKhach = soLuongKhach, TienCoc = tienCoc, PhuongThucCoc = phuongThucCoc };
+                var diCung = Companions(dcHoTen, dcCccd, dcQuocTich);
+                var request = soLuongKhach == null && tienCoc <= 0 && diCung.Count == 0 ? null
+                    : new CheckInBookingRequest { SoLuongKhach = soLuongKhach, TienCoc = tienCoc, PhuongThucCoc = phuongThucCoc, KhachDiCung = diCung.Count > 0 ? diCung : null };
                 await _bookingApi.CheckInAsync(id, request);
                 TempData["SuccessMessage"] = "Khách đã nhận phòng thành công.";
             }
@@ -128,6 +139,73 @@ namespace QLKSan.Controllers
                 TempData["ErrorMessage"] = "Không thể thu cọc. " + ex.UserMessage;
             }
             return RedirectToAction("Index");
+        }
+
+        // --- TRONG KỲ LƯU TRÚ ---
+
+        // Báo giá đổi ngày (JSON cho hộp thoại gia hạn)
+        [HttpGet]
+        public async Task<IActionResult> StayQuote(string id, DateTime? ngayNhan, DateTime ngayTra)
+        {
+            try
+            {
+                var q = await _bookingApi.QuoteStayDatesAsync(id, ngayNhan, ngayTra);
+                return Json(new { q.SoDemCu, q.SoDemMoi, q.TienPhongCu, q.TienPhongMoi, q.ChenhLech, q.ConPhong, q.LyDo });
+            }
+            catch (ApiException ex)
+            {
+                return BadRequest(new { error = ex.UserMessage });
+            }
+        }
+
+        // Gia hạn / rút ngắn (đang ở) hoặc đổi ngày (chưa nhận phòng)
+        [HttpPost]
+        public async Task<IActionResult> ChangeStayDates(string id, DateTime? ngayNhan, DateTime ngayTra)
+        {
+            try
+            {
+                var b = await _bookingApi.ChangeStayDatesAsync(id, new StayDatesRequest { NgayNhan = ngayNhan, NgayTra = ngayTra });
+                TempData["SuccessMessage"] = $"Phiếu {id}: lưu trú {b.NgayCheckInDuKien:dd/MM} → {b.NgayCheckOutDuKien:dd/MM}.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể đổi ngày lưu trú. " + ex.UserMessage;
+            }
+            return RedirectToAction("Index");
+        }
+
+        // Khai báo người đi cùng (thay toàn bộ danh sách)
+        [HttpPost]
+        public async Task<IActionResult> SetCompanions(string id, List<string> dcHoTen, List<string> dcCccd, List<string> dcQuocTich)
+        {
+            try
+            {
+                var list = Companions(dcHoTen, dcCccd, dcQuocTich);
+                await _bookingApi.SetCompanionsAsync(id, new CompanionsRequest { KhachDiCung = list });
+                TempData["SuccessMessage"] = $"Đã cập nhật {list.Count} người đi cùng cho phiếu {id}.";
+            }
+            catch (ApiException ex)
+            {
+                TempData["ErrorMessage"] = "Không thể lưu người đi cùng. " + ex.UserMessage;
+            }
+            return RedirectToAction("Index");
+        }
+
+        // Ghép các cột form (họ tên / CCCD / quốc tịch) thành danh sách, bỏ dòng trống họ tên
+        private static List<CompanionRequest> Companions(List<string> hoTen, List<string> cccd, List<string> quocTich)
+        {
+            var list = new List<CompanionRequest>();
+            for (var i = 0; i < (hoTen?.Count ?? 0); i++)
+            {
+                if (string.IsNullOrWhiteSpace(hoTen[i])) continue;
+                list.Add(new CompanionRequest
+                {
+                    HoTen = hoTen[i].Trim(),
+                    CCCD_Passport = cccd != null && i < cccd.Count && !string.IsNullOrWhiteSpace(cccd[i]) ? cccd[i].Trim() : null,
+                    QuocTich = quocTich != null && i < quocTich.Count && !string.IsNullOrWhiteSpace(quocTich[i]) ? quocTich[i].Trim() : null
+                });
+            }
+            return list;
         }
 
         // --- ĐẶT PHÒNG QUA QUẦY (điện thoại / email / tại quầy / đại lý) ---
