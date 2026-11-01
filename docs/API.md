@@ -1,6 +1,6 @@
 # QLKSan.API — Danh sách endpoint
 
-Client (Web, trang khách) gọi qua **Gateway**: `https://localhost:7000` khi phát triển, `http://localhost:7080` khi chạy Docker. Gateway chuyển nguyên đường dẫn `/api/*`, `/uploads/*` tới API lõi (`https://localhost:7001`, Swagger tại `/swagger` ở môi trường Development). Gọi quá giới hạn tần suất → `429` (ProblemDetails).
+Client (Web, trang khách) gọi qua **Gateway**: `https://localhost:7000` khi phát triển, `http://localhost:7080` khi chạy Docker. Gateway chuyển nguyên đường dẫn `/api/*`, `/uploads/*` tới API lõi (`https://localhost:7001`, Swagger tại `/swagger` ở môi trường Development). Gọi quá giới hạn tần suất → `429` (`application/problem+json`). Hạn mức từng nhóm endpoint xem [KIEN-TRUC.md](KIEN-TRUC.md#giới-hạn-tần-suất-gateway).
 
 ## Quy ước
 

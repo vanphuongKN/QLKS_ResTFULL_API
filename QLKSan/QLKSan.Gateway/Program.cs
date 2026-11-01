@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -54,14 +54,14 @@ namespace QLKSan.Gateway
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
                 options.OnRejected = async (context, ct) =>
                 {
-                    context.HttpContext.Response.ContentType = "application/problem+json";
+                    // Chỉ định content type ngay trong WriteAsJsonAsync (nếu đặt trước, hàm này ghi đè thành application/json)
                     await context.HttpContext.Response.WriteAsJsonAsync(new
                     {
                         type = "https://tools.ietf.org/html/rfc6585#section-4",
                         title = "Quá nhiều yêu cầu",
                         status = 429,
                         detail = "Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút."
-                    }, ct);
+                    }, (System.Text.Json.JsonSerializerOptions)null, "application/problem+json", ct);
                 };
                 options.AddPolicy(ChinhSachMacDinh, http => RateLimitPartition.GetFixedWindowLimiter(KhoaGioiHan(http),
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = moiPhut, Window = TimeSpan.FromMinutes(1) }));

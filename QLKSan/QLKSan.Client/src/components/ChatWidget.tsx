@@ -2,21 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chatApi, type ChatLink, type ChatMessage } from '../api/chat';
 import { ApiError } from '../api/client';
+import { spaPath } from '../utils/links';
 
 const KEY = 'qlksan.chat';
-
-// Liên kết của trợ lý trỏ tới trang Web MVC: đổi sang trang tương ứng của SPA để khách ở lại trong ứng dụng
-function spaPath(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.pathname === '/Customer/BookRoom') return `/dat-phong${u.search}`;
-    const m = u.pathname.match(/^\/Home\/RoomType\/([^/]+)$/);
-    if (m) return `/hang-phong/${m[1]}`;
-  } catch {
-    /* không phải URL tuyệt đối */
-  }
-  return null;
-}
 
 export function ChatWidget() {
   const navigate = useNavigate();

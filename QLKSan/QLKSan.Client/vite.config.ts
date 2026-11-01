@@ -11,10 +11,13 @@ const gateway = process.env.VITE_GATEWAY ?? 'https://localhost:7000';
 const anhDungChung = resolve(__dirname, '../QLKSan.Web/wwwroot/images');
 function sharedImages(): Plugin {
   let outDir = 'dist';
+  let laBuild = false;
   return {
     name: 'qlksan-shared-images',
     configResolved(config) {
       outDir = resolve(config.root, config.build.outDir);
+      // Vitest cũng gọi closeBundle (với outDir giả): chỉ chép ảnh khi thật sự vite build
+      laBuild = config.command === 'build' && !process.env.VITEST;
     },
     configureServer(server) {
       server.middlewares.use('/images', (req, res, next) => {
@@ -24,7 +27,7 @@ function sharedImages(): Plugin {
       });
     },
     closeBundle() {
-      if (existsSync(anhDungChung)) cpSync(anhDungChung, join(outDir, 'images'), { recursive: true });
+      if (laBuild && existsSync(anhDungChung)) cpSync(anhDungChung, join(outDir, 'images'), { recursive: true });
     }
   };
 }

@@ -2,12 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ErrorBox } from '../components/common';
+import { duongQuayLai } from '../utils/links';
 
-// Chỉ quay lại đường dẫn nội bộ (tránh chuyển hướng ra trang ngoài)
-function quayLai(params: URLSearchParams) {
-  const q = params.get('quayLai') ?? '/';
-  return q.startsWith('/') && !q.startsWith('//') ? q : '/';
-}
+const quayLai = (params: URLSearchParams) => duongQuayLai(params.get('quayLai'));
 
 export function LoginPage() {
   const { session, login } = useAuth();

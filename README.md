@@ -19,6 +19,8 @@ Trình duyệt ──► QLKSan.Web (MVC, cookie) ──HTTP + JWT──► QLKS
 Hợp đồng dùng chung: QLKSan.Shared (DTO, Request, Enum, Validation, sự kiện)
 ```
 
+Sơ đồ chi tiết (thành phần, luồng đặt phòng → email, luồng trợ lý ảo, giới hạn tần suất, cổng dev / Docker): [docs/KIEN-TRUC.md](docs/KIEN-TRUC.md).
+
 | Project | Vai trò |
 |---|---|
 | `QLKSan/QLKSan.API` | Project **duy nhất** truy cập CSDL. Nghiệp vụ nằm trong `Business/`, controller mỏng. Xác thực bằng JWT. Lỗi trả về theo chuẩn ProblemDetails: 400 dữ liệu sai, 404 không tìm thấy, 409 sai trạng thái. |
@@ -28,7 +30,7 @@ Hợp đồng dùng chung: QLKSan.Shared (DTO, Request, Enum, Validation, sự k
 | `QLKSan/QLKSan.ChatBot` | Trợ lý ảo cho khách (`/api/chat/conversations`): tìm phòng trống và báo giá, giờ nhận/trả phòng, chính sách, dịch vụ, đánh giá. Provider chọn bằng `ChatBot:Provider`: `RuleBased` (mặc định, không cần khoá) hoặc `OpenAI` (tool calling; lỗi thì tự dùng RuleBased). Chỉ gọi endpoint công khai của API lõi qua Gateway; không đặt phòng mà trả liên kết đặt phòng điền sẵn. Lịch sử hội thoại lưu ở SQLite riêng. |
 | `QLKSan/QLKSan.Notification` | Service thông báo: nhận sự kiện phiếu đặt phòng (đặt mới, huỷ, nhận phòng) từ RabbitMQ, gửi email cho khách qua SMTP hoặc ghi file `.eml` khi chưa cấu hình SMTP. Mỗi sự kiện chỉ xử lý một lần. |
 | `QLKSan/QLKSan.Shared` | Hợp đồng dữ liệu dùng chung: `Models/DTOs`, `Models/Requests`, `Models/Events` (sự kiện RabbitMQ), `Enums`, `Validation`. |
-| `QLKSan/QLKSan.Tests` | Unit test xUnit cho phần tính toán thuần: tiền phòng, phụ thu, khuyến mãi, ưu đãi thành viên, giá theo mùa, kiểm tra phòng trống. |
+| `QLKSan/QLKSan.Tests` | Unit test xUnit gồm hai nhóm. (1) Phần tính toán thuần: tiền phòng, phụ thu, khuyến mãi, ưu đãi thành viên, giá theo mùa, kiểm tra phòng trống, đọc ngày ở tiếng Việt. (2) Các service mở rộng, dùng API / OpenAI / upstream giả lập: trợ lý ảo, định tuyến và giới hạn tần suất của Gateway, nội dung email của Notification. |
 | `DB/Quanlykhachsanc#.sql` | Script tạo CSDL và dữ liệu mẫu. |
 
 Quy ước REST:
@@ -52,7 +54,7 @@ Danh sách endpoint xem tại [docs/API.md](docs/API.md). Khi chạy ở môi tr
 
 ## Chạy hệ thống
 
-**Cách nhanh:** chạy `QLKSan/run.bat`. File này build solution, mở API (`https://localhost:7001`), Gateway (`https://localhost:7000`), ChatBot (`https://localhost:7004`) và Web (`https://localhost:7234`), rồi mở trình duyệt.
+**Cách nhanh:** chạy `QLKSan/run.bat`. File này build solution, mở API (`https://localhost:7001`), Gateway (`https://localhost:7000`), ChatBot (`https://localhost:7004`) và Web (`https://localhost:7234`), rồi mở trình duyệt. Nếu máy có Node.js, file này mở thêm trang khách React (`http://localhost:5173`). Lần đầu nó tự chạy `npm install`.
 
 **Visual Studio:** mở `QLKSan/QLKSan.slnx` và đặt Multiple startup projects = `QLKSan.API` + `QLKSan.Gateway` + `QLKSan.ChatBot` + `QLKSan.Web` (profile `https`). Web gọi API qua Gateway (`ApiSettings:BaseUrl` = `https://localhost:7000/`).
 
@@ -160,8 +162,13 @@ Phía Web chỉ cần `ApiSettings:BaseUrl` trong `QLKSan.Web/appsettings.json`.
 
 ```bash
 cd QLKSan
-dotnet test QLKSan.Tests
+dotnet test QLKSan.Tests          # không cần CSDL, RabbitMQ hay khoá OpenAI
+
+cd QLKSan.Client
+npm test                          # Vitest cho trang React
 ```
+
+Phạm vi từng nhóm kiểm thử xem tại [docs/KIEN-TRUC.md](docs/KIEN-TRUC.md#kiểm-thử).
 
 ## Chạy bằng Docker
 
