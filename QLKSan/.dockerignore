@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+QLKSan.Tests/
+QLKSan.API/wwwroot/uploads/
+docker-compose*.yml
+.env

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using QLKSan.ApiClients;
 using QLKSan.Infrastructure;
 
@@ -32,12 +33,19 @@ namespace QLKSan
                 });
             builder.Services.AddAuthorization();
 
+            // Khoá mã hoá cookie đăng nhập: lưu ra thư mục cố định khi chạy trong container để khởi động lại không bị đăng xuất
+            var keysPath = builder.Configuration["DataProtection:KeysPath"];
+            if (!string.IsNullOrWhiteSpace(keysPath))
+                builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keysPath)).SetApplicationName("QLKSan.Web");
+
             // Web không truy cập CSDL: mọi dữ liệu lấy từ QLKSan.API qua các typed HttpClient.
             // JwtTokenHandler tự gắn Bearer token của người dùng đang đăng nhập.
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<JwtTokenHandler>();
             var apiBaseUrl = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
-            MediaUrl.Configure(apiBaseUrl);
+            // Ảnh tải lên do trình duyệt tải trực tiếp từ API: dùng địa chỉ công khai nếu Web gọi API qua địa chỉ nội bộ (vd: Docker)
+            var publicUrl = builder.Configuration["ApiSettings:PublicUrl"];
+            MediaUrl.Configure(string.IsNullOrWhiteSpace(publicUrl) ? apiBaseUrl : new Uri(publicUrl));
             void AddApiClient<TClient, TImplementation>()
                 where TClient : class
                 where TImplementation : class, TClient

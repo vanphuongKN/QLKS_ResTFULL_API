@@ -36,7 +36,7 @@ Danh sách endpoint xem tại [docs/API.md](docs/API.md). Khi chạy ở môi tr
 ## Cài đặt
 
 1. **Tạo CSDL.** Mở `DB/Quanlykhachsanc#.sql` trong SSMS rồi chạy (file UTF-8 có BOM, đã `SET QUOTED_IDENTIFIER ON`). Script tạo database `Quanlykhachsanc#` cùng dữ liệu mẫu.
-2. **Chuỗi kết nối** nằm trong `QLKSan/QLKSan.API/appsettings.json`, mục `ConnectionStrings:DefaultConnection`.
+2. **Chuỗi kết nối và khoá JWT** khi phát triển nằm trong `QLKSan/QLKSan.API/appsettings.Development.json`. `appsettings.json` để trống hai giá trị này; môi trường thật đặt bằng biến môi trường `ConnectionStrings__DefaultConnection`, `Jwt__Key` hoặc `dotnet user-secrets`. Thiếu, hoặc môi trường thật vẫn dùng khoá dev, thì API dừng ngay khi khởi động kèm thông báo.
 3. **Tự nâng cấp CSDL.** Mỗi lần API khởi động, `Data/DatabaseSchemaFixer.cs` tự bổ sung cột/bảng còn thiếu. Các bước có thể chạy lặp lại an toàn. Vì vậy CSDL tạo từ script cũ vẫn dùng được. Nên sao lưu database trước khi chạy phiên bản mới.
 
 ## Chạy hệ thống
@@ -127,6 +127,21 @@ cd QLKSan
 dotnet test QLKSan.Tests
 ```
 
+## Chạy bằng Docker
+
+Cần Docker Desktop. Trong thư mục `QLKSan/`:
+
+```bash
+cp .env.example .env      # đổi SA_PASSWORD và JWT_KEY
+docker compose up -d --build
+```
+
+- Web: http://localhost:7081 · API: http://localhost:7080/api/health · SQL Server: `localhost,14330` (tài khoản `sa`).
+- Lần đầu, dịch vụ `db-init` tạo database từ `DB/Quanlykhachsanc#.sql`. Các lần sau giữ nguyên dữ liệu; API tự nâng cấp cấu trúc khi khởi động.
+- Dữ liệu SQL Server, ảnh tải lên và khoá cookie đăng nhập nằm trong volume (`sqldata`, `uploads`, `webkeys`), nên vẫn còn khi khởi động lại. `docker compose down -v` xoá toàn bộ.
+- Container chạy theo múi giờ `Asia/Ho_Chi_Minh`, vì nghiệp vụ nhận/trả phòng và chốt ngày dùng giờ địa phương.
+- Web gọi API qua địa chỉ nội bộ `http://api:8080`. Ảnh tải lên được trình duyệt tải qua `ApiSettings:PublicUrl`.
+
 ## Triển khai (publish)
 
 ```bash
@@ -138,6 +153,6 @@ dotnet publish QLKSan.Web -c Release -o publish/web
 Khi triển khai:
 - Sửa `appsettings.json` (hoặc biến môi trường) cho từng ứng dụng:
   - API: `ConnectionStrings__DefaultConnection`, `Jwt__Key`;
-  - Web: `ApiSettings__BaseUrl` trỏ tới địa chỉ API thật.
+  - Web: `ApiSettings__BaseUrl` trỏ tới địa chỉ API thật; `ApiSettings__PublicUrl` nếu trình duyệt truy cập API qua địa chỉ khác; `DataProtection__KeysPath` để lưu khoá cookie đăng nhập.
 - Chạy sau IIS / reverse proxy với HTTPS.
 - Cấp quyền ghi thư mục `wwwroot/uploads` cho tiến trình API.
