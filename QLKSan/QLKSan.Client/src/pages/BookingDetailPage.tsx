@@ -1,13 +1,18 @@
 import { useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { ErrorBox, Loading, StatusBadge, useAsync } from '../components/common';
-import { homNay, ngay, soDem, tien } from '../utils/format';
+import { homNay, ngay, soDem, tenHangPhong, tien } from '../utils/format';
+import { DanhGiaCuaToi } from './FeedbackPage';
 
 export function BookingDetailPage() {
   const { maDatPhong = '' } = useParams();
   const location = useLocation();
-  const [lan, setLan] = useState(0);
+  const qc = useQueryClient();
+  const [lan, setLanRaw] = useState(0);
+  // Sau huỷ / đánh giá: tải lại phiếu và làm mới danh sách kỳ nghỉ, đánh giá đã lưu đệm
+  const setLan = (f: (x: number) => number) => { void qc.invalidateQueries({ queryKey: ['me'] }); setLanRaw(f); };
   const phieu = useAsync(() => Promise.all([api.booking(maDatPhong), api.myReviews()]), [maDatPhong, lan]);
   const [huy, setHuy] = useState<{ open?: boolean; lyDo: string; busy?: boolean; error?: string; done?: boolean }>({ lyDo: '' });
   const [dg, setDg] = useState<{ soSao: number; noiDung: string; anDanh: boolean; busy?: boolean; error?: string; done?: boolean }>({ soSao: 5, noiDung: '', anDanh: false });
@@ -50,9 +55,9 @@ export function BookingDetailPage() {
       <p className="breadcrumb"><Link to="/phieu">Phiếu của tôi</Link> / {b.MaDatPhong}</p>
       {(location.state as { moi?: boolean } | null)?.moi && <div className="alert alert-ok" role="status">Đặt phòng thành công! Mã phiếu của quý khách là <strong>{b.MaDatPhong}</strong>.</div>}
       {huy.done && <div className="alert alert-ok" role="status">Đã huỷ phiếu {b.MaDatPhong}.</div>}
-      {dg.done && <div className="alert alert-ok" role="status">Cảm ơn quý khách đã đánh giá!</div>}
+      {(dg.done || (location.state as { daDanhGia?: boolean } | null)?.daDanhGia) && <div className="alert alert-ok" role="status">Cảm ơn bạn đã chia sẻ cảm nhận về kỳ nghỉ!</div>}
       <div className="title-row">
-        <h1>{phong?.LoaiPhong?.TenLoai ?? 'Phiếu đặt phòng'}</h1>
+        <h1>{phong?.LoaiPhong?.TenLoai ? tenHangPhong(phong.LoaiPhong.TenLoai) : 'Phiếu đặt phòng'}</h1>
         <StatusBadge status={b.TrangThai} />
       </div>
       <dl className="detail-list">
@@ -80,8 +85,12 @@ export function BookingDetailPage() {
             <dt>Tổng cộng</dt><dd><strong>{tien(hd.TongTienCanThanhToan)}</strong></dd>
           </dl>
           <p className="muted small">{hd.TrangThai === 'Paid' ? 'Đã thanh toán.' : 'Chưa thanh toán.'}</p>
+          <a href={`/in/hoa-don/${hd.MaHoaDon}`} target="_blank" rel="noopener" className="btn btn-outline w-100">Xem hoá đơn</a>
         </section>
       )}
+      {reviews.filter((r) => r.MaDatPhong === b.MaDatPhong).map((r) => (
+        <section key={r.MaDanhGia} aria-label="Đánh giá của bạn"><h2>Đánh giá của bạn</h2><DanhGiaCuaToi r={r} /></section>
+      ))}
 
       {duocHuy && !huy.open && <button type="button" className="btn btn-outline-danger" onClick={() => setHuy({ lyDo: '', open: true })}>Huỷ phiếu</button>}
       {duocHuy && huy.open && (

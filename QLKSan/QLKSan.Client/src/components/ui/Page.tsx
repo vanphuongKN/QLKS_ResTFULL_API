@@ -94,13 +94,13 @@ export function NutTaiTep({ path, tenMacDinh, children }: { path: string; tenMac
 }
 
 // Khung trang in (hoá đơn, bản in chốt ngày): thanh công cụ ẩn khi in
-export function TrangIn({ tieuDe, children, onQuayLai }: { tieuDe: string; children: ReactNode; onQuayLai?: () => void }) {
+export function TrangIn({ tieuDe, children, onQuayLai, nhanQuayLai = '← Quay lại' }: { tieuDe: string; children: ReactNode; onQuayLai?: () => void; nhanQuayLai?: string }) {
   return (
     <div className="trang-in">
       <div className="trang-in-cong-cu no-print">
-        <button type="button" className="btn btn-outline btn-sm" onClick={onQuayLai ?? (() => history.back())}>← Quay lại</button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={onQuayLai ?? (() => history.back())}>{nhanQuayLai}</button>
         <span>{tieuDe}</span>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>In</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()}>In / Lưu PDF</button>
       </div>
       <article className="giay-in">{children}</article>
     </div>

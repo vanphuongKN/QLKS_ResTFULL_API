@@ -20,6 +20,8 @@ export type UpdateContactRequest = S['UpdateContactRequest'];
 export type ReviewRequest = S['ReviewRequest'];
 export type ChangePasswordRequest = S['ChangePasswordRequest'];
 export type NightAuditStatus = S['NightAuditStatusDto'];
+export type Promotion = S['PromotionDto'];
+export type InvoiceDetail = S['InvoiceDetailDto'];
 
 // Lỗi từ API (ProblemDetails): thông báo tiếng Việt đọc được cho người dùng
 export class ApiError extends Error {
@@ -144,7 +146,10 @@ export const api = {
   review: (r: ReviewRequest) => request<Review>('POST', '/api/reviews', r),
 
   changePassword: (r: ChangePasswordRequest) => request<void>('POST', '/api/auth/change-password', r),
-  nightAuditStatus: () => request<NightAuditStatus>('GET', '/api/night-audit/status')
+  nightAuditStatus: () => request<NightAuditStatus>('GET', '/api/night-audit/status'),
+  // Khuyến mãi đang hiệu lực theo mã: 404 không tồn tại, 400 hết hạn / chưa kích hoạt
+  promotion: (ma: string) => request<Promotion>('GET', `/api/promotions/${encodeURIComponent(ma)}`),
+  invoice: (maHoaDon: string) => request<InvoiceDetail>('GET', `/api/invoices/${encodeURIComponent(maHoaDon)}`)
 };
 
 export { request, upload, download };

@@ -38,3 +38,16 @@ export const TRANG_THAI: Record<BookingStatus, { nhan: string; css: string }> = 
 
 // Ảnh: /uploads/... do API phục vụ (qua Gateway), /images/... là ảnh mẫu dùng chung
 export const anh = (duongDan?: string | null) => duongDan || '/images/room_garden.png';
+
+// Tên hạng phòng hiển thị cho khách: bỏ mã nội bộ cuối tên, vd "Deluxe Ocean (DLX)" → "Deluxe Ocean" (như FormatHelper.TenHangPhong của MVC)
+export const tenHangPhong = (ten?: string | null) => (ten ?? '').replace(/\s*\([A-Z]{2,5}\)\s*$/, '');
+
+// Ngày giờ dd/MM/yyyy HH:mm từ chuỗi ISO của API (giờ địa phương, không đổi múi giờ)
+export function ngayGio(v?: string | null) {
+  if (!v) return '';
+  const gio = v.length >= 16 ? v.slice(11, 16) : '00:00';
+  return `${ngay(v)} ${gio}`;
+}
+
+// Số tiền không kèm ký hiệu (cột bảng hoá đơn): 1.500.000
+export const so = (v?: number | null) => vnd.format(Math.round(v ?? 0));

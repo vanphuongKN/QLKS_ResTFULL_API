@@ -20,6 +20,12 @@ export function Layout() {
     // Xoá cờ khỏi lịch sử: quay lại mục này sau khi đăng nhập lại không bị đăng xuất lần nữa
     navigate('/', { replace: true, state: null });
   }, [dangXuat, session, logout, navigate]);
+  // Chuyển trang thì về đầu trang; có #neo (vd /#hang-phong) thì cuộn tới mục đó
+  useEffect(() => {
+    if (!location.hash) { window.scrollTo(0, 0); return; }
+    const t = window.setTimeout(() => document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ behavior: 'smooth' }), 60);
+    return () => window.clearTimeout(t);
+  }, [location.pathname, location.hash]);
   const hotel = useAsync(() => api.hotel(), []);
   const h = hotel.data;
 
@@ -31,14 +37,31 @@ export function Layout() {
           <Link to="/" className="brand">LUXE RESERVE</Link>
           <button type="button" className="menu-toggle" aria-expanded={menu} aria-controls="mainNav" onClick={() => setMenu(!menu)}>☰<span className="sr-only">Menu</span></button>
           <nav id="mainNav" className={menu ? 'open' : ''} aria-label="Điều hướng chính" onClick={() => setMenu(false)}>
+            {/* Cùng menu với _CustomerLayout của MVC: khách đã đăng nhập thấy các trang của mình, còn lại thấy trang giới thiệu */}
             <NavLink to="/" end>Trang chủ</NavLink>
-            <NavLink to="/tim-phong">Tìm phòng</NavLink>
-            {session && !laNhanVien(session.vaiTro) && <NavLink to="/phieu">Phiếu của tôi</NavLink>}
+            {session?.vaiTro === 'Customer' ? (
+              <>
+                <NavLink to="/tim-phong">Đặt phòng</NavLink>
+                <NavLink to="/phieu">Kỳ nghỉ</NavLink>
+                <NavLink to="/danh-gia">Đánh giá</NavLink>
+                <NavLink to="/tai-khoan" end>Hồ sơ</NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink to="/cau-chuyen">Câu chuyện</NavLink>
+                <Link to="/#hang-phong">Hạng phòng</Link>
+                <NavLink to="/am-thuc">Ẩm thực</NavLink>
+                <NavLink to="/spa">Spa</NavLink>
+                <NavLink to="/thu-vien">Thư viện</NavLink>
+                <NavLink to="/dac-quyen">Đặc quyền</NavLink>
+              </>
+            )}
+            <span className="nav-tach" aria-hidden="true" />
             {session ? (
               <>
                 {laNhanVien(session.vaiTro)
                   ? <NavLink to={trangChuCua(session.vaiTro)}>Cổng nhân viên</NavLink>
-                  : <NavLink to="/tai-khoan">{session.hoTen}</NavLink>}
+                  : <Link to="/tai-khoan" className="nav-ten">{session.hoTen}</Link>}
                 <button type="button" className="link-btn" onClick={() => navigate('/', { state: { dangXuat: true } })}>Đăng xuất</button>
               </>
             ) : (

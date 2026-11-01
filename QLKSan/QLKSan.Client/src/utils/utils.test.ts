@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, anh, isoDate, ngay, soDem, tien } from './format';
+import { addDays, anh, isoDate, ngay, ngayGio, so, soDem, tenHangPhong, tien } from './format';
 import { duongQuayLai, spaPath } from './links';
 
 describe('định dạng', () => {
@@ -53,5 +53,22 @@ describe('đường quay lại sau đăng nhập', () => {
   it('chặn chuyển hướng ra trang ngoài', () => {
     for (const v of ['https://evil.example', '//evil.example', '/\\evil.example', 'javascript:alert(1)', '', null, undefined])
       expect(duongQuayLai(v)).toBe('/');
+  });
+});
+
+describe('định dạng cho hoá đơn / hạng phòng', () => {
+  it('tên hạng phòng bỏ mã nội bộ cuối tên (như FormatHelper.TenHangPhong của MVC)', () => {
+    expect(tenHangPhong('Deluxe Ocean (DLX)')).toBe('Deluxe Ocean');
+    expect(tenHangPhong('Phòng Gia Đình')).toBe('Phòng Gia Đình');
+    expect(tenHangPhong('Suite (Tầng cao)')).toBe('Suite (Tầng cao)');
+    expect(tenHangPhong(null)).toBe('');
+  });
+
+  it('ngày giờ dd/MM/yyyy HH:mm, số tiền không ký hiệu', () => {
+    expect(ngayGio('2026-10-05T11:25:41.123')).toBe('05/10/2026 11:25');
+    expect(ngayGio('2026-10-05')).toBe('05/10/2026 00:00');
+    expect(ngayGio(null)).toBe('');
+    expect(so(1458000)).toBe('1.458.000');
+    expect(so(-50000)).toBe('-50.000');
   });
 });

@@ -3,6 +3,9 @@ import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-rou
 import { Layout } from './components/Layout';
 import { Loading, RequireAuth } from './components/common';
 import { ChangePasswordPage, LoginPage, RegisterPage } from './pages/AuthPages';
+import { AboutPage, DiningPage, GalleryPage, MembershipPage, SpaPage } from './pages/ContentPages';
+import { FeedbackPage } from './pages/FeedbackPage';
+import { InvoicePrintPage } from './pages/InvoicePrintPage';
 import { BookPage } from './pages/BookPage';
 import { BookingDetailPage } from './pages/BookingDetailPage';
 import { BookingsPage } from './pages/BookingsPage';
@@ -26,6 +29,8 @@ export function App() {
   return (
     <Routes>
       <Route path="nhan-vien/*" element={<Suspense fallback={<Loading />}><StaffApp /></Suspense>} />
+      {/* Bản in hoá đơn: ngoài khung trang; khách xem hoá đơn của mình, thu ngân / kế toán xem mọi hoá đơn (API kiểm tra) */}
+      <Route path="in/hoa-don/:maHoaDon" element={<RequireAuth roles={['Customer', 'Admin', 'Receptionist', 'Accountant']}><InvoicePrintPage /></RequireAuth>} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="tim-phong" element={<SearchPage />} />
@@ -35,6 +40,12 @@ export function App() {
         <Route path="phieu/:maDatPhong" element={<RequireAuth><BookingDetailPage /></RequireAuth>} />
         <Route path="tai-khoan" element={<RequireAuth><ProfilePage /></RequireAuth>} />
         <Route path="doi-mat-khau" element={<RequireAuth><div className="container"><ChangePasswordPage /></div></RequireAuth>} />
+        <Route path="danh-gia" element={<RequireAuth><FeedbackPage /></RequireAuth>} />
+        <Route path="cau-chuyen" element={<AboutPage />} />
+        <Route path="am-thuc" element={<DiningPage />} />
+        <Route path="spa" element={<SpaPage />} />
+        <Route path="thu-vien" element={<GalleryPage />} />
+        <Route path="dac-quyen" element={<MembershipPage />} />
         <Route path="dang-nhap" element={<LoginPage />} />
         <Route path="dang-ky" element={<RegisterPage />} />
         <Route path="Customer/BookRoom" element={<LegacyBookRoom />} />
