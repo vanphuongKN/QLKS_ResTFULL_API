@@ -469,6 +469,22 @@ namespace QLKSan.Data
                         GhiChu NVARCHAR(100) NULL
                     );
                     CREATE INDEX IX_DoanhThuDem_Ngay ON DoanhThuDem(Ngay);
+                END"),
+
+            // M1: outbox sự kiện gửi lên RabbitMQ
+            ("44. Tạo bảng SuKienCho", @"
+                IF OBJECT_ID('SuKienCho', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE SuKienCho (
+                        MaSuKien UNIQUEIDENTIFIER PRIMARY KEY,
+                        Loai NVARCHAR(50) NOT NULL,
+                        NoiDung NVARCHAR(MAX) NOT NULL,
+                        ThoiGianTao DATETIME NOT NULL CONSTRAINT DF_SuKienCho_ThoiGianTao DEFAULT GETDATE(),
+                        ThoiGianGui DATETIME NULL,
+                        SoLanThu INT NOT NULL CONSTRAINT DF_SuKienCho_SoLanThu DEFAULT 0,
+                        LoiCuoi NVARCHAR(500) NULL
+                    );
+                    CREATE INDEX IX_SuKienCho_ChuaGui ON SuKienCho(ThoiGianGui, ThoiGianTao);
                 END")
         };
 

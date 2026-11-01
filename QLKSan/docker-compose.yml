@@ -1,5 +1,6 @@
 # Chạy toàn bộ hệ thống bằng Docker: docker compose up -d --build   (tạo file .env từ .env.example trước)
-# Web: http://localhost:7081   API: http://localhost:7080/api/health   SQL Server: localhost,14330
+# Web: http://localhost:7081   Gateway (API): http://localhost:7080/api/health   RabbitMQ: http://localhost:15672   SQL Server: localhost,14330
+# Trình duyệt và Web chỉ đi qua Gateway; API lõi và service thông báo không mở cổng ra ngoài.
 name: qlksan
 
 services:
@@ -34,6 +35,24 @@ services:
     entrypoint: ["/bin/bash", "/db-init.sh"]
     restart: "no"
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    # Chạy thẳng bằng user rabbitmq: entrypoint chạy root không đọc được .erlang.cookie trên một số bản Docker Desktop
+    user: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: qlksan
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Đặt RABBITMQ_PASSWORD trong .env}
+    ports:
+      - "${RABBITMQ_UI_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+
   api:
     build:
       context: .
@@ -41,14 +60,52 @@ services:
     depends_on:
       db-init:
         condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Server=db;Database=QuanLyKhachSanc#;User Id=sa;Password=${SA_PASSWORD};MultipleActiveResultSets=true;TrustServerCertificate=True"
       Jwt__Key: ${JWT_KEY:?Đặt JWT_KEY (tối thiểu 32 ký tự) trong .env}
-    ports:
-      - "${API_PORT:-7080}:8080"
+      Messaging__Enabled: "true"
+      Messaging__RabbitMqUri: amqp://qlksan:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      ForwardedHeaders__MangTinCay__0: 172.28.0.0/16
     volumes:
       - uploads:/app/wwwroot/uploads
+    restart: unless-stopped
+
+  notification:
+    build:
+      context: .
+      dockerfile: QLKSan.Notification/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      RabbitMq__Uri: amqp://qlksan:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      Email__ThuMucLuu: /app/mail
+      Email__Smtp__Host: ${SMTP_HOST:-}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__TenDangNhap: ${SMTP_USER:-}
+      Email__Smtp__MatKhau: ${SMTP_PASSWORD:-}
+    volumes:
+      - mail:/app/mail
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: QLKSan.Gateway/Dockerfile
+    depends_on:
+      - api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Jwt__Key: ${JWT_KEY}
+      ReverseProxy__Clusters__core__Destinations__api__Address: http://api:8080/
+      # Web nằm trong mạng nội bộ: tin X-Forwarded-For do Web gửi
+      Gateway__MangTinCay__0: 172.28.0.0/16
+    ports:
+      - "${API_PORT:-7080}:8080"
     restart: unless-stopped
 
   web:
@@ -56,10 +113,10 @@ services:
       context: .
       dockerfile: QLKSan.Web/Dockerfile
     depends_on:
-      - api
+      - gateway
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ApiSettings__BaseUrl: http://api:8080/
+      ApiSettings__BaseUrl: http://gateway:8080/
       ApiSettings__PublicUrl: http://localhost:${API_PORT:-7080}/
       DataProtection__KeysPath: /app/keys
     ports:
@@ -68,7 +125,15 @@ services:
       - webkeys:/app/keys
     restart: unless-stopped
 
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
 volumes:
   sqldata:
+  rabbitmq:
   uploads:
+  mail:
   webkeys:

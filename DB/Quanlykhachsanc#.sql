@@ -487,6 +487,18 @@ CREATE TABLE DoanhThuDem (
 );
 CREATE INDEX IX_DoanhThuDem_Ngay ON DoanhThuDem(Ngay);
 
+-- Outbox: sự kiện (đặt phòng mới, huỷ, nhận phòng) chờ đẩy lên RabbitMQ cho các service khác
+CREATE TABLE SuKienCho (
+    MaSuKien UNIQUEIDENTIFIER PRIMARY KEY,
+    Loai NVARCHAR(50) NOT NULL,                     -- routing key: booking.created | booking.cancelled | booking.checked-in
+    NoiDung NVARCHAR(MAX) NOT NULL,                 -- JSON
+    ThoiGianTao DATETIME NOT NULL CONSTRAINT DF_SuKienCho_ThoiGianTao DEFAULT GETDATE(),
+    ThoiGianGui DATETIME NULL,
+    SoLanThu INT NOT NULL CONSTRAINT DF_SuKienCho_SoLanThu DEFAULT 0,
+    LoiCuoi NVARCHAR(500) NULL
+);
+CREATE INDEX IX_SuKienCho_ChuaGui ON SuKienCho(ThoiGianGui, ThoiGianTao);
+
 CREATE TABLE PhanCongDonPhong (
     MaPhanCong VARCHAR(10) PRIMARY KEY,
     MaPhong VARCHAR(10) NOT NULL,

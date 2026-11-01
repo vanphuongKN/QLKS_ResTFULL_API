@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
+using QLKSan.Messaging;
+using QLKSan.Models.Events;
 using QLKSan.Models.Entities;
 using QLKSan.Models.Requests;
 
@@ -18,9 +20,12 @@ namespace QLKSan.Business
         private readonly IRoomAvailabilityService _availability;
         private readonly HotelPolicy _policy;
         private readonly IPromotionService _promotions;
+        private readonly IEventOutbox _events;
 
-        public CustomerService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPromotionService promotions)
+        public CustomerService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPromotionService promotions,
+            IEventOutbox events)
         {
+            _events = events;
             _context = context;
             _availability = availability;
             _policy = policy.Value;
@@ -125,6 +130,8 @@ namespace QLKSan.Business
                 });
 
                 // Không đổi Phong.TrangThai: phòng chỉ bị giữ trong khoảng ngày của phiếu
+                await _context.SaveChangesAsync();
+                await _events.AddBookingEventAsync(BookingEventTypes.DatPhongMoi, booking.MaDatPhong);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return booking.MaDatPhong;

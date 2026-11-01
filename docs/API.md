@@ -1,6 +1,6 @@
 # QLKSan.API — Danh sách endpoint
 
-Địa chỉ khi phát triển: `https://localhost:7001`. Ở môi trường Development, Swagger có tại `/swagger`.
+Client (Web, trang khách) gọi qua **Gateway**: `https://localhost:7000` khi phát triển, `http://localhost:7080` khi chạy Docker. Gateway chuyển nguyên đường dẫn `/api/*`, `/uploads/*` tới API lõi (`https://localhost:7001`, Swagger tại `/swagger` ở môi trường Development). Gọi quá giới hạn tần suất → `429` (ProblemDetails).
 
 ## Quy ước
 
@@ -217,3 +217,15 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/settings` | Admin | Cấu hình nghiệp vụ hiện hành (thông tin khách sạn, chính sách lưu trú, chương trình thành viên) và mục nào đã được tuỳ chỉnh |
 | PUT | `/api/settings/hotel-info` · `/policy` · `/loyalty` | Admin | Lưu từng mục vào CSDL (bảng `CauHinh`); có hiệu lực ngay, không cần khởi động lại |
 | GET | `/api/audit-logs?tuNgay&denNgay&doiTuong&nguoiDung&tuKhoa&trang&soDong` | Admin | Nhật ký thao tác: mọi thao tác thay đổi dữ liệu thành công (người thực hiện, thời gian, đối tượng, dữ liệu gửi lên — không lưu mật khẩu) và các lần tạm khoá tài khoản |
+
+## Sự kiện (RabbitMQ)
+
+API lõi ghi sự kiện vào bảng outbox `SuKienCho` trong cùng giao dịch với nghiệp vụ. Tác vụ nền đẩy sự kiện lên exchange `qlksan.su-kien` (topic, bền) khi bật `Messaging:Enabled`. Nội dung là JSON `BookingEvent` (`QLKSan.Shared/Models/Events`). `MessageId` = `MaSuKien`.
+
+| Routing key | Phát khi | Service nhận |
+|---|---|---|
+| `booking.created` | Khách đặt online, đặt phòng qua quầy | Notification: email xác nhận |
+| `booking.checked-in` | Nhận phòng (phiếu đã đặt, khách vãng lai) | Notification: email chào mừng |
+| `booking.cancelled` | Huỷ / từ chối phiếu, khách không đến khi chốt ngày (`LyDo`) | Notification: email huỷ (kèm cọc giữ lại) |
+
+Hàng đợi `qlksan.thong-bao` gắn khoá `booking.*`. Sự kiện có thể đến hơn một lần (outbox gửi lại sau sự cố); service nhận phải bỏ qua sự kiện đã xử lý theo `MaSuKien`.
