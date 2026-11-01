@@ -43,6 +43,7 @@ namespace QLKSan
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<JwtTokenHandler>();
             builder.Services.AddTransient<ForwardedClientHandler>();
+            builder.Services.AddTransient<ApiConnectionHandler>();
             var apiBaseUrl = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
             // Ảnh tải lên do trình duyệt tải trực tiếp từ API: dùng địa chỉ công khai nếu Web gọi API qua địa chỉ nội bộ (vd: Docker)
             var publicUrl = builder.Configuration["ApiSettings:PublicUrl"];
@@ -51,7 +52,9 @@ namespace QLKSan
                 where TClient : class
                 where TImplementation : class, TClient
             {
+                // ApiConnectionHandler đứng ngoài cùng: bắt lỗi kết nối của cả chuỗi
                 builder.Services.AddHttpClient<TClient, TImplementation>(c => c.BaseAddress = apiBaseUrl)
+                    .AddHttpMessageHandler<ApiConnectionHandler>()
                     .AddHttpMessageHandler<JwtTokenHandler>()
                     .AddHttpMessageHandler<ForwardedClientHandler>();
             }

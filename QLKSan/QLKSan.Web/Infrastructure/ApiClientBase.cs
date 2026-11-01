@@ -139,6 +139,9 @@ namespace QLKSan.Infrastructure
                 HttpStatusCode.Unauthorized => "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
                 HttpStatusCode.Forbidden => "Bạn không có quyền thực hiện thao tác này.",
                 HttpStatusCode.NotFound => "Không tìm thấy dữ liệu.",
+                HttpStatusCode.TooManyRequests => "Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút.",
+                // Gateway chạy nhưng API lõi / ChatBot phía sau chưa chạy
+                HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout => ApiConnectionHandler.ThongBao,
                 _ => "Đã xảy ra lỗi khi kết nối tới máy chủ API."
             };
 
