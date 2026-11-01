@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../api/client';
 import { ErrorBox, Loading, useAsync } from '../components/common';
@@ -35,7 +36,7 @@ export function ProfilePage() {
 
   return (
     <div className="container section narrow">
-      <h1>Tài khoản</h1>
+      <div className="title-row"><h1>Tài khoản</h1><Link to="/doi-mat-khau" className="small">Đổi mật khẩu</Link></div>
       <section className="card member">
         <p className="eyebrow">{tv?.Hang ?? 'Thành viên'}</p>
         <h2>{kh.HoTen}</h2>

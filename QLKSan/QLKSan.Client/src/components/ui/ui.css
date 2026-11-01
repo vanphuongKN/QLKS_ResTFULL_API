@@ -1,0 +1,63 @@
+/* Component dùng chung (thông báo, hộp thoại, bảng, bộ lọc, trang in) — dùng token màu trong styles.css */
+.btn-primary { background: var(--ink); color: var(--white); }
+.btn-primary:hover:not(:disabled) { background: var(--gold); }
+.btn-sm { padding: 6px 14px; font-size: .78rem; }
+.btn-danger:hover:not(:disabled) { filter: brightness(.9); }
+
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.field > input, .field > select, .field > textarea { width: 100%; }
+.field-loi { color: var(--danger); text-transform: none; letter-spacing: normal; font-weight: 500; }
+
+/* Thông báo nổi */
+.toast-vung { position: fixed; right: 16px; bottom: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
+.toast { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 8px; background: var(--white); border-left: 4px solid var(--info); box-shadow: 0 6px 24px rgba(20, 26, 36, .18); font-size: .92rem; }
+.toast-ok { border-left-color: var(--ok); }
+.toast-loi { border-left-color: var(--danger); }
+.toast span { flex: 1; }
+.toast-dong { background: none; border: 0; font-size: 1.2rem; line-height: 1; cursor: pointer; color: var(--muted); padding: 0 2px; }
+
+/* Hộp thoại */
+.modal { border: 0; padding: 0; border-radius: var(--radius); width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-shadow: 0 20px 60px rgba(20, 26, 36, .35); color: var(--text); background: var(--white); }
+.modal-rong { width: min(860px, calc(100vw - 32px)); }
+.modal::backdrop { background: rgba(20, 26, 36, .55); }
+.modal-khung { display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+.modal-dau { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-dau h2 { margin: 0; font-size: 1.4rem; }
+.modal-dong { background: none; border: 0; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--muted); }
+.modal-than { padding: 16px 20px; overflow: auto; }
+.modal-chan { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding-top: 12px; }
+.xac-nhan { display: flex; flex-direction: column; gap: 12px; }
+
+/* Bảng */
+.bang-cuon { width: 100%; overflow-x: auto; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); }
+.bang { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.bang th, .bang td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.bang th { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: #FBF9F5; white-space: nowrap; }
+.bang tbody tr:last-child td { border-bottom: 0; }
+.bang tbody tr:hover td { background: #FCFAF6; }
+.bang .canh-phai { text-align: right; }
+.bang .canh-giua { text-align: center; }
+.bang-trong { text-align: center !important; color: var(--muted); padding: 28px 12px !important; }
+.th-sx { background: none; border: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+
+/* Đầu trang, bộ lọc, trạng thái trống */
+.trang-dau { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 20px; }
+.trang-dau h1 { margin: 0; font-size: clamp(1.6rem, 3vw, 2.1rem); }
+.trang-dau p { margin: 4px 0 0; }
+.trang-dau-nut { display: flex; gap: 8px; flex-wrap: wrap; }
+.bo-loc { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin-bottom: 16px; font-size: .85rem; color: var(--muted); }
+.bo-loc label { display: flex; flex-direction: column; gap: 4px; }
+.bo-loc-nhanh { display: inline-flex; gap: 12px; padding-bottom: 8px; }
+.bo-loc .field-loi { flex-basis: 100%; }
+.trong-rong { padding: 32px 16px; text-align: center; color: var(--muted); background: var(--white); border: 1px dashed var(--border); border-radius: var(--radius); }
+
+/* Trang in */
+.trang-in { max-width: 880px; margin: 0 auto; padding: 16px; }
+.trang-in-cong-cu { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.giay-in { background: var(--white); padding: 40px; border: 1px solid var(--border); border-radius: 4px; }
+@media print {
+  .no-print, .toast-vung { display: none !important; }
+  body { background: #fff; }
+  .trang-in { max-width: none; padding: 0; }
+  .giay-in { border: 0; padding: 0; }
+}

@@ -1,7 +1,8 @@
+import { lazy, Suspense } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { RequireAuth } from './components/common';
-import { LoginPage, RegisterPage } from './pages/AuthPages';
+import { Loading, RequireAuth } from './components/common';
+import { ChangePasswordPage, LoginPage, RegisterPage } from './pages/AuthPages';
 import { BookPage } from './pages/BookPage';
 import { BookingDetailPage } from './pages/BookingDetailPage';
 import { BookingsPage } from './pages/BookingsPage';
@@ -18,9 +19,13 @@ function LegacyRoomType() {
   return <Navigate to={`/hang-phong/${useParams().id}`} replace />;
 }
 
+// Cổng nhân viên tải riêng khi cần: khách không tải mã của cổng này
+const StaffApp = lazy(() => import('./staff/StaffApp'));
+
 export function App() {
   return (
     <Routes>
+      <Route path="nhan-vien/*" element={<Suspense fallback={<Loading />}><StaffApp /></Suspense>} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="tim-phong" element={<SearchPage />} />
@@ -29,6 +34,7 @@ export function App() {
         <Route path="phieu" element={<RequireAuth><BookingsPage /></RequireAuth>} />
         <Route path="phieu/:maDatPhong" element={<RequireAuth><BookingDetailPage /></RequireAuth>} />
         <Route path="tai-khoan" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+        <Route path="doi-mat-khau" element={<RequireAuth><div className="container"><ChangePasswordPage /></div></RequireAuth>} />
         <Route path="dang-nhap" element={<LoginPage />} />
         <Route path="dang-ky" element={<RegisterPage />} />
         <Route path="Customer/BookRoom" element={<LegacyBookRoom />} />

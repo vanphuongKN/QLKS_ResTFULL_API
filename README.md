@@ -25,7 +25,7 @@ Sơ đồ chi tiết (thành phần, luồng đặt phòng → email, luồng tr
 |---|---|
 | `QLKSan/QLKSan.API` | Project **duy nhất** truy cập CSDL. Nghiệp vụ nằm trong `Business/`, controller mỏng. Xác thực bằng JWT. Lỗi trả về theo chuẩn ProblemDetails: 400 dữ liệu sai, 404 không tìm thấy, 409 sai trạng thái. |
 | `QLKSan/QLKSan.Web` | Ứng dụng MVC cho khách và nhân viên. Chỉ gọi API (qua Gateway) bằng `ApiClients/`, không truy cập CSDL. Đăng nhập bằng cookie và giữ JWT để gọi API. |
-| `QLKSan/QLKSan.Client` | Trang khách bằng React + TypeScript (Vite): trang chủ, hạng phòng, tìm phòng trống, đặt phòng, phiếu của tôi (huỷ, đánh giá), tài khoản thành viên, đăng nhập / đăng ký, trợ lý ảo. Gọi API qua Gateway cùng nguồn (Vite proxy khi dev, nginx khi chạy Docker), kiểu dữ liệu sinh từ OpenAPI của API lõi (`npm run gen:api`). Cổng nhân viên vẫn là QLKSan.Web. |
+| `QLKSan/QLKSan.Client` | Giao diện React + TypeScript (Vite), đang thay dần QLKSan.Web. **Trang khách** (đủ chức năng chính): trang chủ, hạng phòng, tìm phòng trống, đặt phòng, phiếu của tôi (huỷ, đánh giá), tài khoản thành viên, đổi mật khẩu, trợ lý ảo. **Cổng nhân viên** `/nhan-vien` (tải riêng): đăng nhập theo vai trò, menu và phân quyền giống cổng MVC, cảnh báo chốt ngày; các trang nghiệp vụ đang chuyển theo bước R2–R5, trang chưa chuyển có nút mở trang tương ứng trên cổng MVC (`VITE_MVC_URL`). Gọi API qua Gateway cùng nguồn (Vite proxy khi dev, nginx + CSP khi chạy Docker), kiểu dữ liệu sinh từ OpenAPI (`npm run gen:api`), dữ liệu quản lý bằng TanStack Query. |
 | `QLKSan/QLKSan.Gateway` | Cổng vào duy nhất (YARP): chuyển `/api/*`, `/uploads/*` tới API lõi theo mục `ReverseProxy` trong `appsettings.json`; giới hạn tần suất theo người dùng (JWT) hoặc theo IP, đăng nhập / đăng ký chặt hơn (trả 429). Không chứa nghiệp vụ. |
 | `QLKSan/QLKSan.ChatBot` | Trợ lý ảo cho khách (`/api/chat/conversations`): tìm phòng trống và báo giá, giờ nhận/trả phòng, chính sách, dịch vụ, đánh giá. Provider chọn bằng `ChatBot:Provider`: `RuleBased` (mặc định, không cần khoá) hoặc `OpenAI` (tool calling; lỗi thì tự dùng RuleBased). Chỉ gọi endpoint công khai của API lõi qua Gateway; không đặt phòng mà trả liên kết đặt phòng điền sẵn. Lịch sử hội thoại lưu ở SQLite riêng. |
 | `QLKSan/QLKSan.Notification` | Service thông báo: nhận sự kiện phiếu đặt phòng (đặt mới, huỷ, nhận phòng) từ RabbitMQ, gửi email cho khách qua SMTP hoặc ghi file `.eml` khi chưa cấu hình SMTP. Mỗi sự kiện chỉ xử lý một lần. |
@@ -89,7 +89,7 @@ npm install
 npm run dev               # http://localhost:5173, /api chuyển tới Gateway https://localhost:7000
 ```
 
-Đổi Gateway bằng biến `VITE_GATEWAY`. Sinh lại kiểu dữ liệu khi API thay đổi: `npm run gen:api` (đọc `https://localhost:7001/openapi/v1.json`, đổi bằng `API_OPENAPI_URL`). Build: `npm run build` → `dist/`.
+Đổi Gateway bằng biến `VITE_GATEWAY`; địa chỉ cổng MVC cho các trang nhân viên chưa chuyển bằng `VITE_MVC_URL` (mặc định `https://localhost:7234`). Cổng nhân viên: `http://localhost:5173/nhan-vien`, đăng nhập bằng tài khoản nhân viên ở trang đăng nhập chung. Sinh lại kiểu dữ liệu khi API thay đổi: `npm run gen:api` (đọc `https://localhost:7001/openapi/v1.json`, đổi bằng `API_OPENAPI_URL`). Build: `npm run build` → `dist/`.
 
 > Không mở trực tiếp `bin\...\QLKSan.Web.exe`: khi đó ứng dụng chạy ở môi trường Production, sẽ không có CSS/JS và không biết địa chỉ API.
 

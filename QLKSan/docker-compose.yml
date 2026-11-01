@@ -149,6 +149,9 @@ services:
     build:
       context: .
       dockerfile: QLKSan.Client/Dockerfile
+      args:
+        # Trang nhân viên chưa chuyển sang React mở trang tương ứng trên cổng MVC (service web)
+        VITE_MVC_URL: http://localhost:${WEB_PORT:-7081}
     depends_on:
       - gateway
     ports:

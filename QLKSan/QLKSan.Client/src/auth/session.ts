@@ -1,12 +1,16 @@
 import type { LoginResponse } from '../api/client';
+import type { Role } from './roles';
 
-// Phiên đăng nhập của khách: JWT giữ trong sessionStorage (đóng tab là đăng xuất), tự đăng xuất khi hết hạn hoặc API trả 401
+// Phiên đăng nhập (khách và nhân viên): JWT giữ trong sessionStorage (đóng tab là đăng xuất),
+// tự đăng xuất khi hết hạn hoặc API trả 401. Quyền thật vẫn do API kiểm tra theo JWT; vai trò ở đây chỉ để chọn giao diện.
 export interface Session {
   token: string;
   expiresAt: string;
   hoTen: string;
   tenDangNhap: string;
-  maKhachHang: string;
+  vaiTro: Role;
+  maKhachHang?: string;
+  maNhanVien?: string;
 }
 
 const KEY = 'qlksan.session';
@@ -14,7 +18,8 @@ const KEY = 'qlksan.session';
 export function load(): Session | null {
   try {
     const s = JSON.parse(sessionStorage.getItem(KEY) ?? 'null') as Session | null;
-    return s && new Date(s.expiresAt) > new Date() ? s : null;
+    // Phiên lưu từ bản cũ (chưa có vai trò) coi như chưa đăng nhập
+    return s && s.vaiTro && new Date(s.expiresAt) > new Date() ? s : null;
   } catch {
     return null;
   }
@@ -29,9 +34,16 @@ export function save(s: Session | null) {
   }
 }
 
-// Trang này dành cho khách; nhân viên dùng cổng nhân viên (QLKSan.Web)
 export function toSession(r: LoginResponse): Session {
-  if (r.VaiTro !== 'Customer' || !r.AccessToken || !r.MaKhachHang)
-    throw new Error('Tài khoản nhân viên vui lòng đăng nhập tại cổng nhân viên.');
-  return { token: r.AccessToken, expiresAt: r.ExpiresAt ?? '', hoTen: r.HoTen ?? r.TenDangNhap ?? '', tenDangNhap: r.TenDangNhap ?? '', maKhachHang: r.MaKhachHang };
+  if (!r.AccessToken || !r.VaiTro) throw new Error('Phản hồi đăng nhập không hợp lệ.');
+  if (r.VaiTro === 'Customer' && !r.MaKhachHang) throw new Error('Tài khoản khách chưa gắn hồ sơ khách hàng.');
+  return {
+    token: r.AccessToken,
+    expiresAt: r.ExpiresAt ?? '',
+    hoTen: r.HoTen ?? r.TenDangNhap ?? '',
+    tenDangNhap: r.TenDangNhap ?? '',
+    vaiTro: r.VaiTro,
+    maKhachHang: r.MaKhachHang ?? undefined,
+    maNhanVien: r.MaNhanVien ?? undefined
+  };
 }

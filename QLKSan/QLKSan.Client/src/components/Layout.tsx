@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { laNhanVien, trangChuCua } from '../auth/roles';
 import { ChatWidget } from './ChatWidget';
 import { useAsync } from './common';
 
@@ -32,10 +33,12 @@ export function Layout() {
           <nav id="mainNav" className={menu ? 'open' : ''} aria-label="Điều hướng chính" onClick={() => setMenu(false)}>
             <NavLink to="/" end>Trang chủ</NavLink>
             <NavLink to="/tim-phong">Tìm phòng</NavLink>
-            {session && <NavLink to="/phieu">Phiếu của tôi</NavLink>}
+            {session && !laNhanVien(session.vaiTro) && <NavLink to="/phieu">Phiếu của tôi</NavLink>}
             {session ? (
               <>
-                <NavLink to="/tai-khoan">{session.hoTen}</NavLink>
+                {laNhanVien(session.vaiTro)
+                  ? <NavLink to={trangChuCua(session.vaiTro)}>Cổng nhân viên</NavLink>
+                  : <NavLink to="/tai-khoan">{session.hoTen}</NavLink>}
                 <button type="button" className="link-btn" onClick={() => navigate('/', { state: { dangXuat: true } })}>Đăng xuất</button>
               </>
             ) : (

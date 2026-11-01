@@ -37,7 +37,7 @@ flowchart LR
 | `QLKSan.Gateway` | Cổng vào duy nhất: định tuyến, giới hạn tần suất | YARP, RateLimiter | https 7000 | **7080** | — |
 | `QLKSan.API` | Nghiệp vụ khách sạn, xác thực JWT | ASP.NET Core, EF Core | https 7001 | nội bộ | SQL Server |
 | `QLKSan.Web` | Cổng nhân viên + trang khách MVC | ASP.NET Core MVC | https 7234 | **7081** | khoá cookie |
-| `QLKSan.Client` | Trang khách | React 19 + TypeScript (Vite) | http 5173 | **7082** (nginx) | — |
+| `QLKSan.Client` | Trang khách + cổng nhân viên `/nhan-vien` (đang chuyển dần từ MVC) | React 19 + TypeScript (Vite), TanStack Query | http 5173 | **7082** (nginx) | — |
 | `QLKSan.ChatBot` | Trợ lý ảo cho khách | ASP.NET Core, `ILlmProvider` | https 7004 | nội bộ | SQLite riêng |
 | `QLKSan.Notification` | Gửi email theo sự kiện phiếu đặt phòng | Worker + RabbitMQ.Client | http 5003 | nội bộ | thư mục mail |
 
@@ -50,7 +50,7 @@ Trong Docker chỉ Gateway, Web, Client, giao diện quản trị RabbitMQ (1567
    - ChatBot chỉ đọc endpoint công khai.
    - Notification chỉ nhận sự kiện.
 2. **Giao tiếp đồng bộ dùng REST qua Gateway, giao tiếp bất đồng bộ dùng RabbitMQ.** Không service nào gọi thẳng vào service khác mà bỏ qua Gateway.
-3. **Không cần CORS.** Trang React được phục vụ cùng nguồn với `/api`: Vite proxy khi dev, nginx khi chạy Docker.
+3. **Không cần CORS.** Trang React được phục vụ cùng nguồn với `/api`: Vite proxy khi dev, nginx khi chạy Docker. Token đăng nhập của trang React (khách và nhân viên) nằm trong sessionStorage, nên nginx gửi Content-Security-Policy chặt (chỉ script / API cùng nguồn, font Google Fonts, không cho nhúng khung).
 4. **Bí mật không nằm trong mã nguồn.** `Jwt:Key`, chuỗi kết nối, mật khẩu RabbitMQ và khoá OpenAI được đặt bằng biến môi trường hoặc user-secrets.
    - Khoá OpenAI chỉ có ở ChatBot.
    - API và Gateway dừng ngay khi khởi động nếu thiếu khoá.
@@ -137,4 +137,4 @@ Vượt hạn mức thì Gateway trả `429` dạng `application/problem+json` v
 | Trợ lý ảo: chỉ gọi GET công khai, liên kết điền sẵn, tool calling OpenAI, tự chuyển dự phòng | `QLKSan.Tests/ChatBotTests.cs` (API và OpenAI giả lập) | như trên |
 | Gateway: định tuyến, hạn mức theo người dùng / IP, 429 | `QLKSan.Tests/GatewayTests.cs` (service giả) | như trên |
 | Notification: nội dung email từng loại sự kiện, mã hoá HTML | `QLKSan.Tests/NotificationTests.cs` | như trên |
-| Trang React: định dạng, liên kết chatbot, gọi API, phiên đăng nhập | `QLKSan.Client/src/**/*.test.ts` (Vitest) | `npm test` |
+| Trang React: định dạng, liên kết chatbot, gọi API, tải tệp / tải lên, phiên đăng nhập (khách + nhân viên), menu và phân quyền cổng nhân viên (khớp sidebar MVC) | `QLKSan.Client/src/**/*.test.ts` (Vitest) | `npm test` |

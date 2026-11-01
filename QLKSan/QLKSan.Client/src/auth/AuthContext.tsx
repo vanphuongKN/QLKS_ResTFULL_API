@@ -4,8 +4,8 @@ import { load, save, toSession, type Session } from './session';
 
 interface AuthValue {
   session: Session | null;
-  login: (tenDangNhap: string, matKhau: string) => Promise<void>;
-  register: (r: RegisterRequest) => Promise<void>;
+  login: (tenDangNhap: string, matKhau: string) => Promise<Session>;
+  register: (r: RegisterRequest) => Promise<Session>;
   logout: () => void;
 }
 
@@ -18,13 +18,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return s;
   });
 
-  const apply = useCallback((s: Session | null) => {
+  const apply = useCallback(<T extends Session | null>(s: T): T => {
     setAccessToken(s?.token ?? null);
     save(s);
     setSession(s);
+    return s;
   }, []);
 
-  const logout = useCallback(() => apply(null), [apply]);
+  const logout = useCallback(() => { apply(null); }, [apply]);
 
   useEffect(() => {
     setUnauthorizedHandler(logout);
