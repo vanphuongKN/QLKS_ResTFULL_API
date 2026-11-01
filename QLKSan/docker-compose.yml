@@ -1,5 +1,5 @@
 # Chạy toàn bộ hệ thống bằng Docker: docker compose up -d --build   (tạo file .env từ .env.example trước)
-# Web: http://localhost:7081   Gateway (API): http://localhost:7080/api/health   RabbitMQ: http://localhost:15672   SQL Server: localhost,14330
+# Trang khách (React): http://localhost:7082   Web (MVC, nhân viên): http://localhost:7081   Gateway (API): http://localhost:7080/api/health   RabbitMQ: http://localhost:15672   SQL Server: localhost,14330
 # Trình duyệt và Web chỉ đi qua Gateway; API lõi, ChatBot và service thông báo không mở cổng ra ngoài.
 name: qlksan
 
@@ -142,6 +142,17 @@ services:
       - "${WEB_PORT:-7081}:8080"
     volumes:
       - webkeys:/app/keys
+    restart: unless-stopped
+
+  # Trang khách React (QLKSan.Client): nginx phục vụ bản build, /api và /uploads chuyển tới Gateway
+  client:
+    build:
+      context: .
+      dockerfile: QLKSan.Client/Dockerfile
+    depends_on:
+      - gateway
+    ports:
+      - "${CLIENT_PORT:-7082}:8080"
     restart: unless-stopped
 
 networks:

@@ -6,3 +6,5 @@ QLKSan.Tests/
 QLKSan.API/wwwroot/uploads/
 docker-compose*.yml
 .env
+**/node_modules/
+QLKSan.Client/dist/

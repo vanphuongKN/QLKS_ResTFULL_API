@@ -28,6 +28,15 @@ namespace QLKSan
                     // Enum trả về dạng chuỗi ("Available") thay vì số (0)
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
+            // Tài liệu OpenAPI sinh schema theo cấu hình JSON của minimal API: đặt giống controller để mô tả đúng PascalCase / enum chuỗi
+            // (client sinh kiểu từ /openapi/v1.json, vd QLKSan.Client)
+            builder.Services.ConfigureHttpJsonOptions(options =>
+            {
+                options.SerializerOptions.PropertyNamingPolicy = null;
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                // API luôn trả số dạng số: không mô tả kiểu "number | string"
+                options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+            });
             builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
             // Lỗi trả về dạng ProblemDetails (RFC 7807)
