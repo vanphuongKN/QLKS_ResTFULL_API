@@ -4,5 +4,6 @@
   <Project Path="QLKSan.Web/QLKSan.Web.csproj" />
   <Project Path="QLKSan.Gateway/QLKSan.Gateway.csproj" />
   <Project Path="QLKSan.Notification/QLKSan.Notification.csproj" />
+  <Project Path="QLKSan.ChatBot/QLKSan.ChatBot.csproj" />
   <Project Path="QLKSan.Tests/QLKSan.Tests.csproj" />
 </Solution>

@@ -1,0 +1,22 @@
+@* Trợ lý ảo trên trang khách (QLKSan.ChatBot qua Gateway); logic trong wwwroot/js/chat.js *@
+<div class="lr-chat" id="lrChat" data-url-conversations="@Url.Action("Conversations", "Chat")" data-url-messages="@Url.Action("Messages", "Chat")">
+    @Html.AntiForgeryToken()
+    <button type="button" class="lr-chat-toggle" id="lrChatToggle" aria-expanded="false" aria-controls="lrChatPanel" aria-label="Mở trợ lý ảo">
+        <i class="fas fa-comment-dots" aria-hidden="true"></i>
+    </button>
+    <section class="lr-chat-panel" id="lrChatPanel" role="dialog" aria-label="Trợ lý ảo" hidden>
+        <header class="lr-chat-head">
+            <div>
+                <strong>Trợ lý ảo</strong>
+                <small>Tìm phòng · báo giá · chính sách</small>
+            </div>
+            <button type="button" class="lr-chat-close" id="lrChatClose" aria-label="Đóng trợ lý ảo"><i class="fas fa-times" aria-hidden="true"></i></button>
+        </header>
+        <div class="lr-chat-body" id="lrChatBody" aria-live="polite"></div>
+        <form class="lr-chat-form" id="lrChatForm" autocomplete="off">
+            <label for="lrChatInput" class="visually-hidden">Câu hỏi</label>
+            <input type="text" id="lrChatInput" maxlength="500" placeholder="Ví dụ: còn phòng 20/11 – 22/11 cho 2 người?" />
+            <button type="submit" aria-label="Gửi"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+        </form>
+    </section>
+</div>

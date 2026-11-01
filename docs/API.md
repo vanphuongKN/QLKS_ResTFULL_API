@@ -218,6 +218,18 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | PUT | `/api/settings/hotel-info` · `/policy` · `/loyalty` | Admin | Lưu từng mục vào CSDL (bảng `CauHinh`); có hiệu lực ngay, không cần khởi động lại |
 | GET | `/api/audit-logs?tuNgay&denNgay&doiTuong&nguoiDung&tuKhoa&trang&soDong` | Admin | Nhật ký thao tác: mọi thao tác thay đổi dữ liệu thành công (người thực hiện, thời gian, đối tượng, dữ liệu gửi lên — không lưu mật khẩu) và các lần tạm khoá tài khoản |
 
+## Trợ lý ảo — `/api/chat/conversations` (QLKSan.ChatBot)
+
+Công khai, đi qua Gateway với giới hạn riêng `RateLimit:ChatMoiPhut` (mặc định 20 lần/phút mỗi người dùng hoặc IP).
+
+| Phương thức | Đường dẫn | Quyền | Mô tả |
+|---|---|---|---|
+| POST | `/api/chat/conversations` | Công khai | Tạo hội thoại → 201 `{ MaHoiThoai, TinNhan: [lời chào kèm GoiY] }` |
+| GET | `/api/chat/conversations/{id}` | Công khai | Lịch sử hội thoại (404 nếu không có) |
+| POST | `/api/chat/conversations/{id}/messages` | Công khai | Gửi `{ "NoiDung" }` (1–500 ký tự) → tin trả lời `{ VaiTro: "bot", NoiDung, LienKet: [{ Nhan, Url }], GoiY, Provider }`. `LienKet` gồm nút đặt phòng điền sẵn (`/Customer/BookRoom?maLoai&checkIn&checkOut&soNguoi`), xem hạng phòng, bản đồ. `Provider` = `RuleBased`, `OpenAI` hoặc `RuleBased (dự phòng)` |
+
+Trợ lý chỉ đọc `GET /api/hotel`, `/api/room-types`, `/api/room-types/available`, `/api/services`, `/api/reviews/featured` qua Gateway; không có quyền đặt, sửa hay huỷ phiếu.
+
 ## Sự kiện (RabbitMQ)
 
 API lõi ghi sự kiện vào bảng outbox `SuKienCho` trong cùng giao dịch với nghiệp vụ. Tác vụ nền đẩy sự kiện lên exchange `qlksan.su-kien` (topic, bền) khi bật `Messaging:Enabled`. Nội dung là JSON `BookingEvent` (`QLKSan.Shared/Models/Events`). `MessageId` = `MaSuKien`.

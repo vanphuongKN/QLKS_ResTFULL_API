@@ -14,6 +14,7 @@ namespace QLKSan.Gateway
     {
         public const string ChinhSachMacDinh = "mac-dinh";
         public const string ChinhSachDangNhap = "dang-nhap";
+        public const string ChinhSachChat = "chat";
 
         public static void Main(string[] args)
         {
@@ -47,6 +48,7 @@ namespace QLKSan.Gateway
             var gioiHan = builder.Configuration.GetSection("RateLimit");
             var moiPhut = gioiHan.GetValue("MoiPhut", 600);
             var dangNhapMoiPhut = gioiHan.GetValue("DangNhapMoiPhut", 20);
+            var chatMoiPhut = gioiHan.GetValue("ChatMoiPhut", 20);
             builder.Services.AddRateLimiter(options =>
             {
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -63,6 +65,9 @@ namespace QLKSan.Gateway
                 };
                 options.AddPolicy(ChinhSachMacDinh, http => RateLimitPartition.GetFixedWindowLimiter(KhoaGioiHan(http),
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = moiPhut, Window = TimeSpan.FromMinutes(1) }));
+                // Trợ lý ảo có thể gọi mô hình ngôn ngữ trả phí: giới hạn riêng
+                options.AddPolicy(ChinhSachChat, http => RateLimitPartition.GetFixedWindowLimiter("chat:" + KhoaGioiHan(http),
+                    _ => new FixedWindowRateLimiterOptions { PermitLimit = chatMoiPhut, Window = TimeSpan.FromMinutes(1) }));
                 options.AddPolicy(ChinhSachDangNhap, http => RateLimitPartition.GetFixedWindowLimiter("ip:" + http.Connection.RemoteIpAddress,
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = dangNhapMoiPhut, Window = TimeSpan.FromMinutes(1) }));
             });

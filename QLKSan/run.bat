@@ -1,5 +1,5 @@
 @echo off
-rem Chay he thong khi phat trien: QLKSan.API (https://localhost:7001) + QLKSan.Gateway (https://localhost:7000) + QLKSan.Web (https://localhost:7234)
+rem Chay he thong khi phat trien: QLKSan.API (https://localhost:7001) + QLKSan.Gateway (https://localhost:7000) + QLKSan.ChatBot (https://localhost:7004) + QLKSan.Web (https://localhost:7234)
 rem Web goi API qua Gateway. Service thong bao (QLKSan.Notification) can RabbitMQ, chay rieng khi can (xem README).
 rem Moi project chay qua launch profile "https" => moi truong Development, Web doc CSS/JS/anh tu wwwroot.
 rem Khong mo truc tiep bin\...\QLKSan.Web.exe: khi do la moi truong Production, file tinh trong wwwroot khong duoc phuc vu.
@@ -13,9 +13,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [2/3] Chay API, Gateway va Web (moi server mot cua so, dong cua so de tat)...
+echo [2/3] Chay API, Gateway, ChatBot va Web (moi server mot cua so, dong cua so de tat)...
 start "QLKSan.API - https://localhost:7001" cmd /k dotnet run --no-build --project QLKSan.API --launch-profile https
 start "QLKSan.Gateway - https://localhost:7000" cmd /k dotnet run --no-build --project QLKSan.Gateway --launch-profile https
+start "QLKSan.ChatBot - https://localhost:7004" cmd /k dotnet run --no-build --project QLKSan.ChatBot --launch-profile https
 start "QLKSan.Web - https://localhost:7234" cmd /k dotnet run --no-build --project QLKSan.Web --launch-profile https
 
 echo [3/3] Doi server khoi dong roi mo trinh duyet...

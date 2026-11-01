@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\QLKSan.API\QLKSan.API.csproj" />
+    <ProjectReference Include="..\QLKSan.ChatBot\QLKSan.ChatBot.csproj" />
   </ItemGroup>
 
 </Project>
