@@ -39,3 +39,6 @@ backup/
 
 # Ảnh quản trị tải lên khi chạy (QLKSan.API/wwwroot/uploads)
 QLKSan/QLKSan.API/wwwroot/uploads/
+
+# Biến môi trường docker compose (mật khẩu, khoá)
+QLKSan/.env

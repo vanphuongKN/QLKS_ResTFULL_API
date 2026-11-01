@@ -8,6 +8,8 @@
     <!-- Sinh file XML từ các chú thích /// để hiển thị mô tả endpoint trên Swagger -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- dotnet user-secrets: lưu chuỗi kết nối / khoá JWT trên máy, không đưa vào mã nguồn -->
+    <UserSecretsId>qlksan-api-7c1e4a52</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

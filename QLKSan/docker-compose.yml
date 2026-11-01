@@ -1,0 +1,74 @@
+# Chạy toàn bộ hệ thống bằng Docker: docker compose up -d --build   (tạo file .env từ .env.example trước)
+# Web: http://localhost:7081   API: http://localhost:7080/api/health   SQL Server: localhost,14330
+name: qlksan
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:?Đặt SA_PASSWORD trong .env}
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "${DB_PORT:-14330}:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # Chạy một lần: tạo database từ script nếu chưa có
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+    volumes:
+      - ../DB:/db:ro
+      - ./docker/db-init.sh:/db-init.sh:ro
+    entrypoint: ["/bin/bash", "/db-init.sh"]
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: QLKSan.API/Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=db;Database=QuanLyKhachSanc#;User Id=sa;Password=${SA_PASSWORD};MultipleActiveResultSets=true;TrustServerCertificate=True"
+      Jwt__Key: ${JWT_KEY:?Đặt JWT_KEY (tối thiểu 32 ký tự) trong .env}
+    ports:
+      - "${API_PORT:-7080}:8080"
+    volumes:
+      - uploads:/app/wwwroot/uploads
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: QLKSan.Web/Dockerfile
+    depends_on:
+      - api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ApiSettings__BaseUrl: http://api:8080/
+      ApiSettings__PublicUrl: http://localhost:${API_PORT:-7080}/
+      DataProtection__KeysPath: /app/keys
+    ports:
+      - "${WEB_PORT:-7081}:8080"
+    volumes:
+      - webkeys:/app/keys
+    restart: unless-stopped
+
+volumes:
+  sqldata:
+  uploads:
+  webkeys:

@@ -33,6 +33,9 @@ namespace QLKSan
             builder.Services.AddProblemDetails();
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+            // Cấu hình bắt buộc (chuỗi kết nối, khoá JWT) không được để trống
+            StartupConfiguration.Validate(builder.Configuration, builder.Environment);
+
             // Xác thực bằng JWT Bearer
             var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
             builder.Services.Configure<JwtSettings>(jwtSection);
