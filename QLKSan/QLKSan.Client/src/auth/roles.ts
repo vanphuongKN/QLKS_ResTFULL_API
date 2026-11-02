@@ -48,7 +48,7 @@ export const MENU_NHAN_VIEN: MucMenu[] = [
   { nhom: '', ten: 'Ghi minibar', path: '/nhan-vien/buong-phong/minibar', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Minibar', buoc: null, quyenThem: VAI_TRO.doiBuongPhong },
   { nhom: '', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Maintenance', buoc: null },
 
-  { nhom: 'Vận hành', ten: 'Lễ tân', path: '/nhan-vien/le-tan', roles: VAI_TRO.leTan, mvc: '/Reception', buoc: 'R3' },
+  { nhom: 'Vận hành', ten: 'Lễ tân', path: '/nhan-vien/le-tan', roles: VAI_TRO.leTan, mvc: '/Reception', buoc: null },
   { nhom: 'Vận hành', ten: 'Phòng nghỉ', path: '/nhan-vien/phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Status', buoc: null },
   { nhom: 'Vận hành', ten: 'Lịch phòng', path: '/nhan-vien/lich-phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Timeline', buoc: null },
   { nhom: 'Vận hành', ten: 'Buồng phòng', path: '/nhan-vien/buong-phong', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Tasks', buoc: null },

@@ -14,6 +14,8 @@ import { MyTasksPage } from './housekeeping/MyTasksPage';
 import { RoomDetailPage, RoomStatusPage } from './room/RoomPages';
 import { GuestsPage } from './room/GuestsPage';
 import { TimelinePage } from './room/TimelinePage';
+import { ChangeRoomPage } from './reception/ChangeRoomPage';
+import { ReceptionPage } from './reception/ReceptionPage';
 import './staff.css';
 
 const MOI_NHAN_VIEN: StaffRole[] = ['Admin', 'Receptionist', 'Housekeeping', 'Accountant'];
@@ -28,12 +30,15 @@ const DA_CHUYEN: Record<string, ComponentType> = {
   // R3a — phòng
   '/nhan-vien/phong': RoomStatusPage,
   '/nhan-vien/lich-phong': TimelinePage,
-  '/nhan-vien/so-luu-tru': GuestsPage
+  '/nhan-vien/so-luu-tru': GuestsPage,
+  // R3b — quầy lễ tân
+  '/nhan-vien/le-tan': ReceptionPage
 };
 
 // Trang con không nằm trong menu (mở từ trang khác), kèm quyền như [Authorize] của MVC
 const TRANG_CON: { path: string; roles: StaffRole[]; el: ComponentType }[] = [
-  { path: 'phong/:maPhong', roles: VAI_TRO.thuNgan, el: RoomDetailPage }
+  { path: 'phong/:maPhong', roles: VAI_TRO.thuNgan, el: RoomDetailPage },
+  { path: 'le-tan/doi-phong/:maDatPhong', roles: VAI_TRO.leTan, el: ChangeRoomPage }
 ];
 
 // Trang chưa chuyển: chỉ ra bước sẽ chuyển và mở trang tương ứng trên cổng MVC (chạy song song)
