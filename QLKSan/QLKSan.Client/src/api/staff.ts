@@ -16,6 +16,11 @@ export type ServiceOrderItem = S['ServiceOrderItem'];
 export type Service = S['ServiceDto'];
 export type Staff = S['StaffDto'];
 export type RoomStatus = S['RoomStatus'];
+export type Room = S['RoomDto'];
+export type RoomDetail = S['RoomDetailDto'];
+export type TimelineBooking = S['TimelineBookingDto'];
+export type GuestRegister = S['GuestRegisterDto'];
+export type BookingStatus = S['BookingStatus'];
 
 const e = encodeURIComponent;
 
@@ -40,6 +45,25 @@ export const maintenanceApi = {
   create: (r: MaintenanceCreate) => request<MaintenanceTicket>('POST', '/api/maintenance', r),
   update: (maPhieu: number, trangThai: GuestRequestStatus, ketQua: string | null) =>
     request<MaintenanceTicket>('PATCH', `/api/maintenance/${maPhieu}`, { TrangThai: trangThai, KetQua: ketQua })
+};
+
+export const roomApi = {
+  list: () => request<Room[]>('GET', '/api/rooms'),
+  // null = không có phòng (404)
+  get: (maPhong: string) => request<RoomDetail>('GET', `/api/rooms/${e(maPhong)}`),
+  setStatus: (maPhong: string, trangThai: RoomStatus) => request<void>('PATCH', `/api/rooms/${e(maPhong)}`, { TrangThai: trangThai }),
+  // Lịch phòng: phiếu chiếm phòng trong khoảng ngày (tối đa 62 ngày)
+  timeline: (tuNgay: string, denNgay: string) => request<TimelineBooking[]>('GET', `/api/bookings/timeline?tuNgay=${tuNgay}&denNgay=${denNgay}`)
+};
+
+export const reportApi = {
+  guests: (tuNgay: string, denNgay: string) => request<GuestRegister[]>('GET', `/api/reports/guests?tuNgay=${tuNgay}&denNgay=${denNgay}`),
+  guestsExportPath: (tuNgay: string, denNgay: string) => `/api/reports/guests/export?tuNgay=${tuNgay}&denNgay=${denNgay}`
+};
+
+// Tên hiển thị trạng thái phiếu đặt phòng (Display(Name) của enum BookingStatus)
+export const TRANG_THAI_PHIEU: Record<BookingStatus, string> = {
+  Pending: 'Chờ duyệt', Approved: 'Đã duyệt', CheckedIn: 'Đã nhận phòng', CheckedOut: 'Đã trả phòng', Cancelled: 'Đã hủy', Completed: 'Hoàn thành'
 };
 
 export const serviceApi = {

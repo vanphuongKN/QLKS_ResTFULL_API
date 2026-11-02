@@ -1,0 +1,87 @@
+/* R3a — Phòng nghỉ, chi tiết phòng, lịch phòng, sổ lưu trú (cùng bố cục với Views/Room của MVC) */
+.p-trong { --mau: #2E7D32; --nen: #E7F3E8; }
+.p-dang-o { --mau: #B3261E; --nen: #FBE6E4; }
+.p-da-dat { --mau: #8A6A2F; --nen: #F6EEDD; }
+.p-dang-don { --mau: #B26A00; --nen: #FBF0D9; }
+.p-bao-tri { --mau: #5F6368; --nen: #ECEEF0; }
+.badge-tt { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .74rem; font-weight: 700; color: var(--mau); background: var(--nen); white-space: nowrap; }
+.badge-to { font-size: .85rem; padding: 6px 14px; letter-spacing: .04em; white-space: normal; }
+.chu-vang { color: var(--gold); }
+
+/* Phòng nghỉ */
+.phong-hero { background: var(--ink); color: var(--white); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 20px; }
+.phong-hero h1 { color: var(--white); font-size: clamp(1.6rem, 3vw, 2.1rem); margin: 0 0 6px; }
+.phong-hero p { color: rgba(255, 255, 255, .78); margin: 0 0 14px; }
+.phong-hero-so { display: flex; gap: 40px; }
+.phong-hero-so span { display: block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-soft); }
+.phong-hero-so strong { font-family: var(--serif); font-size: 2rem; }
+.o-tim { display: block; max-width: 300px; margin-bottom: 18px; }
+.o-tim input { width: 100%; }
+.the-phong-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.the-phong { display: flex; flex-direction: column; gap: 8px; background: var(--white); border: 1px solid var(--border); border-top: 4px solid var(--mau); border-radius: var(--radius); padding: 14px; transition: transform .2s ease, box-shadow .2s ease; }
+.the-phong:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(20, 26, 36, .08); }
+.the-phong-link { color: inherit; text-decoration: none; display: flex; flex-direction: column; gap: 6px; }
+.the-phong-dau { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.the-phong-hang { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+.the-phong-so { font-family: var(--serif); font-size: 1.35rem; color: var(--ink); }
+.the-phong img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+.the-phong p { margin: 0; }
+.the-phong-dv { display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; }
+
+/* Chi tiết phòng */
+.ctp-luoi { display: grid; grid-template-columns: 5fr 7fr; gap: 20px; align-items: start; }
+/* Cột lưới được co nhỏ hơn nội dung (bảng dịch vụ cuộn trong khung của nó) */
+.ctp-luoi > * { min-width: 0; }
+.ctp-anh { position: relative; margin: 0 0 20px; border-radius: var(--radius); overflow: hidden; }
+.ctp-anh img { width: 100%; height: 280px; object-fit: cover; }
+.ctp-anh figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px; background: rgba(20, 26, 36, .75); color: var(--white); }
+.ctp-anh figcaption span { display: block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-soft); }
+.ctp-anh figcaption strong { font-family: var(--serif); font-size: 1.3rem; font-weight: 500; }
+.ctp-thong-so { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0 0 10px; }
+.ctp-thong-so dt { color: var(--muted); }
+.ctp-thong-so dd { margin: 0; font-weight: 600; text-align: right; }
+.ctp-tien-ich { display: flex; flex-wrap: wrap; gap: 8px; }
+.ctp-tien-ich span { border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: .82rem; background: #FBF9F5; }
+.ctp-vien { border-left: 5px solid var(--mau); }
+.ctp-khach { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin: 0 0 14px; }
+.ctp-khach dt { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.ctp-khach dd { margin: 0; }
+.ctp-khach div:nth-child(even) { text-align: right; }
+.ctp-rong { grid-column: 1 / -1; text-align: left !important; border-top: 1px solid var(--border); padding-top: 8px; }
+.ctp-tong td { background: #FBF9F5; font-weight: 700; }
+
+/* Lịch phòng */
+.tl-dieu-khien { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tl-dieu-khien input, .tl-dieu-khien select { width: auto; padding: 6px 10px; font-size: .85rem; }
+.tl-chu-thich span { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin: 0 4px 0 12px; }
+.tl-chu-thich span:first-child { margin-left: 0; }
+.tl-khung { margin-top: 10px; }
+.tl { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .8rem; table-layout: fixed; }
+.tl-cot-phong { width: 130px; }
+.tl th, .tl td { border-right: 1px solid #EEE; border-bottom: 1px solid #EEE; padding: 0; height: 40px; }
+.tl thead th { text-align: center; padding: 4px 2px; background: #FAF8F5; font-weight: 600; font-size: .75rem; }
+.tl thead th.tl-cuoi-tuan, .tl td.tl-cuoi-tuan { background: #F6F0E4; }
+.tl td.tl-cuoi-tuan { background: #FCFAF6; }
+.tl thead th.tl-hom-nay { background: var(--ink); color: var(--white); }
+.tl .tl-phong { position: sticky; left: 0; z-index: 1; background: var(--white); padding: 4px 10px; text-align: left; }
+.tl .tl-phong a { font-weight: 700; text-decoration: none; }
+.tl .tl-phong small { display: block; color: var(--muted); font-size: .68rem; font-weight: 400; }
+.tl-thanh { display: block; margin: 4px 2px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--white); }
+.tl-cho { background: #D6A634; }
+.tl-duyet { background: #3D6FB6; }
+.tl-o { background: #2E7D32; }
+.tl-tra { background: #9E9E9E; }
+
+/* Sổ lưu trú */
+.so-luu-tru-loc { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
+.so-luu-tru-dem { margin: 0 0 6px auto; }
+.khach-di-cung td { background: #FBF9F5; }
+
+@media (max-width: 991px) {
+  .ctp-luoi { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .ctp-khach { grid-template-columns: 1fr; }
+  .ctp-khach div:nth-child(even) { text-align: left; }
+  .so-luu-tru-dem { margin-left: 0; }
+}

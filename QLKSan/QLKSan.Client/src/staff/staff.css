@@ -31,6 +31,20 @@
 .staff label.check input { width: auto; }
 .staff .auth .card-form { max-width: 480px; }
 
+/* Khối dùng chung của các trang nhân viên (thẻ, đầu thẻ, bộ lọc dạng chip) */
+.the-trang { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
+.the-trang h2 { font-size: 1.35rem; margin: 0; }
+.the-dau { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 14px; }
+.the-dau-nut { display: flex; flex-wrap: wrap; gap: 8px; }
+.nowrap { white-space: nowrap; }
+.alert-info { background: #E3ECF8; color: var(--info); }
+.badge-gold { background: var(--gold-light); color: #7A5F2E; }
+.loc-chip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.loc-chip a, .loc-chip button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); text-decoration: none; font-size: .85rem; }
+.loc-chip a.active, .loc-chip button.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.loc-chip button { cursor: pointer; font: inherit; font-size: .85rem; }
+.the-trang h3 { font-size: 1.15rem; }
+
 /* Màn hình hẹp: sidebar trượt từ trái, lớp phủ phía sau */
 @media (max-width: 991px) {
   .staff-sidebar { position: fixed; left: 0; z-index: 50; transform: translateX(-100%); transition: transform .2s ease; }

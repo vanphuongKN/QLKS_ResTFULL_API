@@ -49,8 +49,8 @@ export const MENU_NHAN_VIEN: MucMenu[] = [
   { nhom: '', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Maintenance', buoc: null },
 
   { nhom: 'Vận hành', ten: 'Lễ tân', path: '/nhan-vien/le-tan', roles: VAI_TRO.leTan, mvc: '/Reception', buoc: 'R3' },
-  { nhom: 'Vận hành', ten: 'Phòng nghỉ', path: '/nhan-vien/phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Status', buoc: 'R3' },
-  { nhom: 'Vận hành', ten: 'Lịch phòng', path: '/nhan-vien/lich-phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Timeline', buoc: 'R3' },
+  { nhom: 'Vận hành', ten: 'Phòng nghỉ', path: '/nhan-vien/phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Status', buoc: null },
+  { nhom: 'Vận hành', ten: 'Lịch phòng', path: '/nhan-vien/lich-phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Timeline', buoc: null },
   { nhom: 'Vận hành', ten: 'Buồng phòng', path: '/nhan-vien/buong-phong', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Tasks', buoc: null },
   { nhom: 'Vận hành', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Maintenance', buoc: null },
   { nhom: 'Vận hành', ten: 'Gọi dịch vụ', path: '/nhan-vien/dich-vu', roles: VAI_TRO.leTan, mvc: '/Service', buoc: 'R3' },
@@ -58,7 +58,7 @@ export const MENU_NHAN_VIEN: MucMenu[] = [
   { nhom: 'Vận hành', ten: 'Giao ca', path: '/nhan-vien/giao-ca', roles: VAI_TRO.leTan, mvc: '/Reception/Shift', buoc: 'R3' },
   { nhom: 'Vận hành', ten: 'Chốt ngày', path: '/nhan-vien/chot-ngay', roles: VAI_TRO.thuNgan, mvc: '/NightAudit', buoc: 'R4' },
   { nhom: 'Vận hành', ten: 'Khách hàng', path: '/nhan-vien/khach-hang', roles: VAI_TRO.leTan, mvc: '/Reception/Customers', buoc: 'R3' },
-  { nhom: 'Vận hành', ten: 'Sổ lưu trú', path: '/nhan-vien/so-luu-tru', roles: VAI_TRO.thuNgan, mvc: '/Room/Guests', buoc: 'R3' },
+  { nhom: 'Vận hành', ten: 'Sổ lưu trú', path: '/nhan-vien/so-luu-tru', roles: VAI_TRO.thuNgan, mvc: '/Room/Guests', buoc: null },
 
   { nhom: 'Doanh thu', ten: 'Tổng quan kế toán', path: '/nhan-vien/ke-toan', roles: VAI_TRO.keToan, mvc: '/Accounting', buoc: 'R4' },
   { nhom: 'Doanh thu', ten: 'Hoá đơn', path: '/nhan-vien/ke-toan/hoa-don', roles: VAI_TRO.keToan, mvc: '/Accounting/Invoices', buoc: 'R4' },

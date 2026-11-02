@@ -1,11 +1,4 @@
 /* R2 — buồng phòng / minibar / kỹ thuật (cùng bố cục với Views/Housekeeping của MVC) */
-.the-trang { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
-.the-trang h2 { font-size: 1.35rem; margin: 0; }
-.the-dau { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 14px; }
-.the-dau-nut { display: flex; flex-wrap: wrap; gap: 8px; }
-.nowrap { white-space: nowrap; }
-.alert-info { background: #E3ECF8; color: var(--info); }
-.badge-gold { background: var(--gold-light); color: #7A5F2E; }
 
 /* Mức ưu tiên */
 .uu-tien { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
@@ -61,7 +54,7 @@
 
 /* Phân công */
 .giao-nhom, .giao-mot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.giao-nhom select, .giao-mot select { padding: 6px 10px; font-size: .85rem; }
+.giao-nhom select, .giao-mot select { width: auto; padding: 6px 10px; font-size: .85rem; }
 .giao-mot select { min-width: 170px; }
 
 /* Minibar */
@@ -74,9 +67,6 @@
 .minibar-chan { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 
 /* Phiếu kỹ thuật */
-.loc-chip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.loc-chip a { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); text-decoration: none; font-size: .85rem; }
-.loc-chip a.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
 .phieu-ds { display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); }
 .phieu { display: flex; justify-content: space-between; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--border); border-left: 4px solid transparent; }
 .phieu:last-child { border-bottom: 0; }

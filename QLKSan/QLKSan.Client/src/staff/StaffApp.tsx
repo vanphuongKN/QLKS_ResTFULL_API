@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { cacTrangNhanVien, trangChuCua, type StaffRole } from '../auth/roles';
+import { cacTrangNhanVien, trangChuCua, VAI_TRO, type StaffRole } from '../auth/roles';
 import { RequireAuth } from '../components/common';
 import { PageHeader } from '../components/ui/Page';
 import { MVC_URL } from '../config';
@@ -11,6 +11,9 @@ import { HousekeepingBoardPage } from './housekeeping/HousekeepingBoardPage';
 import { MaintenancePage } from './housekeeping/MaintenancePage';
 import { MinibarPage } from './housekeeping/MinibarPage';
 import { MyTasksPage } from './housekeeping/MyTasksPage';
+import { RoomDetailPage, RoomStatusPage } from './room/RoomPages';
+import { GuestsPage } from './room/GuestsPage';
+import { TimelinePage } from './room/TimelinePage';
 import './staff.css';
 
 const MOI_NHAN_VIEN: StaffRole[] = ['Admin', 'Receptionist', 'Housekeeping', 'Accountant'];
@@ -21,8 +24,17 @@ const DA_CHUYEN: Record<string, ComponentType> = {
   '/nhan-vien/buong-phong': HousekeepingBoardPage,
   '/nhan-vien/buong-phong/viec-cua-toi': MyTasksPage,
   '/nhan-vien/buong-phong/minibar': MinibarPage,
-  '/nhan-vien/ky-thuat': MaintenancePage
+  '/nhan-vien/ky-thuat': MaintenancePage,
+  // R3a — phòng
+  '/nhan-vien/phong': RoomStatusPage,
+  '/nhan-vien/lich-phong': TimelinePage,
+  '/nhan-vien/so-luu-tru': GuestsPage
 };
+
+// Trang con không nằm trong menu (mở từ trang khác), kèm quyền như [Authorize] của MVC
+const TRANG_CON: { path: string; roles: StaffRole[]; el: ComponentType }[] = [
+  { path: 'phong/:maPhong', roles: VAI_TRO.thuNgan, el: RoomDetailPage }
+];
 
 // Trang chưa chuyển: chỉ ra bước sẽ chuyển và mở trang tương ứng trên cổng MVC (chạy song song)
 function ChuaChuyen({ ten, mvc, buoc }: { ten: string; mvc: string; buoc: string | null }) {
@@ -65,6 +77,7 @@ export default function StaffApp() {
               element={<RequireAuth roles={t.roles}>{Trang ? <Trang /> : <ChuaChuyen ten={t.ten} mvc={t.mvc} buoc={t.buoc} />}</RequireAuth>} />
           );
         })}
+        {TRANG_CON.map(({ path, roles, el: Trang }) => <Route key={path} path={path} element={<RequireAuth roles={roles}><Trang /></RequireAuth>} />)}
         <Route path="doi-mat-khau" element={<ChangePasswordPage />} />
         <Route path="*" element={<KhongTimThay />} />
       </Route>
