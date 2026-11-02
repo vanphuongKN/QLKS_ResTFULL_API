@@ -27,6 +27,8 @@
 .chua-chuyen { max-width: 680px; padding: 20px 22px; background: var(--white); border: 1px dashed var(--gold-soft); border-radius: var(--radius); }
 .chua-chuyen p:last-child { margin-bottom: 0; }
 .staff .auth { padding: 8px 0; }
+.staff label.check { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
+.staff label.check input { width: auto; }
 .staff .auth .card-form { max-width: 480px; }
 
 /* Màn hình hẹp: sidebar trượt từ trái, lớp phủ phía sau */

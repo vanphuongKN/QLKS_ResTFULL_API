@@ -24,6 +24,8 @@ interface ThaoTacOptions<TBien, TKetQua> {
   // Dữ liệu cần tải lại sau khi thao tác thành công (vd ['bookings'] làm mới mọi query bắt đầu bằng 'bookings')
   lamMoi?: QueryKey[];
   thanhCong?: string | ((kq: TKetQua, bien: TBien) => string);
+  // Câu đặt trước thông báo lỗi của API (vd "Không thể giao việc. "), như TempData của MVC
+  tienToLoi?: string;
   onSuccess?: (kq: TKetQua, bien: TBien) => void;
 }
 
@@ -39,6 +41,6 @@ export function useThaoTac<TBien = void, TKetQua = unknown>(o: ThaoTacOptions<TB
       if (msg) toast.thanhCong(msg);
       o.onSuccess?.(kq, bien);
     },
-    onError: (e) => toast.loi(thongBaoLoi(e))
+    onError: (e) => toast.loi((o.tienToLoi ?? '') + thongBaoLoi(e))
   });
 }

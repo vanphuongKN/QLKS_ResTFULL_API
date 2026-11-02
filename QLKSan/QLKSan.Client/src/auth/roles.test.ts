@@ -35,6 +35,14 @@ describe('menu cổng nhân viên (khớp sidebar Views/Shared/_Layout.cshtml c�
     expect(trang.find((t) => t.path === '/nhan-vien/ky-thuat')!.roles.sort()).toEqual(['Admin', 'Housekeeping', 'Receptionist']);
     expect(trang.every((t) => t.path.startsWith('/nhan-vien/') && t.mvc.startsWith('/'))).toBe(true);
   });
+
+  it('quyền vào trang rộng hơn menu đúng như [Authorize] của MVC (Việc của tôi: + quản trị; Ghi minibar: + lễ tân, quản trị)', () => {
+    const q = (p: string) => cacTrangNhanVien().find((t) => t.path === p)!.roles.sort();
+    expect(q('/nhan-vien/buong-phong/viec-cua-toi')).toEqual(['Admin', 'Housekeeping']);
+    expect(q('/nhan-vien/buong-phong/minibar')).toEqual(['Admin', 'Housekeeping', 'Receptionist']);
+    expect(q('/nhan-vien/buong-phong')).toEqual(['Admin', 'Receptionist']);
+    expect(ten('Admin')).not.toContain('Việc của tôi');
+  });
 });
 
 describe('vai trò', () => {

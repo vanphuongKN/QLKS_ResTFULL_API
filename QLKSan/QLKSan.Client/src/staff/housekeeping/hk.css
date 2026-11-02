@@ -1,0 +1,96 @@
+/* R2 — buồng phòng / minibar / kỹ thuật (cùng bố cục với Views/Housekeeping của MVC) */
+.the-trang { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
+.the-trang h2 { font-size: 1.35rem; margin: 0; }
+.the-dau { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 14px; }
+.the-dau-nut { display: flex; flex-wrap: wrap; gap: 8px; }
+.nowrap { white-space: nowrap; }
+.alert-info { background: #E3ECF8; color: var(--info); }
+.badge-gold { background: var(--gold-light); color: #7A5F2E; }
+
+/* Mức ưu tiên */
+.uu-tien { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+.uu-tien-1 { background: #FBE6E4; color: var(--danger); }
+.uu-tien-2 { background: #FBF0D9; color: var(--warn); }
+.uu-tien-3 { background: var(--sand); color: var(--muted); }
+.uu-tien-4 { background: #EDE7F6; color: #5E35B1; }
+
+/* Việc của tôi */
+.viec-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.viec { display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.viec-gap { border-left-color: var(--danger); }
+.viec-cao { border-left-color: var(--warn); }
+.viec-dau { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.viec h2 { font-size: 1.5rem; margin: 0; }
+.viec h2 small { font-family: var(--sans); font-size: .85rem; color: var(--muted); font-weight: 400; }
+.viec-hang { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.viec p { margin: 0 0 4px; }
+.viec-nut { margin-top: auto; padding-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.viec-nut .btn { flex: 1 1 auto; }
+
+/* Chờ kiểm tra */
+.cho-kiem-tra { border-color: var(--gold-soft); }
+.ckt-ds { display: flex; flex-wrap: wrap; gap: 12px; }
+.ckt-muc { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; min-width: 200px; }
+.danh-muc-kt { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+/* Ô thống kê */
+.o-so { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.o-so-muc { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+.o-so-muc span { display: block; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.o-so-muc strong { font-size: 1.5rem; color: var(--ink); }
+
+/* Sơ đồ phòng */
+.chu-thich { display: flex; flex-wrap: wrap; gap: 6px; font-size: .75rem; }
+.chu-thich span { padding: 2px 10px; border-radius: 999px; border: 1px solid; }
+.p-sach { --nen: #E7F3E8; --vien: #9CCB9F; }
+.p-ban { --nen: #FBF0D9; --vien: #E2BE73; }
+.p-khach { --nen: #E3ECF8; --vien: #9DB8DD; }
+.p-bao-tri { --nen: #FBE6E4; --vien: #E3A39D; }
+.chu-thich span, .o-phong { background: var(--nen); border-color: var(--vien); }
+.tang { display: flex; gap: 12px; padding: 10px 0; border-top: 1px dashed var(--border); }
+.tang:first-of-type { border-top: 0; }
+.tang-ten { flex: 0 0 64px; font-weight: 600; color: var(--muted); font-size: .85rem; padding-top: 8px; }
+.tang-phong { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; flex: 1; }
+.o-phong { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid; border-radius: 8px; font-size: .8rem; min-height: 78px; }
+.o-gap { box-shadow: inset 0 0 0 2px var(--danger); }
+.o-phong-dau { display: flex; justify-content: space-between; gap: 6px; }
+.o-phong-dau strong { font-size: 1rem; color: var(--ink); }
+.o-phong-hang { color: var(--muted); }
+.o-the, .o-viec { display: block; }
+.o-da-don { align-self: flex-start; font-size: .78rem; color: var(--ink); }
+
+/* Phân công */
+.giao-nhom, .giao-mot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.giao-nhom select, .giao-mot select { padding: 6px 10px; font-size: .85rem; }
+.giao-mot select { min-width: 170px; }
+
+/* Minibar */
+.minibar { max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+.minibar-ds { display: flex; flex-direction: column; gap: 8px; }
+.minibar-muc { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.minibar-muc small { display: block; }
+.so-luong { display: flex; align-items: center; gap: 6px; }
+.so-luong input { width: 64px; text-align: center; }
+.minibar-chan { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* Phiếu kỹ thuật */
+.loc-chip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.loc-chip a { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); text-decoration: none; font-size: .85rem; }
+.loc-chip a.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.phieu-ds { display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); }
+.phieu { display: flex; justify-content: space-between; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--border); border-left: 4px solid transparent; }
+.phieu:last-child { border-bottom: 0; }
+.phieu-khan { border-left-color: var(--danger); }
+.phieu-xong { opacity: .75; }
+.phieu-dau { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.phieu-mo-ta { margin: 6px 0 4px; }
+.phieu-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
+.phieu-ket-qua { color: var(--text); }
+.phieu-nut { display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 760px) {
+  .o-so { grid-template-columns: repeat(2, 1fr); }
+  .tang { flex-direction: column; gap: 6px; }
+  .phieu { flex-direction: column; }
+  .phieu-nut { justify-content: flex-start; }
+}

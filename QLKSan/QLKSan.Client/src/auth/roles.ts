@@ -17,7 +17,11 @@ export const VAI_TRO = {
   leTan: ['Admin', 'Receptionist'],
   thuNgan: ['Admin', 'Receptionist', 'Accountant'],
   keToan: ['Admin', 'Accountant'],
-  buongPhong: ['Housekeeping']
+  buongPhong: ['Housekeeping'],
+  // Khớp AppRoles của API: người dọn (Việc của tôi), cả đội buồng phòng (minibar, mở phiếu kỹ thuật), người kiểm tra phòng
+  nguoiDon: ['Admin', 'Housekeeping'],
+  doiBuongPhong: ['Admin', 'Receptionist', 'Housekeeping'],
+  kiemTraPhong: ['Admin', 'Receptionist']
 } satisfies Record<string, StaffRole[]>;
 
 export const laNhanVien = (role?: Role | null): role is StaffRole => !!role && role !== 'Customer';
@@ -33,20 +37,22 @@ export interface MucMenu {
   // Trang tương ứng trên cổng MVC (dùng trong thời gian chạy song song)
   mvc: string;
   buoc: Buoc;
+  // Vai trò được mở trang (gõ đường dẫn / nút trong trang) dù menu không hiện mục này, như [Authorize] của MVC
+  quyenThem?: StaffRole[];
 }
 
 // Menu cổng nhân viên: cùng nhóm, thứ tự và quyền với sidebar của QLKSan.Web (Views/Shared/_Layout.cshtml)
 export const MENU_NHAN_VIEN: MucMenu[] = [
   { nhom: '', ten: 'Bảng điều khiển', path: '/nhan-vien/quan-tri', roles: VAI_TRO.quanTri, mvc: '/Admin', buoc: 'R5' },
-  { nhom: '', ten: 'Việc của tôi', path: '/nhan-vien/buong-phong/viec-cua-toi', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/MyTasks', buoc: 'R2' },
-  { nhom: '', ten: 'Ghi minibar', path: '/nhan-vien/buong-phong/minibar', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Minibar', buoc: 'R2' },
-  { nhom: '', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Maintenance', buoc: 'R2' },
+  { nhom: '', ten: 'Việc của tôi', path: '/nhan-vien/buong-phong/viec-cua-toi', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/MyTasks', buoc: null, quyenThem: VAI_TRO.nguoiDon },
+  { nhom: '', ten: 'Ghi minibar', path: '/nhan-vien/buong-phong/minibar', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Minibar', buoc: null, quyenThem: VAI_TRO.doiBuongPhong },
+  { nhom: '', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.buongPhong, mvc: '/Housekeeping/Maintenance', buoc: null },
 
   { nhom: 'Vận hành', ten: 'Lễ tân', path: '/nhan-vien/le-tan', roles: VAI_TRO.leTan, mvc: '/Reception', buoc: 'R3' },
   { nhom: 'Vận hành', ten: 'Phòng nghỉ', path: '/nhan-vien/phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Status', buoc: 'R3' },
   { nhom: 'Vận hành', ten: 'Lịch phòng', path: '/nhan-vien/lich-phong', roles: VAI_TRO.thuNgan, mvc: '/Room/Timeline', buoc: 'R3' },
-  { nhom: 'Vận hành', ten: 'Buồng phòng', path: '/nhan-vien/buong-phong', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Tasks', buoc: 'R2' },
-  { nhom: 'Vận hành', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Maintenance', buoc: 'R2' },
+  { nhom: 'Vận hành', ten: 'Buồng phòng', path: '/nhan-vien/buong-phong', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Tasks', buoc: null },
+  { nhom: 'Vận hành', ten: 'Kỹ thuật', path: '/nhan-vien/ky-thuat', roles: VAI_TRO.leTan, mvc: '/Housekeeping/Maintenance', buoc: null },
   { nhom: 'Vận hành', ten: 'Gọi dịch vụ', path: '/nhan-vien/dich-vu', roles: VAI_TRO.leTan, mvc: '/Service', buoc: 'R3' },
   { nhom: 'Vận hành', ten: 'Yêu cầu khách', path: '/nhan-vien/yeu-cau', roles: VAI_TRO.leTan, mvc: '/Reception/Requests', buoc: 'R3' },
   { nhom: 'Vận hành', ten: 'Giao ca', path: '/nhan-vien/giao-ca', roles: VAI_TRO.leTan, mvc: '/Reception/Shift', buoc: 'R3' },
@@ -88,9 +94,10 @@ export function menuCho(role: StaffRole): { nhom: string; muc: MucMenu[] }[] {
 export function cacTrangNhanVien(): { path: string; ten: string; roles: StaffRole[]; mvc: string; buoc: Buoc }[] {
   const map = new Map<string, { path: string; ten: string; roles: StaffRole[]; mvc: string; buoc: Buoc }>();
   for (const m of MENU_NHAN_VIEN) {
+    const them = [...m.roles, ...(m.quyenThem ?? [])];
     const t = map.get(m.path);
-    if (t) t.roles = [...new Set([...t.roles, ...m.roles])];
-    else map.set(m.path, { path: m.path, ten: m.ten, roles: [...m.roles], mvc: m.mvc, buoc: m.buoc });
+    if (t) t.roles = [...new Set([...t.roles, ...them])];
+    else map.set(m.path, { path: m.path, ten: m.ten, roles: [...new Set(them)], mvc: m.mvc, buoc: m.buoc });
   }
   return [...map.values()];
 }

@@ -7,12 +7,22 @@ import { PageHeader } from '../components/ui/Page';
 import { MVC_URL } from '../config';
 import { ChangePasswordPage } from '../pages/AuthPages';
 import { StaffLayout } from './StaffLayout';
+import { HousekeepingBoardPage } from './housekeeping/HousekeepingBoardPage';
+import { MaintenancePage } from './housekeeping/MaintenancePage';
+import { MinibarPage } from './housekeeping/MinibarPage';
+import { MyTasksPage } from './housekeeping/MyTasksPage';
 import './staff.css';
 
 const MOI_NHAN_VIEN: StaffRole[] = ['Admin', 'Receptionist', 'Housekeeping', 'Accountant'];
 
 // Trang đã chuyển sang React, theo đường dẫn menu (các bước R2–R5 thêm vào đây)
-const DA_CHUYEN: Record<string, ComponentType> = {};
+const DA_CHUYEN: Record<string, ComponentType> = {
+  // R2 — buồng phòng
+  '/nhan-vien/buong-phong': HousekeepingBoardPage,
+  '/nhan-vien/buong-phong/viec-cua-toi': MyTasksPage,
+  '/nhan-vien/buong-phong/minibar': MinibarPage,
+  '/nhan-vien/ky-thuat': MaintenancePage
+};
 
 // Trang chưa chuyển: chỉ ra bước sẽ chuyển và mở trang tương ứng trên cổng MVC (chạy song song)
 function ChuaChuyen({ ten, mvc, buoc }: { ten: string; mvc: string; buoc: string | null }) {
