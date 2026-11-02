@@ -1,5 +1,5 @@
 import type { components } from './schema';
-import { request } from './client';
+import { ApiError, request } from './client';
 
 // API cho cổng nhân viên (cùng endpoint mà QLKSan.Web gọi qua ApiClients/); quyền do API kiểm tra theo JWT
 type S = components['schemas'];
@@ -35,6 +35,17 @@ export type GuestRequestCreate = S['GuestRequestCreateRequest'];
 export type ShiftSummary = S['ShiftSummaryDto'];
 export type ShiftHandover = S['ShiftHandoverDto'];
 export type RoomTypeAvailability = S['RoomTypeAvailabilityDto'];
+export type Customer = S['CustomerDto'];
+export type CustomerDetail = S['CustomerDetailDto'];
+export type CustomerProfile = S['UpdateCustomerProfileRequest'];
+export type PointHistory = S['PointHistoryDto'];
+export type Folio = S['FolioDto'];
+export type Invoice = S['InvoiceDto'];
+export type PaymentPart = S['PaymentPart'];
+export type InvoiceCompany = S['InvoiceCompanyRequest'];
+export type ServiceUsage = S['ServiceUsageDto'];
+// Một dòng dịch vụ đã gọi kèm phiếu / phòng (bảng "Dịch vụ đã gọi")
+export interface ServiceUsageRow { u: ServiceUsage; maDatPhong: string; maPhong: string; soPhong: string }
 
 const e = encodeURIComponent;
 
@@ -141,4 +152,34 @@ export const serviceApi = {
 // Tên hiển thị trạng thái việc buồng phòng (Display(Name) của enum HousekeepingTaskStatus)
 export const TRANG_THAI_VIEC: Record<HousekeepingTaskStatus, string> = {
   Unassigned: 'Chờ giao', Assigned: 'Đã giao', InProgress: 'Đang dọn', Completed: 'Hoàn thành', Issue: 'Sự cố', AwaitingInspection: 'Chờ kiểm tra'
+};
+
+// 404 → null (như HttpGetOrDefaultAsync của MVC)
+async function hoacNull<T>(p: Promise<T>): Promise<T | null> {
+  try { return (await p) ?? null; } catch (e) { if (e instanceof ApiError && e.status === 404) return null; throw e; }
+}
+
+export const customerApi = {
+  list: (search?: string | null) => request<Customer[]>('GET', '/api/customers' + (search?.trim() ? `?search=${e(search.trim())}` : '')),
+  get: (ma: string) => hoacNull(request<CustomerDetail>('GET', `/api/customers/${e(ma)}`)),
+  update: (ma: string, r: CustomerProfile) => request<void>('PUT', `/api/customers/${e(ma)}`, r),
+  points: (ma: string) => request<PointHistory[]>('GET', `/api/customers/${e(ma)}/points`),
+  adjustPoints: (ma: string, soDiem: number, lyDo: string) => request<void>('POST', `/api/customers/${e(ma)}/point-adjustments`, { SoDiem: soDiem, LyDo: lyDo })
+};
+
+// Lịch sử đặt phòng (tìm theo mã phiếu, tên khách, số phòng), gọi dịch vụ / huỷ dịch vụ gọi nhầm
+export const bookingHistoryApi = {
+  list: (search?: string | null) => request<StaffBooking[]>('GET', '/api/bookings' + (search?.trim() ? `?search=${e(search.trim())}` : '')),
+  orderServices: (ma: string, items: ServiceOrderItem[]) => request<StaffBooking>('POST', `/api/bookings/${e(ma)}/services`, { Services: items }),
+  voidService: (ma: string, maSDDV: string, soLuong: number, lyDo: string) => request<StaffBooking>('POST', `/api/bookings/${e(ma)}/services/${e(maSDDV)}/void`, { SoLuong: soLuong, LyDo: lyDo })
+};
+
+// Trả phòng: phiếu đang ở của phòng, bảng kê, lập hoá đơn (kèm mã KM), thanh toán (đổi điểm, tách khoản), thông tin VAT công ty
+export const checkoutApi = {
+  currentStay: (maPhong: string) => hoacNull(request<StaffBooking>('GET', `/api/rooms/${e(maPhong)}/current-stay`)),
+  folio: (maDatPhong: string) => request<Folio>('GET', `/api/bookings/${e(maDatPhong)}/folio`),
+  generate: (maDatPhong: string, maKhuyenMai: string | null) => request<Invoice>('POST', '/api/invoices', { MaDatPhong: maDatPhong, MaKhuyenMai: maKhuyenMai }),
+  pay: (maHoaDon: string, phuongThuc: string, diemSuDung: number, cacKhoan: PaymentPart[] | null) =>
+    request<Invoice>('POST', `/api/invoices/${e(maHoaDon)}/payments`, { PhuongThuc: phuongThuc, DiemSuDung: diemSuDung, CacKhoan: cacKhoan }),
+  setCompany: (maHoaDon: string, r: InvoiceCompany) => request<Invoice>('PUT', `/api/invoices/${e(maHoaDon)}/company`, r)
 };

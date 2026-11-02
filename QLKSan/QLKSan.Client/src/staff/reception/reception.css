@@ -162,3 +162,60 @@
   .fk-rong { grid-column: auto; }
 }
 .sc-muc > small { display: block; color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+/* R3d — khách hàng, lịch sử đặt phòng, gọi dịch vụ, trả phòng */
+.o-chon { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.o-chon input { width: auto; }
+.kh-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: .9rem; }
+.kh-dl dt { color: var(--muted); }
+.kh-dl dd { margin: 0; overflow-wrap: anywhere; }
+.kh-nhan { margin: 10px 0 2px; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kh-nhan:first-of-type { margin-top: 0; }
+.kh-nhan small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.cham-soc-kh { border-left: 4px solid var(--gold); }
+.kh-yeu-cau { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kh-han-che { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px; align-items: center; }
+.dv-loc { margin: 0; }
+.dv-gio { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dv-gio li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 10px; padding: 10px 12px; background: #FDFCF8; border: 1px solid var(--border); border-radius: 6px; }
+.dv-gio li > div:first-child { display: flex; flex-direction: column; min-width: 0; }
+.dv-sl { display: flex; align-items: center; gap: 4px; }
+.dv-sl span { min-width: 22px; text-align: center; font-weight: 700; }
+.dv-gio .link-btn { font-size: 1.2rem; line-height: 1; }
+.dv-huy { grid-template-columns: 1fr 2fr; }
+.tp-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 12px 14px; background: #FBF9F5; border-radius: 8px; }
+.tp-meta span { display: block; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tp-h { margin-top: 20px !important; }
+.tp-tong { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+.tp-tong > div { display: flex; justify-content: space-between; gap: 12px; }
+.tp-tong > div > strong { white-space: nowrap; }
+.tp-tong-cong { border-top: 1px solid var(--border); padding-top: 8px; font-size: 1.1rem; }
+.tp-con { border-top: 2px solid var(--gold); padding-top: 8px; font-weight: 700; color: var(--danger); font-size: 1.05rem; }
+.tp-doi-phong { margin-top: 12px; }
+.tp-so-cai { gap: 14px; }
+.tp-pt { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; transition: opacity .15s; }
+.tp-pt.tp-mo { opacity: .45; }
+.tp-pt-the { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.tp-pt-the input { width: auto; accent-color: var(--gold); }
+.tp-pt-the span { display: flex; flex-direction: column; }
+.tp-pt-the.dang-chon { border-color: var(--gold); background: #FBF9F5; box-shadow: inset 0 0 0 1px var(--gold); }
+.tp-diem .the-dau { margin: 0; }
+.tp-khoan { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 6px; }
+.tp-vat { border-top: 1px solid var(--border); padding-top: 12px; }
+.tp-vat summary { cursor: pointer; font-weight: 600; }
+.tp-vat-form { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 8px; margin-top: 10px; }
+.tp-rong { grid-column: 1 / -1; }
+.tp-vat-form .the-dau { margin: 0; }
+.tp-in { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+@media (max-width: 760px) {
+  .tp-meta { grid-template-columns: 1fr 1fr; }
+  .tp-khoan, .kh-han-che { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .tim-phieu input { width: 100%; }
+  .dv-gio li { grid-template-columns: minmax(0, 1fr) auto; }
+}
+.dv-luoi .badge, .tp-luoi .badge { white-space: nowrap; }
+.tp-so-cai .sc-tong { font-size: 1.9rem; }
+.tp-so-cai .sc-tong.chu-loi { color: var(--danger); }
+.tp-so-cai .sc-tong.chu-ok { color: var(--ok, #2E7D4F); }

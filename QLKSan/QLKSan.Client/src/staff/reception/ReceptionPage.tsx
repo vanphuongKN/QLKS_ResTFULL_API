@@ -36,6 +36,8 @@ export function ReceptionPage() {
   const [locPhong, setLocPhong] = useState<RoomStatus | 'all'>('all');
   const [tim, setTim] = useState('');
   const tabsRef = useRef<HTMLDivElement>(null);
+  // Vừa thanh toán ở trang trả phòng: nút in hoá đơn (như TempData PrintInvoiceId của MVC)
+  const inHoaDon = (location.state as { inHoaDon?: string } | null)?.inHoaDon;
   const duyet = useThaoTac({ mutationFn: bookingApi.approve, lamMoi: [['front-desk'], ['rooms']], thanhCong: 'Đã duyệt yêu cầu đặt phòng trực tuyến.', tienToLoi: 'Không thể duyệt yêu cầu này. ' });
 
   useEffect(() => { const h = location.hash.slice(1); if (laTab(h)) setTab(h); }, [location.hash]);
@@ -149,6 +151,11 @@ export function ReceptionPage() {
         </div>
       </div>
 
+      {inHoaDon && (
+        <div className="alert alert-ok tp-in" role="status">
+          Thanh toán và trả phòng thành công! <a href={`/in/hoa-don/${inHoaDon}`} target="_blank" rel="noopener" className="btn btn-gold btn-sm">In hoá đơn {inHoaDon}</a>
+        </div>
+      )}
       <div className="kpi-luoi">
         <button type="button" className="kpi kpi-toi" onClick={() => chonTab('den', true)}><span>Khách đến</span><strong>{d.SoKhachDen}</strong><small>Đã nhận {d.SoKhachDenDaNhan} · còn {(d.SoKhachDen ?? 0) - (d.SoKhachDenDaNhan ?? 0)}</small></button>
         <button type="button" className="kpi" onClick={() => chonTab('di', true)}><span>Khách đi</span><strong>{d.SoKhachDi}</strong><small>Đã trả {d.SoKhachDiDaTra} · còn {(d.SoKhachDi ?? 0) - (d.SoKhachDiDaTra ?? 0)}{quaHan > 0 ? ` · ${quaHan} quá hạn` : ''}</small></button>
