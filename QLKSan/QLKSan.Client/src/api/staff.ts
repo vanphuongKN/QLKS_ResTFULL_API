@@ -27,6 +27,14 @@ export type StayQuote = S['StayChangeQuoteDto'];
 export type Companion = S['CompanionRequest'];
 export type CheckInBooking = S['CheckInBookingRequest'];
 export type StaffBooking = S['BookingDto'];
+export type FrontDeskBooking = S['FrontDeskBookingRequest'];
+export type WalkIn = S['CheckInRequest'];
+export type CustomerLookup = S['CustomerDto'];
+export type GuestRequest = S['GuestRequestDto'];
+export type GuestRequestCreate = S['GuestRequestCreateRequest'];
+export type ShiftSummary = S['ShiftSummaryDto'];
+export type ShiftHandover = S['ShiftHandoverDto'];
+export type RoomTypeAvailability = S['RoomTypeAvailabilityDto'];
 
 const e = encodeURIComponent;
 
@@ -63,8 +71,30 @@ export const roomApi = {
 };
 
 export const frontDeskApi = {
-  today: () => request<FrontDeskToday>('GET', '/api/front-desk/today')
+  today: () => request<FrontDeskToday>('GET', '/api/front-desk/today'),
+  shift: () => request<ShiftSummary>('GET', '/api/front-desk/shift'),
+  closeShift: (tienMatThucTe: number, ghiChu: string | null) => request<ShiftHandover>('POST', '/api/front-desk/shift/close', { TienMatThucTe: tienMatThucTe, GhiChuBanGiao: ghiChu }),
+  handovers: (soNgay = 7) => request<ShiftHandover[]>('GET', `/api/front-desk/shifts?soNgay=${soNgay}`),
+  // Đặt phòng qua quầy (điện thoại / email / tại quầy / đại lý), nhận khách vãng lai
+  book: (r: FrontDeskBooking) => request<StaffBooking>('POST', '/api/bookings/front-desk', r),
+  walkIn: (r: WalkIn) => request<StaffBooking>('POST', '/api/bookings/walk-in', r),
+  availableTypes: (checkIn: string, checkOut: string, soNguoi: number) =>
+    request<RoomTypeAvailability[]>('GET', `/api/room-types/available?checkIn=${checkIn}&checkOut=${checkOut}&soNguoi=${soNguoi}`),
+  // Tra khách cũ theo đúng số CCCD / hộ chiếu hoặc số điện thoại
+  lookup: (q: string) => request<CustomerLookup[]>('GET', `/api/customers/lookup?q=${e(q)}`),
+  activeStays: () => request<StaffBooking[]>('GET', '/api/bookings/active')
 };
+
+export const guestRequestApi = {
+  // loc: mo (đang mở) | xong (7 ngày) | null = tất cả (30 ngày)
+  list: (loc: string | null) => request<GuestRequest[]>('GET', '/api/guest-requests' + (loc ? `?loc=${e(loc)}` : '')),
+  create: (r: GuestRequestCreate) => request<GuestRequest>('POST', '/api/guest-requests', r),
+  update: (ma: number, trangThai: GuestRequestStatus, ketQua: string | null) => request<GuestRequest>('PATCH', `/api/guest-requests/${ma}`, { TrangThai: trangThai, KetQua: ketQua })
+};
+
+// Loại yêu cầu khách ghi tại quầy; tên hiển thị trạng thái yêu cầu (QLKSan.Shared)
+export const LOAI_YEU_CAU = ['Báo thức', 'Đặt xe / đưa đón', 'Nhắn gửi', 'Đồ thất lạc', 'Buồng phòng', 'Kỹ thuật', 'Khác'];
+export const TRANG_THAI_YEU_CAU: Record<GuestRequestStatus, string> = { New: 'Mới', InProgress: 'Đang xử lý', Done: 'Hoàn thành', Cancelled: 'Đã huỷ' };
 
 // Thao tác trên phiếu đặt phòng tại quầy (như BookingApiClient của Web)
 export const bookingApi = {
@@ -84,6 +114,8 @@ export const bookingApi = {
     request<S['HousekeepingPreferencesDto']>('PUT', `/api/housekeeping/stays/${e(ma)}/preferences`, r)
 };
 
+// Phòng trống ngay lúc này (không tham số, như WalkIn của MVC)
+export const availableRoomsNow = () => request<Room[]>('GET', '/api/rooms/available');
 // Phòng trống trong khoảng ngày, đủ sức chứa
 export const availableRooms = (checkIn: string, checkOut: string, soNguoi: number) =>
   request<Room[]>('GET', `/api/rooms/available?checkIn=${checkIn}&checkOut=${checkOut}&soNguoi=${soNguoi}`);

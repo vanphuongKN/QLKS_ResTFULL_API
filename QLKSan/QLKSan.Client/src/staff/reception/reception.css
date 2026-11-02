@@ -102,7 +102,7 @@
 .chon-phong .badge { margin-left: 6px; }
 
 @media (max-width: 1100px) {
-  .quay-luoi { grid-template-columns: 1fr; }
+  .quay-luoi { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
   .kpi-luoi { grid-template-columns: repeat(2, 1fr); }
@@ -113,3 +113,52 @@
   .ndc-dong { grid-template-columns: 1fr 1fr; }
   .tim-phieu input { width: 100%; }
 }
+
+/* R3c — đặt phòng qua quầy, khách vãng lai, tra khách cũ, yêu cầu khách, giao ca */
+.dat-quay-luoi { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
+.ba-o { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.form-khach { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+.fk-rong { grid-column: span 2; }
+.chon-hang { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.hang-o { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--white); font: inherit; cursor: pointer; }
+.hang-o small { color: var(--muted); }
+.hang-o span { color: var(--gold); font-weight: 600; margin-top: 4px; }
+.hang-o.dang-chon { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); background: #FBF9F5; }
+.hang-o.het { opacity: .5; cursor: not-allowed; }
+.so-cai { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 12px; padding: 20px; background: var(--white); border: 1px solid var(--border); border-top: 4px solid var(--gold); border-radius: var(--radius); }
+.so-cai h2 { font-size: 1.35rem; margin: 0; }
+.so-cai hr { border: 0; border-top: 1px solid var(--border); margin: 0; width: 100%; }
+.sc-muc > span { display: block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+.sc-muc > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sc-muc select { width: auto; }
+.sc-tong { font-family: var(--serif); font-size: 1.5rem; color: var(--gold); }
+.o-coc { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px dashed var(--border); border-radius: 8px; }
+.o-coc .the-dau { margin: 0; }
+.tra-khach { display: flex; flex-direction: column; gap: 8px; }
+.tk-muc { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.tk-muc small { display: block; }
+.tk-muc .the-vip, .tk-muc .the-han-che, .cs-dau .the-vip, .cs-dau .the-han-che { margin-left: 6px; }
+.cham-soc { padding: 10px 12px; border-left: 4px solid var(--gold); background: #FBF9F5; border-radius: 6px; font-size: .88rem; }
+.cham-soc p { margin: 4px 0 0; }
+.cs-dau { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cs-dau small { margin-left: auto; }
+.chon-phong-vl { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.pvl { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--white); font: inherit; cursor: pointer; }
+.pvl small { color: var(--muted); font-size: .72rem; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.pvl strong { font-family: var(--serif); font-size: 1.5rem; color: var(--ink); }
+.pvl.dang-chon { border-color: var(--gold); background: #FBF9F5; }
+.pvl.dang-chon strong, .pvl.dang-chon small:first-child { color: var(--gold); }
+.kpi-nho { font-size: 1.4rem !important; }
+.giao-ca-luoi { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
+.gc-tieu-de { margin-top: 18px !important; }
+.chot-ca { display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 991px) {
+  .dat-quay-luoi, .giao-ca-luoi { grid-template-columns: minmax(0, 1fr); }
+  .so-cai { position: static; }
+  .form-khach { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .ba-o, .form-khach { grid-template-columns: 1fr; }
+  .fk-rong { grid-column: auto; }
+}
+.sc-muc > small { display: block; color: var(--muted); font-size: .78rem; margin-top: 2px; }
