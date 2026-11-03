@@ -51,3 +51,7 @@ export function ngayGio(v?: string | null) {
 
 // Số tiền không kèm ký hiệu (cột bảng hoá đơn): 1.500.000
 export const so = (v?: number | null) => vnd.format(Math.round(v ?? 0));
+
+// Số có tối đa 1 chữ số thập phân (phần trăm công suất, % tăng giảm): 72,5
+const vnd1 = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+export const so1 = (v?: number | null) => vnd1.format(Math.round((v ?? 0) * 10) / 10);

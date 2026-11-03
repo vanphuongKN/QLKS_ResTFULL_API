@@ -4,16 +4,6 @@
 .tim-phieu input { width: 220px; padding: 7px 12px; font-size: .85rem; }
 
 /* KPI */
-.kpi-luoi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
-.kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 16px 18px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font: inherit; color: var(--text); text-decoration: none; }
-.kpi:hover { border-color: var(--gold); }
-.kpi span { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.kpi strong { font-family: var(--serif); font-size: 2.1rem; line-height: 1.1; color: var(--ink); }
-.kpi small { color: var(--muted); }
-.kpi-toi { background: var(--ink); border-color: var(--ink); }
-.kpi-toi span { color: var(--gold-soft); }
-.kpi-toi strong { color: var(--white); }
-.kpi-toi small { color: rgba(255, 255, 255, .72); }
 
 .quay-luoi { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .quay-h { font-family: var(--sans); font-size: .78rem !important; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0 0 10px; }
@@ -105,7 +95,6 @@
   .quay-luoi { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
-  .kpi-luoi { grid-template-columns: repeat(2, 1fr); }
   .phieu-dong { grid-template-columns: 54px minmax(0, 1fr); }
   .pd-thao-tac { grid-column: 1 / -1; align-items: flex-start; }
   .pd-nut { justify-content: flex-start; }
@@ -148,7 +137,6 @@
 .pvl strong { font-family: var(--serif); font-size: 1.5rem; color: var(--ink); }
 .pvl.dang-chon { border-color: var(--gold); background: #FBF9F5; }
 .pvl.dang-chon strong, .pvl.dang-chon small:first-child { color: var(--gold); }
-.kpi-nho { font-size: 1.4rem !important; }
 .giao-ca-luoi { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
 .gc-tieu-de { margin-top: 18px !important; }
 .chot-ca { display: flex; flex-direction: column; gap: 10px; }

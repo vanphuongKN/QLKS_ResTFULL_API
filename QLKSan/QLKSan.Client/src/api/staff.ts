@@ -183,3 +183,55 @@ export const checkoutApi = {
     request<Invoice>('POST', `/api/invoices/${e(maHoaDon)}/payments`, { PhuongThuc: phuongThuc, DiemSuDung: diemSuDung, CacKhoan: cacKhoan }),
   setCompany: (maHoaDon: string, r: InvoiceCompany) => request<Invoice>('PUT', `/api/invoices/${e(maHoaDon)}/company`, r)
 };
+
+// ===== R4: kế toán, chốt ngày =====
+export type AccountingOverview = S['AccountingOverviewDto'];
+export type InvoiceListItem = S['InvoiceListItemDto'];
+export type InvoiceDetail = S['InvoiceDetailDto'];
+export type InvoiceStatus = NonNullable<S['InvoiceStatus']>;
+export type DepositReport = S['DepositReportDto'];
+export type RevenueReport = S['RevenueReportDto'];
+export type OccupancyReport = S['OccupancyReportDto'];
+export type ShiftMethod = S['ShiftMethodDto'];
+export type NightAuditPreview = S['NightAuditPreviewDto'];
+export type NightAuditFigures = S['NightAuditFiguresDto'];
+export type DayClose = S['DayCloseDto'];
+
+const khoang = (tuNgay: string, denNgay: string) => `tuNgay=${tuNgay}&denNgay=${denNgay}`;
+
+export const TRANG_THAI_HOA_DON: Record<InvoiceStatus, string> = { Unpaid: 'Chưa thanh toán', Paid: 'Đã thanh toán', Cancelled: 'Đã hủy' };
+export const TEN_TRANG_THAI_PHIEU: Record<BookingStatus, string> = {
+  Pending: 'Chờ duyệt', Approved: 'Đã duyệt', CheckedIn: 'Đã nhận phòng', CheckedOut: 'Đã trả phòng', Cancelled: 'Đã hủy', Completed: 'Hoàn thành'
+};
+
+export interface LocHoaDon { tuNgay?: string | null; denNgay?: string | null; trangThai?: InvoiceStatus | null; search?: string | null; congTy?: boolean }
+
+export const accountingApi = {
+  overview: (tuNgay: string, denNgay: string) => request<AccountingOverview>('GET', `/api/reports/overview?${khoang(tuNgay, denNgay)}`),
+  invoices: (l: LocHoaDon) => {
+    const q = new URLSearchParams();
+    if (l.congTy) q.set('congTy', 'true');
+    if (l.tuNgay) q.set('tuNgay', l.tuNgay);
+    if (l.denNgay) q.set('denNgay', l.denNgay);
+    if (l.trangThai) q.set('trangThai', l.trangThai);
+    if (l.search?.trim()) q.set('search', l.search.trim());
+    const s = q.toString();
+    return request<InvoiceListItem[]>('GET', '/api/invoices' + (s ? `?${s}` : ''));
+  },
+  invoice: (ma: string) => hoacNull(request<InvoiceDetail>('GET', `/api/invoices/${e(ma)}`)),
+  refund: (ma: string, soTien: number, phuongThuc: string, lyDo: string) => request<InvoiceDetail>('POST', `/api/invoices/${e(ma)}/refunds`, { SoTien: soTien, PhuongThuc: phuongThuc, LyDo: lyDo }),
+  setEInvoice: (ma: string, so: string | null) => request<Invoice>('PUT', `/api/invoices/${e(ma)}/e-invoice`, { SoHoaDonDienTu: so }),
+  deposits: (tuNgay: string, denNgay: string) => request<DepositReport>('GET', `/api/reports/deposits?${khoang(tuNgay, denNgay)}`),
+  shifts: (tuNgay: string, denNgay: string) => request<ShiftHandover[]>('GET', `/api/reports/shifts?${khoang(tuNgay, denNgay)}`),
+  revenue: (tuNgay: string, denNgay: string) => request<RevenueReport>('GET', `/api/reports/revenue?${khoang(tuNgay, denNgay)}`),
+  occupancy: (tuNgay: string, denNgay: string) => request<OccupancyReport>('GET', `/api/reports/occupancy?${khoang(tuNgay, denNgay)}`),
+  revenueExportPath: (tuNgay: string, denNgay: string) => `/api/reports/revenue/export?${khoang(tuNgay, denNgay)}`
+};
+
+export const nightAuditApi = {
+  preview: (ngay?: string | null) => request<NightAuditPreview>('GET', '/api/night-audit/preview' + (ngay ? `?ngay=${ngay}` : '')),
+  list: (tuNgay: string, denNgay: string) => request<DayClose[]>('GET', `/api/night-audit?${khoang(tuNgay, denNgay)}`),
+  get: (ngay: string) => hoacNull(request<DayClose>('GET', `/api/night-audit/${ngay}`)),
+  close: (ngay: string, giuLai: string[], ghiChu: string | null) => request<DayClose>('POST', '/api/night-audit/close', { Ngay: ngay, GiuLai: giuLai, GhiChu: ghiChu }),
+  reopen: (ngay: string, lyDo: string) => request<void>('POST', `/api/night-audit/${ngay}/reopen`, { LyDo: lyDo })
+};
