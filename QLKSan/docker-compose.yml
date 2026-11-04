@@ -100,7 +100,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ChatBot__Provider: ${CHATBOT_PROVIDER:-RuleBased}
       ChatBot__ApiBaseUrl: http://gateway:8080/
-      ChatBot__WebBaseUrl: http://localhost:${WEB_PORT:-7081}/
+      # Liên kết trợ lý ảo gửi khách mở trên giao diện chính (React)
+      ChatBot__WebBaseUrl: http://localhost:${CLIENT_PORT:-7082}/
       ChatBot__OpenAI__ApiKey: ${OPENAI_API_KEY:-}
       ChatBot__OpenAI__Model: ${OPENAI_MODEL:-gpt-4o-mini}
       ConnectionStrings__ChatDb: Data Source=/app/data/chatbot.db
@@ -127,6 +128,7 @@ services:
       - "${API_PORT:-7080}:8080"
     restart: unless-stopped
 
+  # Cổng MVC (QLKSan.Web) giữ làm dự phòng; giao diện chính là service client bên dưới
   web:
     build:
       context: .
@@ -144,14 +146,11 @@ services:
       - webkeys:/app/keys
     restart: unless-stopped
 
-  # Trang khách React (QLKSan.Client): nginx phục vụ bản build, /api và /uploads chuyển tới Gateway
+  # Giao diện chính React (QLKSan.Client: trang khách + cổng nhân viên /nhan-vien): nginx phục vụ bản build, /api và /uploads chuyển tới Gateway
   client:
     build:
       context: .
       dockerfile: QLKSan.Client/Dockerfile
-      args:
-        # Trang nhân viên chưa chuyển sang React mở trang tương ứng trên cổng MVC (service web)
-        VITE_MVC_URL: http://localhost:${WEB_PORT:-7081}
     depends_on:
       - gateway
     ports:

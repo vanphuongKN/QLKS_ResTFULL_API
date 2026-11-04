@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Loading, RequireAuth } from './components/common';
 import { ChangePasswordPage, LoginPage, RegisterPage } from './pages/AuthPages';
@@ -13,13 +13,14 @@ import { HomePage } from './pages/HomePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RoomTypePage } from './pages/RoomTypePage';
 import { SearchPage } from './pages/SearchPage';
+import { duongDanMoi } from './utils/links';
 
-// Đường dẫn cũ của trang Web MVC (vd liên kết trợ lý ảo đã gửi) → trang tương ứng của SPA
-function LegacyBookRoom() {
-  return <Navigate to={`/dat-phong${useLocation().search}`} replace />;
-}
-function LegacyRoomType() {
-  return <Navigate to={`/hang-phong/${useParams().id}`} replace />;
+// Đường dẫn không có trong SPA: nếu là đường dẫn cũ của cổng MVC (bookmark, email, trợ lý ảo) thì chuyển sang trang tương ứng
+function KhongTimThay() {
+  const { pathname, search } = useLocation();
+  const moi = duongDanMoi(pathname, search);
+  if (moi) return <Navigate to={moi} replace />;
+  return <div className="container section"><h1>Không tìm thấy trang</h1><Link to="/">← Về trang chủ</Link></div>;
 }
 
 // Cổng nhân viên tải riêng khi cần: khách không tải mã của cổng này
@@ -48,9 +49,7 @@ export function App() {
         <Route path="dac-quyen" element={<MembershipPage />} />
         <Route path="dang-nhap" element={<LoginPage />} />
         <Route path="dang-ky" element={<RegisterPage />} />
-        <Route path="Customer/BookRoom" element={<LegacyBookRoom />} />
-        <Route path="Home/RoomType/:id" element={<LegacyRoomType />} />
-        <Route path="*" element={<div className="container section"><h1>Không tìm thấy trang</h1><Link to="/">← Về trang chủ</Link></div>} />
+        <Route path="*" element={<KhongTimThay />} />
       </Route>
     </Routes>
   );

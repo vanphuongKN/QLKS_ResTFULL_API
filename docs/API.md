@@ -6,7 +6,7 @@ Client (Web, trang khách) gọi qua **Gateway**: `https://localhost:7000` khi p
 
 **Xác thực.** Gửi header `Authorization: Bearer <token>`. Token lấy từ `POST /api/auth/login` (hoặc từ `register`).
 
-**JSON.** Thuộc tính viết PascalCase. Enum truyền dạng chuỗi, ví dụ `"Approved"`. Tài liệu OpenAPI `/openapi/v1.json` (môi trường Development) mô tả đúng quy ước này; trang khách React sinh kiểu TypeScript từ đó (`npm run gen:api`).
+**JSON.** Thuộc tính viết PascalCase. Enum truyền dạng chuỗi, ví dụ `"Approved"`. Tài liệu OpenAPI `/openapi/v1.json` (môi trường Development) mô tả đúng quy ước này; giao diện React sinh kiểu TypeScript từ đó (`npm run gen:api`).
 
 **Mã lỗi.** Lỗi trả về theo ProblemDetails (`title`, `detail`, `errors`):
 

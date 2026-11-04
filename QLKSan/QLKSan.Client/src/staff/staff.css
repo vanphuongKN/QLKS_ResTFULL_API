@@ -24,8 +24,6 @@
 .staff-noi-dung { flex: 1; width: 100%; max-width: 1400px; padding: 24px 28px 48px; }
 
 .banner-chot-ngay { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding: 10px 14px; border-radius: 8px; background: #FBF0D9; color: var(--warn); font-size: .9rem; }
-.chua-chuyen { max-width: 680px; padding: 20px 22px; background: var(--white); border: 1px dashed var(--gold-soft); border-radius: var(--radius); }
-.chua-chuyen p:last-child { margin-bottom: 0; }
 .staff .auth { padding: 8px 0; }
 .staff label.check { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
 .staff label.check input { width: auto; }

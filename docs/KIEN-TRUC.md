@@ -7,8 +7,8 @@ Hệ thống đi theo mô hình **RESTful API + ứng dụng web**. Phần mở 
 ```mermaid
 flowchart LR
     subgraph TrinhDuyet[Trình duyệt]
-        KH[Khách: trang React]
-        NV[Nhân viên + khách: trang MVC]
+        KH[Khách + nhân viên: giao diện React]
+        NV[Cổng MVC dự phòng]
     end
 
     KH -- "/api (cùng nguồn)" --> GW
@@ -36,8 +36,8 @@ flowchart LR
 |---|---|---|---|---|---|
 | `QLKSan.Gateway` | Cổng vào duy nhất: định tuyến, giới hạn tần suất | YARP, RateLimiter | https 7000 | **7080** | — |
 | `QLKSan.API` | Nghiệp vụ khách sạn, xác thực JWT | ASP.NET Core, EF Core | https 7001 | nội bộ | SQL Server |
-| `QLKSan.Web` | Cổng nhân viên + trang khách MVC | ASP.NET Core MVC | https 7234 | **7081** | khoá cookie |
-| `QLKSan.Client` | Trang khách + cổng nhân viên `/nhan-vien` (đang chuyển dần từ MVC) | React 19 + TypeScript (Vite), TanStack Query | http 5173 | **7082** (nginx) | — |
+| `QLKSan.Web` | Cổng nhân viên + trang khách MVC (**dự phòng**) | ASP.NET Core MVC | https 7234 | **7081** | khoá cookie |
+| `QLKSan.Client` | **Giao diện chính**: trang khách + cổng nhân viên `/nhan-vien`; đường dẫn cũ của MVC tự chuyển sang trang tương ứng | React 19 + TypeScript (Vite), TanStack Query | http 5173 | **7082** (nginx) | — |
 | `QLKSan.ChatBot` | Trợ lý ảo cho khách | ASP.NET Core, `ILlmProvider` | https 7004 | nội bộ | SQLite riêng |
 | `QLKSan.Notification` | Gửi email theo sự kiện phiếu đặt phòng | Worker + RabbitMQ.Client | http 5003 | nội bộ | thư mục mail |
 
@@ -137,4 +137,4 @@ Vượt hạn mức thì Gateway trả `429` dạng `application/problem+json` v
 | Trợ lý ảo: chỉ gọi GET công khai, liên kết điền sẵn, tool calling OpenAI, tự chuyển dự phòng | `QLKSan.Tests/ChatBotTests.cs` (API và OpenAI giả lập) | như trên |
 | Gateway: định tuyến, hạn mức theo người dùng / IP, 429 | `QLKSan.Tests/GatewayTests.cs` (service giả) | như trên |
 | Notification: nội dung email từng loại sự kiện, mã hoá HTML | `QLKSan.Tests/NotificationTests.cs` | như trên |
-| Trang React: định dạng, liên kết chatbot, gọi API, tải tệp / tải lên, phiên đăng nhập (khách + nhân viên), menu và phân quyền cổng nhân viên (khớp sidebar MVC) | `QLKSan.Client/src/**/*.test.ts` (Vitest) | `npm test` |
+| Trang React: định dạng, liên kết chatbot, gọi API, tải tệp / tải lên, phiên đăng nhập (khách + nhân viên), menu và phân quyền cổng nhân viên (khớp sidebar MVC), mọi mục menu có trang, chuyển hướng đường dẫn MVC cũ, các phép tính hiển thị (kế toán, chốt ngày, khuyến mãi) | `QLKSan.Client/src/**/*.test.ts` (Vitest) | `npm test` |

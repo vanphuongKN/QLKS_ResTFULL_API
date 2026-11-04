@@ -11,8 +11,9 @@ namespace QLKSan.ChatBot.Common
         // Địa chỉ Gateway để gọi các endpoint công khai của API lõi
         public string ApiBaseUrl { get; set; } = "https://localhost:7000/";
 
-        // Địa chỉ trang Web dùng cho liên kết đặt phòng / xem hạng phòng gửi cho khách
-        public string WebBaseUrl { get; set; } = "https://localhost:7234/";
+        // Địa chỉ giao diện chính (React SPA) dùng cho liên kết đặt phòng / xem hạng phòng gửi cho khách;
+        // SPA hiểu đường dẫn /Customer/BookRoom, /Home/RoomType của cổng MVC (dự phòng) nên liên kết mở được ở cả hai
+        public string WebBaseUrl { get; set; } = "http://localhost:5173/";
 
         // Số tin nhắn gần nhất gửi kèm làm ngữ cảnh cho mô hình
         public int SoTinNhanNguCanh { get; set; } = 12;

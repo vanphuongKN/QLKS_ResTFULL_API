@@ -4,7 +4,6 @@ import { useAuth } from '../auth/AuthContext';
 import { cacTrangNhanVien, trangChuCua, VAI_TRO, type StaffRole } from '../auth/roles';
 import { RequireAuth } from '../components/common';
 import { PageHeader } from '../components/ui/Page';
-import { MVC_URL } from '../config';
 import { ChangePasswordPage } from '../pages/AuthPages';
 import { StaffLayout } from './StaffLayout';
 import { HousekeepingBoardPage } from './housekeeping/HousekeepingBoardPage';
@@ -31,33 +30,33 @@ import './staff.css';
 
 const MOI_NHAN_VIEN: StaffRole[] = ['Admin', 'Receptionist', 'Housekeeping', 'Accountant'];
 
-// Trang đã chuyển sang React, theo đường dẫn menu (các bước R2–R5 thêm vào đây)
-const DA_CHUYEN: Record<string, ComponentType> = {
-  // R2 — buồng phòng
+// Trang của từng mục menu (MENU_NHAN_VIEN trong auth/roles.ts), theo đường dẫn
+export const TRANG_MENU: Record<string, ComponentType> = {
+  // Buồng phòng
   '/nhan-vien/buong-phong': HousekeepingBoardPage,
   '/nhan-vien/buong-phong/viec-cua-toi': MyTasksPage,
   '/nhan-vien/buong-phong/minibar': MinibarPage,
   '/nhan-vien/ky-thuat': MaintenancePage,
-  // R3a — phòng
+  // Phòng
   '/nhan-vien/phong': RoomStatusPage,
   '/nhan-vien/lich-phong': TimelinePage,
   '/nhan-vien/so-luu-tru': GuestsPage,
-  // R3b — quầy lễ tân
+  // Quầy lễ tân
   '/nhan-vien/le-tan': ReceptionPage,
-  // R3c — yêu cầu khách, giao ca
+  // Yêu cầu khách, giao ca
   '/nhan-vien/yeu-cau': RequestsPage,
   '/nhan-vien/giao-ca': ShiftPage,
-  // R3d — khách hàng, gọi dịch vụ
+  // Khách hàng, gọi dịch vụ
   '/nhan-vien/khach-hang': CustomersPage,
   '/nhan-vien/dich-vu': ServicePage,
-  // R4 — kế toán, chốt ngày
+  // Kế toán, chốt ngày
   '/nhan-vien/ke-toan': AccountingOverviewPage,
   '/nhan-vien/ke-toan/hoa-don': InvoicesPage,
   '/nhan-vien/ke-toan/doi-soat': ReconciliationPage,
   '/nhan-vien/ke-toan/vat': VatInvoicesPage,
   '/nhan-vien/ke-toan/bao-cao': ReportsPage,
   '/nhan-vien/chot-ngay': NightAuditPage,
-  // R5 — quản trị
+  // Quản trị
   '/nhan-vien/quan-tri': AdminDashboardPage,
   '/nhan-vien/quan-tri/nhan-su': StaffAdminPage,
   '/nhan-vien/quan-tri/cau-hinh': SettingsPage,
@@ -85,20 +84,6 @@ const TRANG_CON: { path: string; roles: StaffRole[]; el: ComponentType }[] = [
   { path: 'quan-tri/loai-phong/:maLoai/anh', roles: VAI_TRO.quanTri, el: RoomTypeImagesPage }
 ];
 
-// Trang chưa chuyển: chỉ ra bước sẽ chuyển và mở trang tương ứng trên cổng MVC (chạy song song)
-function ChuaChuyen({ ten, mvc, buoc }: { ten: string; mvc: string; buoc: string | null }) {
-  return (
-    <>
-      <PageHeader tieuDe={ten} />
-      <div className="chua-chuyen">
-        <p>Trang này sẽ được chuyển sang giao diện mới ở bước <strong>{buoc}</strong>.</p>
-        <p>Trong thời gian chạy song song, vui lòng dùng trang tương ứng trên cổng nhân viên hiện tại (cần đăng nhập riêng):</p>
-        <p><a className="btn btn-primary btn-sm" href={MVC_URL + mvc} target="_blank" rel="noopener noreferrer">Mở «{ten}» trên cổng MVC ↗</a></p>
-      </div>
-    </>
-  );
-}
-
 function VeTrangChu() {
   const { session } = useAuth();
   return <Navigate to={trangChuCua(session?.vaiTro)} replace />;
@@ -122,11 +107,8 @@ export default function StaffApp() {
       <Route element={<RequireAuth roles={MOI_NHAN_VIEN}><StaffLayout /></RequireAuth>}>
         <Route index element={<VeTrangChu />} />
         {cacTrangNhanVien().map((t) => {
-          const Trang = DA_CHUYEN[t.path];
-          return (
-            <Route key={t.path} path={t.path.replace('/nhan-vien/', '')}
-              element={<RequireAuth roles={t.roles}>{Trang ? <Trang /> : <ChuaChuyen ten={t.ten} mvc={t.mvc} buoc={t.buoc} />}</RequireAuth>} />
-          );
+          const Trang = TRANG_MENU[t.path] ?? KhongTimThay;
+          return <Route key={t.path} path={t.path.replace('/nhan-vien/', '')} element={<RequireAuth roles={t.roles}><Trang /></RequireAuth>} />;
         })}
         {TRANG_CON.map(({ path, roles, el: Trang }) => <Route key={path} path={path} element={<RequireAuth roles={roles}><Trang /></RequireAuth>} />)}
         <Route path="doi-mat-khau" element={<ChangePasswordPage />} />

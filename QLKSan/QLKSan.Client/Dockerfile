@@ -5,9 +5,6 @@ COPY QLKSan.Client/package.json QLKSan.Client/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY QLKSan.Client/ ./
 COPY QLKSan.Web/wwwroot/images /src/QLKSan.Web/wwwroot/images
-# Cổng MVC (chạy song song) cho các trang nhân viên chưa chuyển sang React; docker-compose: Web ở cổng 7081
-ARG VITE_MVC_URL=http://localhost:7081
-ENV VITE_MVC_URL=$VITE_MVC_URL
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine

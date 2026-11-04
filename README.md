@@ -1,6 +1,6 @@
 # LUXE RESERVE — Hệ thống quản lý khách sạn
 
-Hệ thống quản lý khách sạn theo mô hình **RESTful API + ứng dụng Web (MVC)** trên .NET 10 và SQL Server, mở rộng theo hướng microservice: API Gateway (YARP), service thông báo nhận sự kiện qua RabbitMQ, trợ lý ảo (chatbot) cho khách và trang khách viết bằng React.
+Hệ thống quản lý khách sạn theo mô hình **RESTful API + ứng dụng Web** trên .NET 10 và SQL Server. Giao diện chính là ứng dụng React (SPA) cho cả khách và nhân viên; ứng dụng MVC cũ giữ làm dự phòng. Hệ thống mở rộng theo hướng microservice: API Gateway (YARP), service thông báo nhận sự kiện qua RabbitMQ, trợ lý ảo (chatbot) cho khách.
 
 - **Khách hàng** xem hạng phòng, đặt phòng trực tuyến theo hạng và theo ngày, theo dõi kỳ nghỉ, đánh giá, tích và đổi điểm thành viên.
 - **Nhân viên** vận hành theo vai trò: lễ tân, buồng phòng, kế toán và quản trị.
@@ -8,8 +8,8 @@ Hệ thống quản lý khách sạn theo mô hình **RESTful API + ứng dụng
 ## Kiến trúc
 
 ```
-Trình duyệt ──► QLKSan.Client (React SPA, trang khách) ──/api (cùng nguồn)──┐
-Trình duyệt ──► QLKSan.Web (MVC, cookie) ──HTTP + JWT──► QLKSan.Gateway (YARP) ──► QLKSan.API (REST) ──EF Core──► SQL Server
+Trình duyệt ──► QLKSan.Client (React SPA: khách + /nhan-vien) ──/api (cùng nguồn)──┐
+Trình duyệt ──► QLKSan.Web (MVC dự phòng, cookie) ──HTTP + JWT──► QLKSan.Gateway (YARP) ──► QLKSan.API (REST) ──EF Core──► SQL Server
    (widget chat)                                          giới hạn tần suất  │         │ outbox (SuKienCho)
                                                          /api/chat/* ──► QLKSan.ChatBot ──(dữ liệu công khai qua Gateway)
                                                                           SQLite riêng · RuleBased / OpenAI
@@ -24,8 +24,8 @@ Sơ đồ chi tiết (thành phần, luồng đặt phòng → email, luồng tr
 | Project | Vai trò |
 |---|---|
 | `QLKSan/QLKSan.API` | Project **duy nhất** truy cập CSDL. Nghiệp vụ nằm trong `Business/`, controller mỏng. Xác thực bằng JWT. Lỗi trả về theo chuẩn ProblemDetails: 400 dữ liệu sai, 404 không tìm thấy, 409 sai trạng thái. |
-| `QLKSan/QLKSan.Web` | Ứng dụng MVC cho khách và nhân viên. Chỉ gọi API (qua Gateway) bằng `ApiClients/`, không truy cập CSDL. Đăng nhập bằng cookie và giữ JWT để gọi API. |
-| `QLKSan/QLKSan.Client` | Giao diện React + TypeScript (Vite), đang thay dần QLKSan.Web. **Trang khách** (đủ chức năng như cổng MVC): trang chủ, Câu chuyện, Ẩm thực, Spa, Thư viện ảnh, Đặc quyền thành viên, hạng phòng, tìm phòng trống, đặt phòng (kiểm tra mã ưu đãi), kỳ nghỉ của tôi (huỷ, xem / in hoá đơn), đánh giá kỳ nghỉ, hồ sơ thành viên, đổi mật khẩu, trợ lý ảo. **Cổng nhân viên** `/nhan-vien` (tải riêng): đăng nhập theo vai trò, menu và phân quyền giống cổng MVC, cảnh báo chốt ngày; đã có đủ phần buồng phòng (phân công, kiểm tra phòng theo danh mục, việc của tôi, ghi minibar, phiếu kỹ thuật) và lễ tân / thu ngân (quầy lễ tân, nhận phòng, đổi phòng, đổi ngày, đặt phòng qua quầy, khách vãng lai, yêu cầu khách, giao ca, phòng nghỉ, lịch phòng, sổ lưu trú, hồ sơ khách hàng, lịch sử đặt phòng, gọi dịch vụ, trả phòng: lập hoá đơn, đổi điểm, tách thanh toán, xuất VAT công ty), kế toán (tổng quan kỳ so với kỳ trước, hoá đơn, hoàn tiền, ghi số hoá đơn VAT điện tử, đối soát giao ca / sổ cọc, báo cáo doanh thu + xuất Excel) và chốt ngày (xem trước, khách không đến, chốt, bản in, quản lý mở lại), quản trị (bảng điều khiển, nhân sự, cấu hình khách sạn, nhật ký thao tác, loại phòng + bộ ảnh, phòng + tiện nghi, dịch vụ & giá, bảng giá theo mùa, khuyến mãi, đánh giá) — toàn bộ menu cổng nhân viên đã có trên React; cổng MVC vẫn chạy song song đến khi chuyển hẳn (R6). Gọi API qua Gateway cùng nguồn (Vite proxy khi dev, nginx + CSP khi chạy Docker), kiểu dữ liệu sinh từ OpenAPI (`npm run gen:api`), dữ liệu quản lý bằng TanStack Query. |
+| `QLKSan/QLKSan.Web` | Ứng dụng MVC cho khách và nhân viên, **giữ làm dự phòng** (vẫn build và chạy được, đủ chức năng). Chỉ gọi API (qua Gateway) bằng `ApiClients/`, không truy cập CSDL. Đăng nhập bằng cookie và giữ JWT để gọi API. |
+| `QLKSan/QLKSan.Client` | **Giao diện chính**: React + TypeScript (Vite), đủ chức năng như cổng MVC. **Trang khách** (đủ chức năng như cổng MVC): trang chủ, Câu chuyện, Ẩm thực, Spa, Thư viện ảnh, Đặc quyền thành viên, hạng phòng, tìm phòng trống, đặt phòng (kiểm tra mã ưu đãi), kỳ nghỉ của tôi (huỷ, xem / in hoá đơn), đánh giá kỳ nghỉ, hồ sơ thành viên, đổi mật khẩu, trợ lý ảo. **Cổng nhân viên** `/nhan-vien` (tải riêng): đăng nhập theo vai trò, menu và phân quyền giống cổng MVC, cảnh báo chốt ngày; đã có đủ phần buồng phòng (phân công, kiểm tra phòng theo danh mục, việc của tôi, ghi minibar, phiếu kỹ thuật) và lễ tân / thu ngân (quầy lễ tân, nhận phòng, đổi phòng, đổi ngày, đặt phòng qua quầy, khách vãng lai, yêu cầu khách, giao ca, phòng nghỉ, lịch phòng, sổ lưu trú, hồ sơ khách hàng, lịch sử đặt phòng, gọi dịch vụ, trả phòng: lập hoá đơn, đổi điểm, tách thanh toán, xuất VAT công ty), kế toán (tổng quan kỳ so với kỳ trước, hoá đơn, hoàn tiền, ghi số hoá đơn VAT điện tử, đối soát giao ca / sổ cọc, báo cáo doanh thu + xuất Excel) và chốt ngày (xem trước, khách không đến, chốt, bản in, quản lý mở lại), quản trị (bảng điều khiển, nhân sự, cấu hình khách sạn, nhật ký thao tác, loại phòng + bộ ảnh, phòng + tiện nghi, dịch vụ & giá, bảng giá theo mùa, khuyến mãi, đánh giá). Đường dẫn cũ của cổng MVC (bookmark, email, liên kết trợ lý ảo, vd `/Reception`, `/Checkout/Process?maPhong=…`) tự chuyển sang trang React tương ứng. Gọi API qua Gateway cùng nguồn (Vite proxy khi dev, nginx + CSP khi chạy Docker), kiểu dữ liệu sinh từ OpenAPI (`npm run gen:api`), dữ liệu quản lý bằng TanStack Query. |
 | `QLKSan/QLKSan.Gateway` | Cổng vào duy nhất (YARP): chuyển `/api/*`, `/uploads/*` tới API lõi theo mục `ReverseProxy` trong `appsettings.json`; giới hạn tần suất theo người dùng (JWT) hoặc theo IP, đăng nhập / đăng ký chặt hơn (trả 429). Không chứa nghiệp vụ. |
 | `QLKSan/QLKSan.ChatBot` | Trợ lý ảo cho khách (`/api/chat/conversations`): tìm phòng trống và báo giá, giờ nhận/trả phòng, chính sách, dịch vụ, đánh giá. Provider chọn bằng `ChatBot:Provider`: `RuleBased` (mặc định, không cần khoá) hoặc `OpenAI` (tool calling; lỗi thì tự dùng RuleBased). Chỉ gọi endpoint công khai của API lõi qua Gateway; không đặt phòng mà trả liên kết đặt phòng điền sẵn. Lịch sử hội thoại lưu ở SQLite riêng. |
 | `QLKSan/QLKSan.Notification` | Service thông báo: nhận sự kiện phiếu đặt phòng (đặt mới, huỷ, nhận phòng) từ RabbitMQ, gửi email cho khách qua SMTP hoặc ghi file `.eml` khi chưa cấu hình SMTP. Mỗi sự kiện chỉ xử lý một lần. |
@@ -42,7 +42,7 @@ Danh sách endpoint xem tại [docs/API.md](docs/API.md). Khi chạy ở môi tr
 ## Yêu cầu
 
 - .NET SDK 10
-- Node.js 22 (chỉ cần cho trang khách React `QLKSan.Client`)
+- Node.js 22 (cho giao diện chính React `QLKSan.Client`)
 - SQL Server 2019 trở lên (đăng nhập `sa` hoặc sửa chuỗi kết nối)
 - Visual Studio 2022 17.14+ / VS Code, hoặc chỉ cần dòng lệnh
 
@@ -54,9 +54,9 @@ Danh sách endpoint xem tại [docs/API.md](docs/API.md). Khi chạy ở môi tr
 
 ## Chạy hệ thống
 
-**Cách nhanh:** chạy `QLKSan/run.bat`. File này build solution, mở API (`https://localhost:7001`), Gateway (`https://localhost:7000`), ChatBot (`https://localhost:7004`) và Web (`https://localhost:7234`), rồi mở trình duyệt. Nếu máy có Node.js, file này mở thêm trang khách React (`http://localhost:5173`). Lần đầu nó tự chạy `npm install`.
+**Cách nhanh:** chạy `QLKSan/run.bat`. File này build solution, mở API (`https://localhost:7001`), Gateway (`https://localhost:7000`), ChatBot (`https://localhost:7004`), cổng MVC dự phòng (`https://localhost:7234`) và giao diện chính React (`http://localhost:5173`, cần Node.js 22; lần đầu tự chạy `npm install`), rồi mở trình duyệt ở trang React. Máy không có Node.js thì mở cổng MVC.
 
-**Visual Studio:** mở `QLKSan/QLKSan.slnx` và đặt Multiple startup projects = `QLKSan.API` + `QLKSan.Gateway` + `QLKSan.ChatBot` + `QLKSan.Web` (profile `https`). Web gọi API qua Gateway (`ApiSettings:BaseUrl` = `https://localhost:7000/`).
+**Visual Studio:** mở `QLKSan/QLKSan.slnx` và đặt Multiple startup projects = `QLKSan.API` + `QLKSan.Gateway` + `QLKSan.ChatBot` (+ `QLKSan.Web` nếu cần cổng MVC dự phòng; profile `https`), rồi chạy giao diện React bằng `npm run dev` (mục bên dưới). Web gọi API qua Gateway (`ApiSettings:BaseUrl` = `https://localhost:7000/`).
 
 **Trợ lý ảo dùng OpenAI (tuỳ chọn):** mặc định trợ lý trả lời theo quy tắc (`RuleBased`). Để dùng OpenAI, đặt khoá bằng user-secrets của `QLKSan.ChatBot` (không ghi vào `appsettings.json`):
 
@@ -81,7 +81,7 @@ dotnet run --project QLKSan.ChatBot --launch-profile https
 dotnet run --project QLKSan.Web --launch-profile https
 ```
 
-**Trang khách React (QLKSan.Client):** cần API + Gateway (+ ChatBot) đang chạy, rồi:
+**Giao diện React (QLKSan.Client):** cần API + Gateway (+ ChatBot) đang chạy, rồi:
 
 ```bash
 cd QLKSan/QLKSan.Client
@@ -89,7 +89,7 @@ npm install
 npm run dev               # http://localhost:5173, /api chuyển tới Gateway https://localhost:7000
 ```
 
-Đổi Gateway bằng biến `VITE_GATEWAY`; địa chỉ cổng MVC cho các trang nhân viên chưa chuyển bằng `VITE_MVC_URL` (mặc định `https://localhost:7234`). Cổng nhân viên: `http://localhost:5173/nhan-vien`, đăng nhập bằng tài khoản nhân viên ở trang đăng nhập chung. Sinh lại kiểu dữ liệu khi API thay đổi: `npm run gen:api` (đọc `https://localhost:7001/openapi/v1.json`, đổi bằng `API_OPENAPI_URL`). Build: `npm run build` → `dist/`.
+Đổi Gateway bằng biến `VITE_GATEWAY`. Cổng nhân viên: `http://localhost:5173/nhan-vien`, đăng nhập bằng tài khoản nhân viên ở trang đăng nhập chung. Liên kết đặt phòng của trợ lý ảo trỏ tới giao diện React (`ChatBot:WebBaseUrl`, mặc định `http://localhost:5173/`). Sinh lại kiểu dữ liệu khi API thay đổi: `npm run gen:api` (đọc `https://localhost:7001/openapi/v1.json`, đổi bằng `API_OPENAPI_URL`). Build: `npm run build` → `dist/`.
 
 > Không mở trực tiếp `bin\...\QLKSan.Web.exe`: khi đó ứng dụng chạy ở môi trường Production, sẽ không có CSS/JS và không biết địa chỉ API.
 
@@ -179,7 +179,7 @@ cp .env.example .env      # đổi SA_PASSWORD, JWT_KEY, RABBITMQ_PASSWORD (tu�
 docker compose up -d --build
 ```
 
-- Trang khách (React): http://localhost:7082 · Web (MVC, cổng nhân viên): http://localhost:7081 · Gateway (API): http://localhost:7080/api/health · RabbitMQ: http://localhost:15672 (tài khoản `qlksan`) · SQL Server: `localhost,14330` (tài khoản `sa`).
+- Giao diện chính (React: khách + cổng nhân viên `/nhan-vien`): http://localhost:7082 · Web MVC (dự phòng): http://localhost:7081 · Gateway (API): http://localhost:7080/api/health · RabbitMQ: http://localhost:15672 (tài khoản `qlksan`) · SQL Server: `localhost,14330` (tài khoản `sa`).
 - API lõi, ChatBot và service thông báo không mở cổng ra ngoài: mọi yêu cầu đi qua Gateway. API lõi bật outbox (`Messaging:Enabled`) nên email đặt phòng / huỷ / nhận phòng được gửi tới khách. Không đặt `SMTP_HOST` thì email nằm trong volume `mail`.
 - Lần đầu, dịch vụ `db-init` tạo database từ `DB/Quanlykhachsanc#.sql`. Các lần sau giữ nguyên dữ liệu; API tự nâng cấp cấu trúc khi khởi động.
 - Dữ liệu SQL Server, RabbitMQ, ảnh tải lên, email, hội thoại trợ lý ảo và khoá cookie đăng nhập nằm trong volume (`sqldata`, `rabbitmq`, `uploads`, `mail`, `chatdata`, `webkeys`), nên vẫn còn khi khởi động lại. `docker compose down -v` xoá toàn bộ.
