@@ -24,6 +24,9 @@ import { CheckoutPage } from './reception/CheckoutPage';
 import { AccountingOverviewPage, InvoiceDetailPage, InvoicesPage, VatInvoicesPage } from './accounting/AccountingPages';
 import { ReconciliationPage, ReportsPage } from './accounting/ReportPages';
 import { NightAuditPage, NightAuditPrintPage } from './accounting/NightAuditPages';
+import { AdminDashboardPage, AuditLogPage, SettingsPage, StaffAdminPage } from './admin/AdminPages';
+import { AmenitiesPage, RoomsAdminPage, RoomTypeImagesPage, RoomTypesPage, ServicesAdminPage } from './admin/CatalogPages';
+import { PricingPage, PromotionsPage, ReviewsAdminPage } from './admin/RevenuePages';
 import './staff.css';
 
 const MOI_NHAN_VIEN: StaffRole[] = ['Admin', 'Receptionist', 'Housekeeping', 'Accountant'];
@@ -53,7 +56,19 @@ const DA_CHUYEN: Record<string, ComponentType> = {
   '/nhan-vien/ke-toan/doi-soat': ReconciliationPage,
   '/nhan-vien/ke-toan/vat': VatInvoicesPage,
   '/nhan-vien/ke-toan/bao-cao': ReportsPage,
-  '/nhan-vien/chot-ngay': NightAuditPage
+  '/nhan-vien/chot-ngay': NightAuditPage,
+  // R5 — quản trị
+  '/nhan-vien/quan-tri': AdminDashboardPage,
+  '/nhan-vien/quan-tri/nhan-su': StaffAdminPage,
+  '/nhan-vien/quan-tri/cau-hinh': SettingsPage,
+  '/nhan-vien/quan-tri/nhat-ky': AuditLogPage,
+  '/nhan-vien/quan-tri/loai-phong': RoomTypesPage,
+  '/nhan-vien/quan-tri/phong': RoomsAdminPage,
+  '/nhan-vien/quan-tri/tien-nghi': AmenitiesPage,
+  '/nhan-vien/quan-tri/dich-vu': ServicesAdminPage,
+  '/nhan-vien/quan-tri/bang-gia': PricingPage,
+  '/nhan-vien/quan-tri/khuyen-mai': PromotionsPage,
+  '/nhan-vien/quan-tri/danh-gia': ReviewsAdminPage
 };
 
 // Trang con không nằm trong menu (mở từ trang khác), kèm quyền như [Authorize] của MVC
@@ -66,7 +81,8 @@ const TRANG_CON: { path: string; roles: StaffRole[]; el: ComponentType }[] = [
   { path: 'lich-su-dat-phong', roles: VAI_TRO.leTan, el: BookingHistoryPage },
   // Checkout của MVC là WebRoles.Cashier (lễ tân + kế toán)
   { path: 'tra-phong', roles: VAI_TRO.thuNgan, el: CheckoutPage },
-  { path: 'ke-toan/hoa-don/:maHoaDon', roles: VAI_TRO.keToan, el: InvoiceDetailPage }
+  { path: 'ke-toan/hoa-don/:maHoaDon', roles: VAI_TRO.keToan, el: InvoiceDetailPage },
+  { path: 'quan-tri/loai-phong/:maLoai/anh', roles: VAI_TRO.quanTri, el: RoomTypeImagesPage }
 ];
 
 // Trang chưa chuyển: chỉ ra bước sẽ chuyển và mở trang tương ứng trên cổng MVC (chạy song song)

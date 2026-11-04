@@ -1,5 +1,5 @@
 import type { components } from './schema';
-import { ApiError, request } from './client';
+import { ApiError, request, upload } from './client';
 
 // API cho cổng nhân viên (cùng endpoint mà QLKSan.Web gọi qua ApiClients/); quyền do API kiểm tra theo JWT
 type S = components['schemas'];
@@ -234,4 +234,97 @@ export const nightAuditApi = {
   get: (ngay: string) => hoacNull(request<DayClose>('GET', `/api/night-audit/${ngay}`)),
   close: (ngay: string, giuLai: string[], ghiChu: string | null) => request<DayClose>('POST', '/api/night-audit/close', { Ngay: ngay, GiuLai: giuLai, GhiChu: ghiChu }),
   reopen: (ngay: string, lyDo: string) => request<void>('POST', `/api/night-audit/${ngay}/reopen`, { LyDo: lyDo })
+};
+
+// ===== R5: quản trị =====
+export type Dashboard = S['DashboardDto'];
+export type DashboardStay = S['DashboardStayDto'];
+export type Role = S['Role'];
+export type EmployeeStatus = S['EmployeeStatus'];
+export type CreateStaff = S['CreateStaffRequest'];
+export type UpdateStaff = S['UpdateStaffRequest'];
+export type HotelSettings = S['HotelSettingsDto'];
+export type HotelInfoSettings = S['HotelInfoSettingsDto'];
+export type HotelPolicySettings = S['HotelPolicySettingsDto'];
+export type LoyaltySettings = S['LoyaltySettingsDto'];
+export type MembershipTier = S['MembershipTierDto'];
+export type AuditLogPage = S['AuditLogPageDto'];
+
+export interface LocNhatKy { tuNgay: string; denNgay: string; doiTuong?: string | null; nguoiDung?: string | null; tuKhoa?: string | null; trang: number }
+
+export const adminApi = {
+  dashboard: () => request<Dashboard>('GET', '/api/dashboard'),
+  staff: () => request<Staff[]>('GET', '/api/staff'),
+  createStaff: (r: CreateStaff) => request<void>('POST', '/api/staff', r),
+  updateStaff: (ma: string, r: UpdateStaff) => request<void>('PUT', `/api/staff/${e(ma)}`, r),
+  deleteStaff: (ma: string) => request<void>('DELETE', `/api/staff/${e(ma)}`),
+  resetPassword: (ma: string, matKhauMoi: string) => request<void>('POST', `/api/staff/${e(ma)}/reset-password`, { MatKhauMoi: matKhauMoi }),
+  settings: () => request<HotelSettings>('GET', '/api/settings'),
+  saveHotelInfo: (r: HotelInfoSettings) => request<void>('PUT', '/api/settings/hotel-info', r),
+  savePolicy: (r: HotelPolicySettings) => request<void>('PUT', '/api/settings/policy', r),
+  saveLoyalty: (r: LoyaltySettings) => request<void>('PUT', '/api/settings/loyalty', r),
+  auditLogs: (l: LocNhatKy) => {
+    const q = new URLSearchParams({ trang: String(l.trang), tuNgay: l.tuNgay, denNgay: l.denNgay });
+    if (l.doiTuong) q.set('doiTuong', l.doiTuong);
+    if (l.nguoiDung) q.set('nguoiDung', l.nguoiDung);
+    if (l.tuKhoa?.trim()) q.set('tuKhoa', l.tuKhoa.trim());
+    return request<AuditLogPage>('GET', `/api/audit-logs?${q}`);
+  }
+};
+
+export const TEN_VAI_TRO: Record<Role, string> = { Customer: 'Khách hàng', Receptionist: 'Nhân viên lễ tân', Admin: 'Admin', Housekeeping: 'Nhân viên buồng phòng', Accountant: 'Kế toán' };
+export const VAI_TRO_NHAN_VIEN: Role[] = ['Receptionist', 'Housekeeping', 'Accountant', 'Admin'];
+
+export type RoomTypeAdmin = S['RoomTypeDto'];
+export type RoomTypeDetailAdmin = S['RoomTypeDetailDto'];
+export type RoomTypeForm = S['RoomTypeRequest'];
+export type Amenity = S['AmenityDto'];
+export type ServiceForm = S['ServiceRequest'];
+export type PricingRule = S['PricingRuleDto'];
+export type PricingRuleForm = S['PricingRuleRequest'];
+export type PromotionAdmin = S['PromotionDto'];
+export type PromotionForm = S['PromotionRequest'];
+export type ReviewAdmin = S['ReviewDto'];
+
+export const catalogApi = {
+  roomTypes: () => request<RoomTypeAdmin[]>('GET', '/api/room-types'),
+  roomType: (ma: string) => hoacNull(request<RoomTypeDetailAdmin>('GET', `/api/room-types/${e(ma)}`)),
+  createRoomType: (r: RoomTypeForm) => request<void>('POST', '/api/room-types', r),
+  updateRoomType: (ma: string, r: RoomTypeForm) => request<void>('PUT', `/api/room-types/${e(ma)}`, r),
+  deleteRoomType: (ma: string) => request<void>('DELETE', `/api/room-types/${e(ma)}`),
+  uploadImage: (ma: string, file: File) => upload<S['RoomTypeImageDto']>(`/api/room-types/${e(ma)}/images`, file),
+  deleteImage: (ma: string, maHinhAnh: string) => request<void>('DELETE', `/api/room-types/${e(ma)}/images/${e(maHinhAnh)}`),
+  createRoom: (soPhong: string, maLoai: string) => request<void>('POST', '/api/rooms', { SoPhong: soPhong, MaLoai: maLoai }),
+  updateRoom: (ma: string, soPhong: string, maLoai: string) => request<void>('PUT', `/api/rooms/${e(ma)}`, { SoPhong: soPhong, MaLoai: maLoai }),
+  deleteRoom: (ma: string) => request<void>('DELETE', `/api/rooms/${e(ma)}`),
+  setRoomAmenities: (ma: string, maTienIchs: string[], apDungCaHang: boolean) => request<void>('PUT', `/api/rooms/${e(ma)}/amenities`, { MaTienIchs: maTienIchs, ApDungCaHang: apDungCaHang }),
+  amenities: () => request<Amenity[]>('GET', '/api/amenities'),
+  createAmenity: (ten: string, icon: string) => request<void>('POST', '/api/amenities', { TenTienIch: ten, Icon: icon }),
+  updateAmenity: (ma: string, ten: string, icon: string) => request<void>('PUT', `/api/amenities/${e(ma)}`, { TenTienIch: ten, Icon: icon }),
+  deleteAmenity: (ma: string) => request<void>('DELETE', `/api/amenities/${e(ma)}`),
+  createService: (r: ServiceForm) => request<void>('POST', '/api/services', r),
+  updateService: (ma: string, r: ServiceForm) => request<void>('PUT', `/api/services/${e(ma)}`, r),
+  deleteService: (ma: string) => request<void>('DELETE', `/api/services/${e(ma)}`),
+  setServiceStatus: (ma: string, trangThai: 'Available' | 'Unavailable') => request<Service>('PATCH', `/api/services/${e(ma)}`, { TrangThai: trangThai }),
+  pricingRules: () => request<PricingRule[]>('GET', '/api/pricing-rules'),
+  createPricingRule: (r: PricingRuleForm) => request<void>('POST', '/api/pricing-rules', r),
+  updatePricingRule: (ma: string, r: PricingRuleForm) => request<void>('PUT', `/api/pricing-rules/${e(ma)}`, r),
+  setPricingRuleActive: (ma: string, kichHoat: boolean) => request<void>('PATCH', `/api/pricing-rules/${e(ma)}`, { KichHoat: kichHoat }),
+  deletePricingRule: (ma: string) => request<void>('DELETE', `/api/pricing-rules/${e(ma)}`),
+  promotions: () => request<PromotionAdmin[]>('GET', '/api/promotions'),
+  createPromotion: (r: PromotionForm) => request<void>('POST', '/api/promotions', r),
+  updatePromotion: (ma: string, r: PromotionForm) => request<void>('PUT', `/api/promotions/${e(ma)}`, r),
+  setPromotionActive: (ma: string, kichHoat: boolean) => request<void>('PATCH', `/api/promotions/${e(ma)}`, { KichHoat: kichHoat }),
+  deletePromotion: (ma: string) => request<void>('DELETE', `/api/promotions/${e(ma)}`),
+  reviews: (soSao?: number | null, chuaPhanHoi?: boolean, an?: boolean | null) => {
+    const q = new URLSearchParams();
+    if (soSao != null) q.set('soSao', String(soSao));
+    if (chuaPhanHoi) q.set('chuaPhanHoi', 'true');
+    if (an != null) q.set('an', String(an));
+    const s = q.toString();
+    return request<ReviewAdmin[]>('GET', '/api/reviews' + (s ? `?${s}` : ''));
+  },
+  replyReview: (ma: string, noiDung: string) => request<void>('PUT', `/api/reviews/${e(ma)}/reply`, { NoiDung: noiDung }),
+  deleteReply: (ma: string) => request<void>('DELETE', `/api/reviews/${e(ma)}/reply`),
+  setReviewHidden: (ma: string, an: boolean) => request<void>('PATCH', `/api/reviews/${e(ma)}`, { An: an })
 };
