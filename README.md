@@ -54,9 +54,38 @@ Danh sách endpoint xem tại [docs/API.md](docs/API.md). Khi chạy ở môi tr
 
 ## Chạy hệ thống
 
-**Cách nhanh:** chạy `QLKSan/run.bat`. File này build solution, mở API (`https://localhost:7001`), Gateway (`https://localhost:7000`), ChatBot (`https://localhost:7004`), cổng MVC dự phòng (`https://localhost:7234`) và giao diện chính React (`http://localhost:5173`, cần Node.js 22; lần đầu tự chạy `npm install`), rồi mở trình duyệt ở trang React. Máy không có Node.js thì mở cổng MVC.
+Giao diện chính là **React** (`http://localhost:5173`): trang khách và cổng nhân viên `/nhan-vien`. React chỉ là giao diện, dữ liệu lấy qua **API** (`https://localhost:7001`) và **Gateway** (`https://localhost:7000`), nên hai service này phải đang chạy. Cổng MVC (`https://localhost:7234`) giữ làm dự phòng.
 
-**Visual Studio:** mở `QLKSan/QLKSan.slnx` và đặt Multiple startup projects = `QLKSan.API` + `QLKSan.Gateway` + `QLKSan.ChatBot` (+ `QLKSan.Web` nếu cần cổng MVC dự phòng; profile `https`), rồi chạy giao diện React bằng `npm run dev` (mục bên dưới). Web gọi API qua Gateway (`ApiSettings:BaseUrl` = `https://localhost:7000/`).
+**Cách 1 — bấm đúp `QLKSan/run.bat` (dễ nhất)**
+
+1. Bấm đúp `QLKSan/run.bat`. File này build solution rồi mở mỗi service một cửa sổ: API, Gateway, ChatBot, Web MVC (dự phòng) và giao diện React. Lần đầu nó tự chạy `npm install` cho React (mất vài phút).
+2. Khoảng 10 giây sau trình duyệt tự mở `http://localhost:5173`.
+3. Tắt hệ thống: đóng các cửa sổ vừa mở.
+
+Cần Node.js 22. Máy chưa có Node.js thì `run.bat` mở cổng MVC thay cho React.
+
+**Cách 2 — Visual Studio + Terminal**
+
+1. Mở `QLKSan/QLKSan.slnx`, đặt Multiple startup projects = `QLKSan.API` + `QLKSan.Gateway` + `QLKSan.ChatBot` (thêm `QLKSan.Web` nếu cần cổng MVC dự phòng), profile `https`, rồi bấm **Start**.
+2. Visual Studio không chạy được phần React (đây là dự án Node, không phải .NET). Mở **View → Terminal** và chạy:
+
+   ```bash
+   cd QLKSan\QLKSan.Client
+   npm install      # chỉ lần đầu
+   npm run dev      # http://localhost:5173
+   ```
+
+3. Thấy dòng `Local: http://localhost:5173/` thì mở địa chỉ đó trên trình duyệt. Tắt React bằng `Ctrl + C` trong Terminal.
+
+**Vào hệ thống:**
+
+| Trang | Địa chỉ |
+|---|---|
+| Trang khách | `http://localhost:5173` |
+| Cổng nhân viên | `http://localhost:5173/nhan-vien` (đăng nhập ở trang đăng nhập chung bằng tài khoản mẫu bên dưới) |
+| Cổng MVC dự phòng | `https://localhost:7234` |
+
+Đường dẫn cũ của cổng MVC gõ vào React (vd `/Reception`, `/Checkout/Process?maPhong=P201`, `/Invoice/Print/HD03`) tự chuyển sang trang mới tương ứng. Trang React báo "không kết nối được máy chủ" nghĩa là API hoặc Gateway chưa chạy.
 
 **Trợ lý ảo dùng OpenAI (tuỳ chọn):** mặc định trợ lý trả lời theo quy tắc (`RuleBased`). Để dùng OpenAI, đặt khoá bằng user-secrets của `QLKSan.ChatBot` (không ghi vào `appsettings.json`):
 
@@ -81,7 +110,7 @@ dotnet run --project QLKSan.ChatBot --launch-profile https
 dotnet run --project QLKSan.Web --launch-profile https
 ```
 
-**Giao diện React (QLKSan.Client):** cần API + Gateway (+ ChatBot) đang chạy, rồi:
+**Giao diện React bằng dòng lệnh (QLKSan.Client):** cần API + Gateway (+ ChatBot) đang chạy, rồi:
 
 ```bash
 cd QLKSan/QLKSan.Client
