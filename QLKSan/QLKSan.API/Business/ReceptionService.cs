@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
+using QLKSan.Messaging;
+using QLKSan.Models.Events;
 using QLKSan.Models.Entities;
 using QLKSan.Models.Requests;
 using QLKSan.Extensions;
@@ -20,10 +22,12 @@ namespace QLKSan.Business
         private readonly HotelPolicy _policy;
         private readonly IPricingService _pricing;
         private readonly IPromotionService _promotions;
+        private readonly IEventOutbox _events;
 
         public ReceptionService(ApplicationDbContext context, IRoomAvailabilityService availability, IOptions<HotelPolicy> policy, IPricingService pricing,
-            IPromotionService promotions)
+            IPromotionService promotions, IEventOutbox events)
         {
+            _events = events;
             _context = context;
             _availability = availability;
             _policy = policy.Value;
@@ -153,6 +157,7 @@ namespace QLKSan.Business
                 booking.NgayCheckInThucTe = DateTime.Now;
                 booking.MaNhanVien = maNhanVien;
                 room.TrangThai = RoomStatus.Occupied;
+                await _events.AddBookingEventAsync(BookingEventTypes.NhanPhong, maDatPhong);
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -198,6 +203,8 @@ namespace QLKSan.Business
                     booking.GhiChu = BookingNotes.Append(booking.GhiChu, $"[Giữ cọc {booking.TienCoc:N0}đ theo chính sách huỷ]");
                 }
             }
+
+            await _events.AddBookingEventAsync(BookingEventTypes.HuyPhieu, maDatPhong, string.IsNullOrWhiteSpace(lyDo) ? null : lyDo.Trim());
 
             // Phòng tự được giải phóng vì phòng trống được tính theo phiếu đang hiệu lực
             await _context.SaveChangesAsync();
@@ -272,6 +279,8 @@ namespace QLKSan.Business
 
                 // 5. Update Room Status
                 room.TrangThai = RoomStatus.Occupied;
+                await _context.SaveChangesAsync();
+                await _events.AddBookingEventAsync(BookingEventTypes.NhanPhong, booking.MaDatPhong);
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -410,6 +419,8 @@ namespace QLKSan.Business
                     RecordDeposit(booking, PaymentType.Payment, r.TienCoc, r.PhuongThucCoc, maNhanVien, "Cọc khi đặt phòng");
 
                 // Không đổi Phong.TrangThai: phòng chỉ bị giữ trong khoảng ngày của phiếu
+                await _context.SaveChangesAsync();
+                await _events.AddBookingEventAsync(BookingEventTypes.DatPhongMoi, booking.MaDatPhong);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return booking.MaDatPhong;

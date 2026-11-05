@@ -42,6 +42,8 @@ namespace QLKSan
             // JwtTokenHandler tự gắn Bearer token của người dùng đang đăng nhập.
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<JwtTokenHandler>();
+            builder.Services.AddTransient<ForwardedClientHandler>();
+            builder.Services.AddTransient<ApiConnectionHandler>();
             var apiBaseUrl = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
             // Ảnh tải lên do trình duyệt tải trực tiếp từ API: dùng địa chỉ công khai nếu Web gọi API qua địa chỉ nội bộ (vd: Docker)
             var publicUrl = builder.Configuration["ApiSettings:PublicUrl"];
@@ -50,8 +52,11 @@ namespace QLKSan
                 where TClient : class
                 where TImplementation : class, TClient
             {
+                // ApiConnectionHandler đứng ngoài cùng: bắt lỗi kết nối của cả chuỗi
                 builder.Services.AddHttpClient<TClient, TImplementation>(c => c.BaseAddress = apiBaseUrl)
-                    .AddHttpMessageHandler<JwtTokenHandler>();
+                    .AddHttpMessageHandler<ApiConnectionHandler>()
+                    .AddHttpMessageHandler<JwtTokenHandler>()
+                    .AddHttpMessageHandler<ForwardedClientHandler>();
             }
 
             AddApiClient<IAuthApiClient, AuthApiClient>();
@@ -76,6 +81,7 @@ namespace QLKSan
             AddApiClient<INightAuditApiClient, NightAuditApiClient>();
             AddApiClient<IPricingRuleApiClient, PricingRuleApiClient>();
             AddApiClient<IHotelApiClient, HotelApiClient>();
+            AddApiClient<IChatApiClient, ChatApiClient>();
 
             // Thông tin khách sạn dùng chung cho footer và trang chủ (lưu đệm trong bộ nhớ)
             builder.Services.AddMemoryCache();

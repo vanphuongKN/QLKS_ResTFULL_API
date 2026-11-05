@@ -42,3 +42,9 @@ QLKSan/QLKSan.API/wwwroot/uploads/
 
 # Biến môi trường docker compose (mật khẩu, khoá)
 QLKSan/.env
+
+# Email ghi ra file của service thông báo khi chưa cấu hình SMTP
+QLKSan/QLKSan.Notification/mail/
+
+# CSDL SQLite của ChatBot khi chạy local
+QLKSan/QLKSan.ChatBot/data/

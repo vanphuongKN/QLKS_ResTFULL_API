@@ -8,8 +8,10 @@ using Microsoft.Extensions.Options;
 using QLKSan.Common;
 using QLKSan.Data;
 using QLKSan.Enums;
+using QLKSan.Messaging;
 using QLKSan.Models.DTOs;
 using QLKSan.Models.Entities;
+using QLKSan.Models.Events;
 
 namespace QLKSan.Business
 {
@@ -34,11 +36,13 @@ namespace QLKSan.Business
 
         private readonly ApplicationDbContext _context;
         private readonly NightAuditPolicy _policy;
+        private readonly IEventOutbox _events;
 
-        public NightAuditService(ApplicationDbContext context, IOptions<NightAuditPolicy> policy)
+        public NightAuditService(ApplicationDbContext context, IOptions<NightAuditPolicy> policy, IEventOutbox events)
         {
             _context = context;
             _policy = policy.Value;
+            _events = events;
         }
 
         // Ngày đã chốt gần nhất (dùng để khoá sửa số liệu của các ngày đã chốt)
@@ -134,6 +138,7 @@ namespace QLKSan.Business
                     p.NgayHuy = DateTime.Now;
                     p.GhiChu = BookingNotes.Append(p.GhiChu, $"[Không đến - chốt ngày {d:dd/MM/yyyy} - {nguoiChot}]"
                         + (p.TienCoc > 0 ? $" [Giữ cọc {p.TienCoc:N0}đ]" : ""));
+                    await _events.AddBookingEventAsync(BookingEventTypes.HuyPhieu, p.MaDatPhong, $"Khách không đến ngày {p.NgayCheckInDuKien:dd/MM/yyyy}");
                 }
 
                 var soLieu = await ComputeAsync(d, khongDen);

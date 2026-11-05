@@ -108,8 +108,10 @@ namespace QLKSan.Business
             var room = await _context.Phongs.FindAsync(maPhong)
                 ?? throw new NotFoundException($"Không tìm thấy phòng '{maPhong}'.");
 
-            // Lịch sử dọn phòng là dữ liệu vận hành của chính phòng này nên xoá theo; phiếu đặt/đánh giá vẫn chặn việc xoá
+            // Lịch sử dọn phòng và tiện nghi gán cho phòng là dữ liệu của chính phòng này nên xoá theo;
+            // phiếu đặt / hình ảnh / đánh giá vẫn chặn việc xoá
             _context.PhanCongDonPhongs.RemoveRange(_context.PhanCongDonPhongs.Where(t => t.MaPhong == maPhong));
+            _context.PhongTienIchs.RemoveRange(_context.PhongTienIchs.Where(x => x.MaPhong == maPhong));
             _context.Phongs.Remove(room);
             try
             {

@@ -1,12 +1,12 @@
 # QLKSan.API — Danh sách endpoint
 
-Địa chỉ khi phát triển: `https://localhost:7001`. Ở môi trường Development, Swagger có tại `/swagger`.
+Client (Web, trang khách) gọi qua **Gateway**: `https://localhost:7000` khi phát triển, `http://localhost:7080` khi chạy Docker. Gateway chuyển nguyên đường dẫn `/api/*`, `/uploads/*` tới API lõi (`https://localhost:7001`, Swagger tại `/swagger` ở môi trường Development). Gọi quá giới hạn tần suất → `429` (`application/problem+json`). Hạn mức từng nhóm endpoint xem [KIEN-TRUC.md](KIEN-TRUC.md#giới-hạn-tần-suất-gateway).
 
 ## Quy ước
 
 **Xác thực.** Gửi header `Authorization: Bearer <token>`. Token lấy từ `POST /api/auth/login` (hoặc từ `register`).
 
-**JSON.** Thuộc tính viết PascalCase. Enum truyền dạng chuỗi, ví dụ `"Approved"`.
+**JSON.** Thuộc tính viết PascalCase. Enum truyền dạng chuỗi, ví dụ `"Approved"`. Tài liệu OpenAPI `/openapi/v1.json` (môi trường Development) mô tả đúng quy ước này; giao diện React sinh kiểu TypeScript từ đó (`npm run gen:api`).
 
 **Mã lỗi.** Lỗi trả về theo ProblemDetails (`title`, `detail`, `errors`):
 
@@ -217,3 +217,27 @@ Cột **Quyền** trong các bảng dưới: "Công khai" = không cần đăng 
 | GET | `/api/settings` | Admin | Cấu hình nghiệp vụ hiện hành (thông tin khách sạn, chính sách lưu trú, chương trình thành viên) và mục nào đã được tuỳ chỉnh |
 | PUT | `/api/settings/hotel-info` · `/policy` · `/loyalty` | Admin | Lưu từng mục vào CSDL (bảng `CauHinh`); có hiệu lực ngay, không cần khởi động lại |
 | GET | `/api/audit-logs?tuNgay&denNgay&doiTuong&nguoiDung&tuKhoa&trang&soDong` | Admin | Nhật ký thao tác: mọi thao tác thay đổi dữ liệu thành công (người thực hiện, thời gian, đối tượng, dữ liệu gửi lên — không lưu mật khẩu) và các lần tạm khoá tài khoản |
+
+## Trợ lý ảo — `/api/chat/conversations` (QLKSan.ChatBot)
+
+Công khai, đi qua Gateway với giới hạn riêng `RateLimit:ChatMoiPhut` (mặc định 20 lần/phút mỗi người dùng hoặc IP).
+
+| Phương thức | Đường dẫn | Quyền | Mô tả |
+|---|---|---|---|
+| POST | `/api/chat/conversations` | Công khai | Tạo hội thoại → 201 `{ MaHoiThoai, TinNhan: [lời chào kèm GoiY] }` |
+| GET | `/api/chat/conversations/{id}` | Công khai | Lịch sử hội thoại (404 nếu không có) |
+| POST | `/api/chat/conversations/{id}/messages` | Công khai | Gửi `{ "NoiDung" }` (1–500 ký tự) → tin trả lời `{ VaiTro: "bot", NoiDung, LienKet: [{ Nhan, Url }], GoiY, Provider }`. `LienKet` gồm nút đặt phòng điền sẵn (`/Customer/BookRoom?maLoai&checkIn&checkOut&soNguoi`), xem hạng phòng, bản đồ. `Provider` = `RuleBased`, `OpenAI` hoặc `RuleBased (dự phòng)` |
+
+Trợ lý chỉ đọc `GET /api/hotel`, `/api/room-types`, `/api/room-types/available`, `/api/services`, `/api/reviews/featured` qua Gateway; không có quyền đặt, sửa hay huỷ phiếu.
+
+## Sự kiện (RabbitMQ)
+
+API lõi ghi sự kiện vào bảng outbox `SuKienCho` trong cùng giao dịch với nghiệp vụ. Tác vụ nền đẩy sự kiện lên exchange `qlksan.su-kien` (topic, bền) khi bật `Messaging:Enabled`. Nội dung là JSON `BookingEvent` (`QLKSan.Shared/Models/Events`). `MessageId` = `MaSuKien`.
+
+| Routing key | Phát khi | Service nhận |
+|---|---|---|
+| `booking.created` | Khách đặt online, đặt phòng qua quầy | Notification: email xác nhận |
+| `booking.checked-in` | Nhận phòng (phiếu đã đặt, khách vãng lai) | Notification: email chào mừng |
+| `booking.cancelled` | Huỷ / từ chối phiếu, khách không đến khi chốt ngày (`LyDo`) | Notification: email huỷ (kèm cọc giữ lại) |
+
+Hàng đợi `qlksan.thong-bao` gắn khoá `booking.*`. Sự kiện có thể đến hơn một lần (outbox gửi lại sau sự cố); service nhận phải bỏ qua sự kiện đã xử lý theo `MaSuKien`.

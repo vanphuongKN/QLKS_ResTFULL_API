@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using QLKSan.Business;
 using QLKSan.Common;
 using QLKSan.Data;
+using QLKSan.Messaging;
 
 namespace QLKSan
 {
@@ -27,6 +28,15 @@ namespace QLKSan
                     // Enum trả về dạng chuỗi ("Available") thay vì số (0)
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
+            // Tài liệu OpenAPI sinh schema theo cấu hình JSON của minimal API: đặt giống controller để mô tả đúng PascalCase / enum chuỗi
+            // (client sinh kiểu từ /openapi/v1.json, vd QLKSan.Client)
+            builder.Services.ConfigureHttpJsonOptions(options =>
+            {
+                options.SerializerOptions.PropertyNamingPolicy = null;
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                // API luôn trả số dạng số: không mô tả kiểu "number | string"
+                options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+            });
             builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
             // Lỗi trả về dạng ProblemDetails (RFC 7807)
@@ -73,6 +83,16 @@ namespace QLKSan
             builder.Services.AddScoped<IOptions<LoyaltyPolicy>>(sp => Options.Create(sp.GetRequiredService<IHotelSettingsService>().GetLoyalty()));
             builder.Services.AddHostedService<DailyHousekeepingService>();
 
+            // Sự kiện cho các service khác (thông báo): ghi outbox cùng giao dịch, tác vụ nền đẩy lên RabbitMQ khi bật
+            builder.Services.Configure<MessagingOptions>(builder.Configuration.GetSection(MessagingOptions.SectionName));
+            builder.Services.AddScoped<IEventOutbox, EventOutbox>();
+            if (builder.Configuration.GetValue<bool>($"{MessagingOptions.SectionName}:Enabled"))
+                builder.Services.AddHostedService<OutboxDispatcher>();
+
+            // Chạy sau Gateway: lấy IP thật của người dùng từ X-Forwarded-For (chỉ tin proxy trong mạng đã khai báo)
+            builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+                TrustedProxies.Configure(options, builder.Configuration.GetSection("ForwardedHeaders:MangTinCay").Get<string[]>()));
+
             builder.Services.AddScoped<IRoomAvailabilityService, RoomAvailabilityService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<ITokenService, JwtTokenService>();
@@ -109,6 +129,8 @@ namespace QLKSan
             var app = builder.Build();
 
             app.ApplySchemaFixes();
+
+            app.UseForwardedHeaders();
 
             // Configure the HTTP request pipeline.
             app.UseExceptionHandler();

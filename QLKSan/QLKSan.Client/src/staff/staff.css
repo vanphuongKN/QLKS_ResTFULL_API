@@ -1,0 +1,75 @@
+/* Cổng nhân viên (/nhan-vien): sidebar tối + vùng làm việc sáng, cùng bảng màu với trang khách */
+.staff { display: flex; min-height: 100vh; background: #F4F1EA; }
+.staff-sidebar { position: sticky; top: 0; height: 100vh; width: 248px; flex: 0 0 248px; display: flex; flex-direction: column; background: var(--ink-2); color: #C9C3B8; overflow-y: auto; }
+.staff-brand { display: block; padding: 24px 22px 4px; font-family: var(--serif); font-size: 1.2rem; letter-spacing: .22em; white-space: nowrap; color: var(--white); text-decoration: none; }
+.staff-sub { margin: 0; padding: 0 22px 18px; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gold-soft); border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.staff-nav { flex: 1; padding: 10px 0 16px; }
+.staff-nhom { padding-top: 6px; }
+.staff-nhom-ten { padding: 12px 22px 4px; font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: #8C8577; }
+.staff-muc { display: block; padding: 8px 22px; border-left: 3px solid transparent; color: #DDD7CC; text-decoration: none; font-size: .9rem; }
+.staff-muc:hover { background: rgba(255, 255, 255, .05); color: var(--white); }
+.staff-muc.active { border-left-color: var(--gold); background: rgba(176, 141, 87, .14); color: var(--white); font-weight: 600; }
+.staff-dang-xuat { margin: 0 16px 20px; padding: 9px 14px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 999px; background: transparent; color: #DDD7CC; cursor: pointer; }
+.staff-dang-xuat:hover { border-color: var(--gold); color: var(--white); }
+.staff-phu { display: none; }
+
+.staff-chinh { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.staff-top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 12px 28px; background: var(--white); border-bottom: 1px solid var(--border); }
+.staff-nut-menu { display: none; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-size: 1.1rem; cursor: pointer; }
+.staff-top-brand { display: none; font-family: var(--serif); letter-spacing: .28em; color: var(--ink); }
+.staff-nguoi-dung { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px 14px; font-size: .88rem; }
+.staff-vai-tro { padding: 2px 10px; border-radius: 999px; background: var(--gold-light); color: var(--ink); font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
+.staff-ten { font-weight: 600; color: var(--ink); }
+.staff-lien-ket { color: var(--muted); font-size: .85rem; }
+.staff-noi-dung { flex: 1; width: 100%; max-width: 1400px; padding: 24px 28px 48px; }
+
+.banner-chot-ngay { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding: 10px 14px; border-radius: 8px; background: #FBF0D9; color: var(--warn); font-size: .9rem; }
+.staff .auth { padding: 8px 0; }
+.staff label.check { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
+.staff label.check input { width: auto; }
+.staff .auth .card-form { max-width: 480px; }
+
+/* Khối dùng chung của các trang nhân viên (thẻ, đầu thẻ, bộ lọc dạng chip) */
+.the-trang { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
+.the-trang h2 { font-size: 1.35rem; margin: 0; }
+.the-dau { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 14px; }
+.the-dau-nut { display: flex; flex-wrap: wrap; gap: 8px; }
+.nowrap { white-space: nowrap; }
+.alert-info { background: #E3ECF8; color: var(--info); }
+.badge-gold { background: var(--gold-light); color: #7A5F2E; }
+.loc-chip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.loc-chip a, .loc-chip button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--white); text-decoration: none; font-size: .85rem; }
+.loc-chip a.active, .loc-chip button.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.loc-chip button { cursor: pointer; font: inherit; font-size: .85rem; }
+.the-trang h3 { font-size: 1.15rem; }
+
+/* Màn hình hẹp: sidebar trượt từ trái, lớp phủ phía sau */
+@media (max-width: 991px) {
+  .staff-sidebar { position: fixed; left: 0; z-index: 50; transform: translateX(-100%); transition: transform .2s ease; }
+  .staff-mo-menu .staff-sidebar { transform: none; }
+  .staff-mo-menu .staff-phu { display: block; position: fixed; inset: 0; z-index: 40; border: 0; background: rgba(20, 26, 36, .5); }
+  .staff-nut-menu, .staff-top-brand { display: inline-block; }
+  .staff-top { padding: 10px 16px; }
+  .staff-noi-dung { padding: 18px 16px 40px; }
+  .staff-ten, .staff-lien-ket { display: none; }
+}
+@media print {
+  .staff-sidebar, .staff-top, .banner-chot-ngay { display: none !important; }
+  .staff-noi-dung { padding: 0; }
+}
+
+/* Thẻ số liệu (KPI) dùng chung: quầy lễ tân, giao ca, khách hàng, kế toán, chốt ngày */
+.kpi-luoi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 16px 18px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font: inherit; color: var(--text); text-decoration: none; }
+.kpi:hover { border-color: var(--gold); }
+.kpi > span { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kpi strong { font-family: var(--serif); font-size: 2.1rem; line-height: 1.1; color: var(--ink); }
+.kpi small { color: var(--muted); }
+.kpi-toi { background: var(--ink); border-color: var(--ink); }
+.kpi-toi > span { color: var(--gold-soft); }
+.kpi-toi strong { color: var(--white); }
+.kpi-toi small { color: rgba(255, 255, 255, .72); }
+.kpi-nho { font-size: 1.4rem !important; }
+.kpi-tang { color: var(--ok); font-weight: 600; }
+.kpi-giam { color: var(--danger); font-weight: 600; }
+@media (max-width: 760px) { .kpi-luoi { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

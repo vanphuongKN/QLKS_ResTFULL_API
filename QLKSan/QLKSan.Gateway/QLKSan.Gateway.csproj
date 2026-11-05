@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QLKSan.Gateway</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Cổng vào duy nhất: chuyển tiếp tới các service, giới hạn tần suất; không chứa nghiệp vụ, không truy cập CSDL -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+
+</Project>
